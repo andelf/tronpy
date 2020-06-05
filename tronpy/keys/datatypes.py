@@ -1,4 +1,4 @@
-import ecdsa
+import ecdsa  # type: ignore
 from Crypto.Hash import keccak
 import hashlib
 import base58
@@ -43,13 +43,16 @@ def to_base58check_address(raw_addr: Union[str, bytes]) -> str:
         return to_base58check_address(raw_addr.decode())
     raise BadAddress
 
+def to_hex_address(raw_addr: Union[str, bytes]) -> str:
+    addr = to_base58check_address(raw_addr)
+    return base58.b58decode_check(addr).hex()
 
 def is_base58check_address(value: str) -> bool:
-    return value[0] == 'T' and len(base58.b58decode_check(value)) == 21
+    return value[0] == "T" and len(base58.b58decode_check(value)) == 21
 
 
 def is_hex_address(value: str) -> bool:
-    return value.startswith('41') and len(bytes.fromhex(value)) == 21
+    return value.startswith("41") and len(bytes.fromhex(value)) == 21
 
 
 def is_address(value: str) -> bool:
@@ -64,7 +67,7 @@ class BaseKey(ByteString, Hashable):
         return self._raw_key.hex()
 
     @classmethod
-    def fromhex(cls, hex_str):
+    def fromhex(cls, hex_str: str) -> 'BaseKey':
         return cls(bytes.fromhex(hex_str))
 
     def to_bytes(self) -> bytes:
@@ -129,7 +132,7 @@ class PublicKey(BaseKey):
         return signature.verify_msg(message, self)
 
     def verify_msg_hash(self, message_hash: bytes, signature: "Signature") -> bool:
-        return signature.verify_msg_hash(message_hash)
+        return signature.verify_msg_hash(message_hash, self)
 
     # Address conversions
     def to_base58check_address(self) -> str:
@@ -165,7 +168,9 @@ class PrivateKey(BaseKey):
         super().__init__()
 
     def sign_msg(self, message: bytes) -> "Signature":
-        sk = ecdsa.SigningKey.from_string(self._raw_key, curve=ecdsa.SECP256k1, hashfunc=hashlib.sha256)
+        sk = ecdsa.SigningKey.from_string(
+            self._raw_key, curve=ecdsa.SECP256k1, hashfunc=hashlib.sha256
+        )
         signature = sk.sign_deterministic(message)
 
         # recover address to get rec_id
@@ -180,7 +185,9 @@ class PrivateKey(BaseKey):
         return Signature(signature)
 
     def sign_msg_hash(self, message_hash: bytes) -> "Signature":
-        sk = ecdsa.SigningKey.from_string(self._raw_key, curve=ecdsa.SECP256k1, hashfunc=hashlib.sha256)
+        sk = ecdsa.SigningKey.from_string(
+            self._raw_key, curve=ecdsa.SECP256k1, hashfunc=hashlib.sha256
+        )
         signature = sk.sign_digest_deterministic(message_hash)
 
         # recover address to get rec_id
