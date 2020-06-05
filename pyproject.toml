@@ -1,0 +1,48 @@
+[tool.poetry]
+name = "tronpy"
+version = "0.1.0"
+description = "TRON Python client library"
+authors = ["andelf <andelf@gmail.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.6"
+ecdsa = "^0.15"
+requests = "^2.23.0"
+base58 = "^2.0.0"
+pycryptodome = "^3.9.7"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.4.3"
+pytest-cov = "^2.9.0"
+flake8 = "^3.8.2"
+black = "^19.10b0"
+isort = "^4.3.21"
+mypy = "^0.780"
+
+[tool.black]
+line-length = 100
+target-version = ['py36']
+include = '\.pyi?$'
+exclude = '''
+(
+  /(
+      \.eggs         # exclude a few common directories in the
+    | \.git          # root of the project
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+  )/
+  | foo.py           # also separately exclude a file named foo.py in
+                     # the root of the project
+)
+'''
+
+[build-system]
+requires = ["poetry >= 0.12, <1"]
+build-backend = "poetry.masonry.api"
