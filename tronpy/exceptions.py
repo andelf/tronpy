@@ -8,3 +8,23 @@ class BadKey(ValueError):
 
 class BadSignature(ValueError):
     pass
+
+
+class TaposError(ValueError):
+    pass
+
+
+class UnknownError(Exception):
+    pass
+
+
+class TransactionError(Exception):
+    pass
+
+
+class ValidationError(Exception):
+    pass
+
+
+class ApiError(Exception):
+    pass

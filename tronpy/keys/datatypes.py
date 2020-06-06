@@ -43,9 +43,11 @@ def to_base58check_address(raw_addr: Union[str, bytes]) -> str:
         return to_base58check_address(raw_addr.decode())
     raise BadAddress
 
+
 def to_hex_address(raw_addr: Union[str, bytes]) -> str:
     addr = to_base58check_address(raw_addr)
     return base58.b58decode_check(addr).hex()
+
 
 def is_base58check_address(value: str) -> bool:
     return value[0] == "T" and len(base58.b58decode_check(value)) == 21
@@ -138,6 +140,9 @@ class PublicKey(BaseKey):
     def to_base58check_address(self) -> str:
         return public_key_to_base58check_addr(self._raw_key)
 
+    def to_hex_address(self) -> str:
+        return public_key_to_addr(self._raw_key).hex()
+
     def to_address(self) -> bytes:
         return public_key_to_addr(self._raw_key)
 
@@ -168,9 +173,7 @@ class PrivateKey(BaseKey):
         super().__init__()
 
     def sign_msg(self, message: bytes) -> "Signature":
-        sk = ecdsa.SigningKey.from_string(
-            self._raw_key, curve=ecdsa.SECP256k1, hashfunc=hashlib.sha256
-        )
+        sk = ecdsa.SigningKey.from_string(self._raw_key, curve=ecdsa.SECP256k1, hashfunc=hashlib.sha256)
         signature = sk.sign_deterministic(message)
 
         # recover address to get rec_id
@@ -185,9 +188,7 @@ class PrivateKey(BaseKey):
         return Signature(signature)
 
     def sign_msg_hash(self, message_hash: bytes) -> "Signature":
-        sk = ecdsa.SigningKey.from_string(
-            self._raw_key, curve=ecdsa.SECP256k1, hashfunc=hashlib.sha256
-        )
+        sk = ecdsa.SigningKey.from_string(self._raw_key, curve=ecdsa.SECP256k1, hashfunc=hashlib.sha256)
         signature = sk.sign_digest_deterministic(message_hash)
 
         # recover address to get rec_id
