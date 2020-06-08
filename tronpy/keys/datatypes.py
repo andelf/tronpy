@@ -27,6 +27,11 @@ def public_key_to_addr(pub_key: bytes) -> bytes:
 def to_base58check_address(raw_addr: Union[str, bytes]) -> str:
     if isinstance(raw_addr, (str,)):
         if raw_addr[0] == "T" and len(raw_addr) == 34:
+            try:
+                # assert checked
+                base58.b58decode_check(raw_addr)
+            except ValueError:
+                raise BadAddress("bad base58check format")
             return raw_addr
         elif len(raw_addr) == 42:
             if raw_addr.startswith("0x"):  # eth address format

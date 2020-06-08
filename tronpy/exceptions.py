@@ -28,3 +28,11 @@ class ValidationError(Exception):
 
 class ApiError(Exception):
     pass
+
+
+class NotFound(ValueError):
+    pass
+
+
+class AddressNotFound(ValueError):
+    pass

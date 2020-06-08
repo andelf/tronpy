@@ -2,6 +2,7 @@ from typing import Union
 import time
 import requests
 from pprint import pprint
+import json
 
 from tronpy import keys
 from tronpy.keys import PrivateKey
@@ -13,16 +14,23 @@ from tronpy.exceptions import (
     TransactionError,
     ValidationError,
     ApiError,
+    AddressNotFound,
 )
 
 TAddress = Union[str, bytes]
 
 
 FULL_NODE_API_URL = 'https://api.shasta.trongrid.io'
+# FULL_NODE_API_URL = 'https://api.nileex.io'
+FULL_NODE_API_URL = 'https://api.trongrid.io'
 
 
 def current_timestamp() -> int:
     return int(time.time() * 1000)
+
+
+class TransactionRet(dict):
+    pass
 
 
 class Transaction(object):
@@ -71,6 +79,9 @@ class Transaction(object):
 
     def broadcast(self):
         return self._client.broadcast(self)
+
+    def __str__(self):
+        return json.dumps(self.to_json(), indent=2)
 
 
 class TransactionBuilder(object):
@@ -133,6 +144,69 @@ class Trx(object):
         )
         return TransactionBuilder(inner, client=self.client)
 
+    def asset_transfer(self, from_: TAddress, to: TAddress, amount: int, token_id: int) -> TransactionBuilder:
+        inner = self._build_inner_transaction(
+            "TransferAssetContract",
+            {
+                "owner_address": keys.to_hex_address(from_),
+                "to_address": keys.to_hex_address(to),
+                "amount": amount,
+                "asset_name": str(token_id).encode().hex(),
+            },
+        )
+        return TransactionBuilder(inner, client=self.client)
+
+    def asset_issue(
+        self,
+        owner: TAddress,
+        abbr: str,
+        total_supply: int,
+        *,
+        url: str,
+        name: str = None,
+        description: str = '',
+        start_time: int = None,
+        end_time: int = None,
+        precision: int = 6,
+        frozen_supply: list = None,
+        trx_num: int = 1,
+        num: int = 1,
+    ) -> TransactionBuilder:
+        if name is None:
+            name = abbr
+
+        if start_time is None:
+            # use default expiration
+            start_time = current_timestamp() + 60_000
+
+        if end_time is None:
+            # use default expiration
+            end_time = current_timestamp() + 60_000 + 1
+
+        if frozen_supply is None:
+            frozen_supply = []
+
+        inner = self._build_inner_transaction(
+            "AssetIssueContract",
+            {
+                "owner_address": keys.to_hex_address(owner),
+                "abbr": abbr.encode().hex(),
+                "name": name.encode().hex(),
+                "total_supply": total_supply,
+                "precision": precision,
+                "url": url.encode().hex(),
+                "description": description.encode().hex(),
+                "start_time": start_time,
+                "end_time": end_time,
+                "frozen_supply": frozen_supply,
+                "trx_num": trx_num,
+                "num": num,
+                "public_free_asset_net_limit": 0,
+                "free_asset_net_limit": 0,
+            },
+        )
+        return TransactionBuilder(inner, client=self.client)
+
 
 class Tron(object):
 
@@ -179,6 +253,56 @@ class Tron(object):
         url = FULL_NODE_API_URL + '/wallet/getsignweight'
         resp = requests.post(url, json=txn.to_json())
         return resp.json()
+
+    def get_account(self, addr: TAddress) -> dict:
+        url = FULL_NODE_API_URL + '/wallet/getaccount'
+        resp = requests.post(url, json={"address": keys.to_base58check_address(addr), "visible": True})
+        ret = resp.json()
+        if ret:
+            return ret
+        else:
+            raise AddressNotFound("account not found on-chain")
+
+    def get_account_resource(self, addr: TAddress):
+        url = FULL_NODE_API_URL + '/wallet/getaccountresource'
+        resp = requests.post(url, json={"address": keys.to_base58check_address(addr), "visible": True})
+        return resp.json()
+
+    def get_account_permission(self, addr: TAddress) -> dict:
+        addr = keys.to_base58check_address(addr)
+        # will check account existence
+        info = self.get_account(addr)
+        # For old accounts prior to AccountPermissionUpdate, these fields are not set.
+        # So default permission is for backward compatibility.
+        default_witness = None
+        if info.get('is_witness', None):
+            default_witness = {
+                'type': 'Witness',
+                'id': 1,
+                'permission_name': 'witness',
+                'threshold': 1,
+                'keys': [{'address': addr, 'weight': 1}],
+            }
+        return {
+            'owner': info.get(
+                'owner_permission',
+                {'permission_name': 'owner', 'threshold': 1, 'keys': [{'address': addr, 'weight': 1}]},
+            ),
+            'actives': info.get(
+                'active_permission',
+                [
+                    {
+                        'type': 'Active',
+                        'id': 2,
+                        'permission_name': 'active',
+                        'threshold': 1,
+                        'operations': '7fff1fc0033e0100000000000000000000000000000000000000000000000000',
+                        'keys': [{'address': addr, 'weight': 1}],
+                    }
+                ],
+            ),
+            'witness': info.get('witness_permission', default_witness),
+        }
 
     def _handle_api_error(self, payload: dict):
         if payload.get('result', None):
