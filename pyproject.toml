@@ -1,9 +1,20 @@
 [tool.poetry]
 name = "tronpy"
-version = "0.1.0"
+version = "0.0.1"
 description = "TRON Python client library"
 authors = ["andelf <andelf@gmail.com>"]
 license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/andelf/tronpy"
+repository = "repository"
+keywords = ["tron", "api", "blockchain"]
+classifiers = [
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Developers",
+  "Intended Audience :: System Administrators",
+  'Natural Language :: English',
+]
 
 [tool.poetry.dependencies]
 python = "^3.6"
