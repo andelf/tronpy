@@ -3,8 +3,11 @@ import time
 import requests
 from pprint import pprint
 import json
+from decimal import Decimal
+from urllib.parse import urljoin
 
 from tronpy import keys
+from tronpy.contract import Contract
 from tronpy.keys import PrivateKey
 from tronpy.exceptions import (
     BadSignature,
@@ -263,10 +266,14 @@ class Tron(object):
         else:
             raise AddressNotFound("account not found on-chain")
 
-    def get_account_resource(self, addr: TAddress):
+    def get_account_resource(self, addr: TAddress) -> dict:
         url = FULL_NODE_API_URL + '/wallet/getaccountresource'
         resp = requests.post(url, json={"address": keys.to_base58check_address(addr), "visible": True})
         return resp.json()
+
+    def get_account_balance(self, addr: TAddress) -> Decimal:
+        info = self.get_account(addr)
+        return Decimal(info.get('balance')) / 1_000_000
 
     def get_account_permission(self, addr: TAddress) -> dict:
         addr = keys.to_base58check_address(addr)
@@ -303,6 +310,28 @@ class Tron(object):
             ),
             'witness': info.get('witness_permission', default_witness),
         }
+
+    def get_contract(self, addr: TAddress):
+        addr = keys.to_base58check_address(addr)
+        url = urljoin(FULL_NODE_API_URL, '/wallet/getcontract')
+
+        resp = requests.post(url, json={"value": addr, "visible": True})
+        info = resp.json()
+        try:
+            self._handle_api_error(info)
+        except ApiError:
+            # your java's null pointer exception sucks
+            raise AddressNotFound('contract address not found')
+
+        cntr = Contract(
+            addr=addr,
+            bytecode=info['bytecode'],
+            name=info['name'],
+            abi=info['abi'].get('entrys', []),
+            origin_energy_limit=info['origin_energy_limit'],
+            user_resource_percent=info['consume_user_resource_percent'],
+        )
+        return cntr
 
     def _handle_api_error(self, payload: dict):
         if payload.get('result', None):
