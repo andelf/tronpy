@@ -215,7 +215,7 @@ class Tron(object):
     is_base58check_address = staticmethod(keys.is_base58check_address)
     is_hex_address = staticmethod(keys.is_hex_address)
 
-    to_base58chck_address = staticmethod(keys.to_base58check_address)
+    to_base58check_address = staticmethod(keys.to_base58check_address)
     to_hex_address = staticmethod(keys.to_hex_address)
 
     def __init__(self, network="mainnet", private_key=None):
