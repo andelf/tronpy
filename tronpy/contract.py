@@ -88,6 +88,9 @@ class ContractFunctions(object):
         except KeyError:
             raise AttributeError("contract has no method named '{}'".format(method))
 
+    def __dir__(self):
+        return super().__dir__() + [method['name'] for method in self._contract.abi if method['type'] == 'Function']
+
 
 class ContractMethod(object):
     def __init__(self, abi: dict, contract: Contract):
