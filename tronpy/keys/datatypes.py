@@ -46,13 +46,19 @@ def to_base58check_address(raw_addr: Union[str, bytes]) -> str:
         if len(raw_addr) == 20:  # eth address format
             return base58.b58encode_check(b"\x41" + raw_addr).decode()
         return to_base58check_address(raw_addr.decode())
-    raise BadAddress
+    raise BadAddress(repr(raw_addr))
 
 
 def to_hex_address(raw_addr: Union[str, bytes]) -> str:
     addr = to_base58check_address(raw_addr)
     return base58.b58decode_check(addr).hex()
 
+def to_raw_address(raw_addr: Union[str, bytes]) -> bytes:
+    addr = to_base58check_address(raw_addr)
+    return base58.b58decode_check(addr)
+
+def to_tvm_address(raw_addr: Union[str, bytes]) -> bytes:
+    return to_raw_address(raw_addr)[1:]
 
 def is_base58check_address(value: str) -> bool:
     return value[0] == "T" and len(base58.b58decode_check(value)) == 21

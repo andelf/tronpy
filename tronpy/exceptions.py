@@ -10,6 +10,10 @@ class BadSignature(ValueError):
     pass
 
 
+class BadHash(ValueError):
+    pass
+
+
 class TaposError(ValueError):
     pass
 
@@ -34,5 +38,9 @@ class NotFound(ValueError):
     pass
 
 
-class AddressNotFound(ValueError):
+class AddressNotFound(NotFound):
+    pass
+
+
+class TransactionNotFound(NotFound):
     pass

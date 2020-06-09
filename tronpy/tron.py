@@ -12,19 +12,21 @@ from tronpy.keys import PrivateKey
 from tronpy.exceptions import (
     BadSignature,
     BadKey,
+    BadHash,
     TaposError,
     UnknownError,
     TransactionError,
     ValidationError,
     ApiError,
     AddressNotFound,
+    TransactionNotFound,
 )
 
 TAddress = Union[str, bytes]
 
 
 FULL_NODE_API_URL = 'https://api.shasta.trongrid.io'
-# FULL_NODE_API_URL = 'https://api.nileex.io'
+FULL_NODE_API_URL = 'https://api.nileex.io'
 FULL_NODE_API_URL = 'https://api.trongrid.io'
 
 
@@ -33,7 +35,21 @@ def current_timestamp() -> int:
 
 
 class TransactionRet(dict):
-    pass
+    def __init__(self, iterable, client: 'Tron'):
+        super().__init__(iterable)
+
+        self._client = client
+        self._txid = self['txid']
+
+    def wait(self, timeout=0, interval=1.6) -> dict:
+        end_time = time.time() + timeout * 1_0000
+        while time.time() < end_time:
+            try:
+                return self._client.get_transaction_info(self._txid)
+            except TransactionNotFound:
+                time.sleep(interval)
+
+        raise TransactionNotFound("timeout and can not find the transaction")
 
 
 class Transaction(object):
@@ -80,8 +96,8 @@ class Transaction(object):
         self._signature.append(sig.hex())
         return self
 
-    def broadcast(self):
-        return self._client.broadcast(self)
+    def broadcast(self) -> TransactionRet:
+        return TransactionRet(self._client.broadcast(self), client=self._client)
 
     def __str__(self):
         return json.dumps(self.to_json(), indent=2)
@@ -220,6 +236,7 @@ class Tron(object):
 
     to_base58check_address = staticmethod(keys.to_base58check_address)
     to_hex_address = staticmethod(keys.to_hex_address)
+    to_canonical_address = staticmethod(keys.to_base58check_address)
 
     def __init__(self, network="mainnet", private_key=None):
 
@@ -230,6 +247,31 @@ class Tron(object):
     @property
     def trx(self):
         return self._trx
+
+    def _handle_api_error(self, payload: dict):
+        if payload.get('result', None) is True:
+            return
+        if 'Error' in payload:
+            # class java.lang.NullPointerException : null
+            raise ApiError(payload['Error'])
+        if 'code' in payload:
+            try:
+                msg = bytes.fromhex(payload['message']).decode()
+            except Exception:
+                pass
+            finally:
+                msg = payload['message']
+            if payload['code'] == 'SIGERROR':
+                raise BadSignature(msg)
+            elif payload['code'] == 'TAPOS_ERROR':
+                raise TaposError(msg)
+            elif payload['code'] in ['TRANSACTION_EXPIRATION_ERROR', 'TOO_BIG_TRANSACTION_ERROR']:
+                raise TransactionError(msg)
+            elif payload['code'] == 'CONTRACT_VALIDATE_ERROR':
+                raise ValidationError(msg)
+            raise UnknownError(msg, payload['code'])
+        if 'result' in payload:
+            return self._handle_api_error(payload['result'])
 
     def get_latest_solid_block(self) -> dict:
         url = FULL_NODE_API_URL + '/walletsolidity/getnowblock'
@@ -330,22 +372,35 @@ class Tron(object):
             abi=info['abi'].get('entrys', []),
             origin_energy_limit=info['origin_energy_limit'],
             user_resource_percent=info['consume_user_resource_percent'],
+            client=self,
         )
         return cntr
 
-    def _handle_api_error(self, payload: dict):
-        if payload.get('result', None):
-            return
-        if 'Error' in payload:
-            # class java.lang.NullPointerException : null
-            raise ApiError(payload['Error'])
-        if 'code' in payload:
-            if payload['code'] == 'SIGERROR':
-                raise BadSignature(bytes.fromhex(payload['message']).decode())
-            elif payload['code'] == 'TAPOS_ERROR':
-                raise TaposError(bytes.fromhex(payload['message']).decode())
-            elif payload['code'] in ['TRANSACTION_EXPIRATION_ERROR', 'TOO_BIG_TRANSACTION_ERROR']:
-                raise TransactionError(bytes.fromhex(payload['message']).decode())
-            elif payload['code'] == 'CONTRACT_VALIDATE_ERROR':
-                raise ValidationError(bytes.fromhex(payload['message']).decode())
-            raise UnknownError(payload)
+    def get_transaction_info(self, txn_id: str) -> dict:
+        if len(txn_id) != 64:
+            raise BadHash("wrong transaction hash length")
+        url = urljoin(FULL_NODE_API_URL, '/wallet/gettransactioninfobyid')
+        resp = requests.post(url, json={"value": txn_id, "visible": True})
+        ret = resp.json()
+        self._handle_api_error(ret)
+        if ret:
+            return ret
+        raise TransactionNotFound
+
+    def trigger_const_smart_contract_function(
+        self, owner_address: TAddress, contract_address: TAddress, function_selector: str, parameter: str
+    ) -> str:
+        url = urljoin(FULL_NODE_API_URL, '/wallet/triggerconstantcontract')
+        resp = requests.post(
+            url,
+            json={
+                "owner_address": keys.to_base58check_address(owner_address),
+                "contract_address": keys.to_base58check_address(contract_address),
+                "function_selector": function_selector,
+                "parameter": parameter,
+                "visible": True,
+            },
+        )
+        ret = resp.json()
+        self._handle_api_error(ret)
+        return ret['constant_result'][0]
