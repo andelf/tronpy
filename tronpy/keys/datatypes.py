@@ -3,6 +3,7 @@ from Crypto.Hash import keccak
 import hashlib
 import base58
 from collections.abc import ByteString, Hashable
+import random
 from typing import Any, Union
 
 from tronpy.exceptions import BadKey, BadSignature, BadAddress
@@ -13,6 +14,10 @@ def keccak256(data: bytes) -> bytes:
     hasher.update(data)
     return hasher.digest()
 
+def sha256(data: bytes) -> bytes:
+    hasher = hashlib.sha256()
+    hasher.update(data)
+    return hasher.digest()
 
 def public_key_to_base58check_addr(pub_key: bytes) -> str:
     primitive_addr = b"\x41" + keccak256(pub_key)[-20:]
@@ -187,9 +192,7 @@ class PrivateKey(BaseKey):
         super().__init__()
 
     def sign_msg(self, message: bytes) -> "Signature":
-        sk = ecdsa.SigningKey.from_string(
-            self._raw_key, curve=ecdsa.SECP256k1, hashfunc=hashlib.sha256
-        )
+        sk = ecdsa.SigningKey.from_string(self._raw_key, curve=ecdsa.SECP256k1, hashfunc=hashlib.sha256)
         signature = sk.sign_deterministic(message)
 
         # recover address to get rec_id
@@ -204,9 +207,7 @@ class PrivateKey(BaseKey):
         return Signature(signature)
 
     def sign_msg_hash(self, message_hash: bytes) -> "Signature":
-        sk = ecdsa.SigningKey.from_string(
-            self._raw_key, curve=ecdsa.SECP256k1, hashfunc=hashlib.sha256
-        )
+        sk = ecdsa.SigningKey.from_string(self._raw_key, curve=ecdsa.SECP256k1, hashfunc=hashlib.sha256)
         signature = sk.sign_digest_deterministic(message_hash)
 
         # recover address to get rec_id
@@ -219,6 +220,14 @@ class PrivateKey(BaseKey):
 
         signature += bytes([v])
         return Signature(signature)
+
+    @classmethod
+    def random(cls) -> 'PrivateKey':
+        return cls(bytes([random.randint(0, 255) for _ in range(32)]))
+
+    @classmethod
+    def from_passphrase(cls, passphrase: bytes) -> 'PrivateKey':
+        return cls(sha256(passphrase))
 
 
 class Signature(ByteString):

@@ -158,7 +158,7 @@ class ContractMethod(object):
         else:
             raise TypeError("wrong number of arguments, require {}".format(len(self.inputs)))
 
-        if self._abi.get("stateMutability", None) in ['View', 'Pure']:
+        if self._abi.get("stateMutability", None).lower() in ['view', 'pure']:
             # const call, contract ret
             ret = self._client.trigger_const_smart_contract_function(
                 self._owner_address, self._contract.contract_address, self.function_signature, parameter,

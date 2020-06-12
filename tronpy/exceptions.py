@@ -44,3 +44,6 @@ class AddressNotFound(NotFound):
 
 class TransactionNotFound(NotFound):
     pass
+
+class BlockNotFound(ValueError):
+    pass

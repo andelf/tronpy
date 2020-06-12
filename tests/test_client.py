@@ -2,6 +2,12 @@ from tronpy import Tron
 from tronpy.keys import PrivateKey
 
 
+def test_client_keygen():
+    client = Tron()
+    print(client.generate_address())
+    print(client.get_address_from_passphrase('A'))
+
+
 def xtest_client():
     client = Tron(network='nile')
 
