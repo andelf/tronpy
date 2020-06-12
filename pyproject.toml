@@ -1,12 +1,12 @@
 [tool.poetry]
 name = "tronpy"
-version = "0.0.1"
+version = "0.0.2"
 description = "TRON Python client library"
 authors = ["andelf <andelf@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/andelf/tronpy"
-repository = "repository"
+repository = "https://github.com/andelf/tronpy"
 keywords = ["tron", "api", "blockchain"]
 classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules",
