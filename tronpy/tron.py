@@ -449,6 +449,14 @@ class Tron(object):
         )
         return cntr
 
+    def deploy_contract(self, owner: TAddress, contract: Contract) -> 'TransactionBuilder':
+        contract._client = self
+        contract.owner_address = owner
+        contract.origin_address = owner
+        contract.contract_address = None
+
+        return contract.deploy()
+
     def trigger_const_smart_contract_function(
         self, owner_address: TAddress, contract_address: TAddress, function_selector: str, parameter: str,
     ) -> str:

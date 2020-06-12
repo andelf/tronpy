@@ -31,7 +31,7 @@ class Contract(object):
         name: str = None,
         abi: Optional[dict] = None,
         user_resource_percent: int = 100,
-        origin_energy_limit: int = 0,
+        origin_energy_limit: int = 1,
         origin_address: str = None,
         owner_address: str = "410000000000000000000000000000000000000000",
         client=None,
@@ -53,7 +53,30 @@ class Contract(object):
         super().__init__()
 
     def __str__(self):
-        return "<Contract {}>".format(self.contract_address)
+        return "<Contract {} {}>".format(self.name, self.contract_address)
+
+    def deploy(self) -> 'TransactionBuilder':
+        if self.contract_address:
+            raise RuntimeError("this contract has already deployed to {}".format(self.contract_address))
+
+        if self.origin_address != self.owner_address:
+            raise RuntimeError("origin address and owner address mismatch")
+
+        return self._client.trx._build_transaction(
+            "CreateSmartContract",
+            {
+                "owner_address": keys.to_hex_address(self.owner_address),
+                "new_contract": {
+                    "origin_address": keys.to_hex_address(self.origin_address),
+                    "abi": {"entrys": self.abi},
+                    "bytecode": self.bytecode.hex(),
+                    "call_value": 0,  # TODO
+                    "name": self.name,
+                    "consume_user_resource_percent": self.user_resource_percent,
+                    "origin_energy_limit": self.origin_energy_limit,
+                },
+            },
+        )
 
     @property
     def functions(self):
