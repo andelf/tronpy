@@ -3,7 +3,7 @@ from tronpy.keys import PrivateKey
 
 
 def xtest_client():
-    client = Tron()
+    client = Tron(network='nile')
 
     print(client)
     priv_key = PrivateKey(bytes.fromhex("8888888888888888888888888888888888888888888888888888888888888888"))

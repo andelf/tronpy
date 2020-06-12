@@ -27,11 +27,6 @@ from tronpy.exceptions import (
 TAddress = Union[str, bytes]
 
 
-FULL_NODE_API_URL = "https://api.shasta.trongrid.io"
-FULL_NODE_API_URL = "https://api.nileex.io"
-# FULL_NODE_API_URL = "https://api.trongrid.io"
-
-
 def current_timestamp() -> int:
     return int(time.time() * 1000)
 
@@ -43,7 +38,7 @@ class TransactionRet(dict):
         self._client = client
         self._txid = self["txid"]
 
-    def wait(self, timeout=0, interval=1.6) -> dict:
+    def wait(self, timeout=30, interval=1.6) -> dict:
         end_time = time.time() + timeout * 1_0000
         while time.time() < end_time:
             try:
@@ -238,7 +233,7 @@ class Tron(object):
     to_hex_address = staticmethod(keys.to_hex_address)
     to_canonical_address = staticmethod(keys.to_base58check_address)
 
-    def __init__(self, provider: HTTPProvider = None, network: str = "mainnet"):
+    def __init__(self, provider: HTTPProvider = None, *, network: str = "mainnet"):
 
         self._trx = Trx(self)
         if provider is None:
@@ -260,9 +255,8 @@ class Tron(object):
             try:
                 msg = bytes.fromhex(payload["message"]).decode()
             except Exception:
-                pass
-            finally:
                 msg = payload["message"]
+
             if payload["code"] == "SIGERROR":
                 raise BadSignature(msg)
             elif payload["code"] == "TAPOS_ERROR":
@@ -272,7 +266,7 @@ class Tron(object):
             elif payload["code"] == "CONTRACT_VALIDATE_ERROR":
                 raise ValidationError(msg)
             raise UnknownError(msg, payload["code"])
-        if "result" in payload:
+        if "result" in payload and isinstance(payload['result'], (dict,)):
             return self._handle_api_error(payload["result"])
 
     def get_latest_solid_block(self) -> dict:
@@ -289,23 +283,25 @@ class Tron(object):
         return paylaod
 
     def get_sign_weight(self, txn: TransactionBuilder) -> str:
-        url = FULL_NODE_API_URL + "/wallet/getsignweight"
-        resp = requests.post(url, json=txn.to_json())
-        return resp.json()
+        return self.provider.make_request('wallet/getsignweight', txn.to_json())
 
     def get_account(self, addr: TAddress) -> dict:
-        url = FULL_NODE_API_URL + "/wallet/getaccount"
-        resp = requests.post(url, json={"address": keys.to_base58check_address(addr), "visible": True})
-        ret = resp.json()
+        ret = self.provider.make_request(
+            'wallet/getaccount', {"address": keys.to_base58check_address(addr), "visible": True}
+        )
         if ret:
             return ret
         else:
             raise AddressNotFound("account not found on-chain")
 
     def get_account_resource(self, addr: TAddress) -> dict:
-        url = FULL_NODE_API_URL + "/wallet/getaccountresource"
-        resp = requests.post(url, json={"address": keys.to_base58check_address(addr), "visible": True})
-        return resp.json()
+        ret = self.provider.make_request(
+            'wallet/getaccountresource', {"address": keys.to_base58check_address(addr), "visible": True}
+        )
+        if ret:
+            return ret
+        else:
+            raise AddressNotFound("account not found on-chain")
 
     def get_account_balance(self, addr: TAddress) -> Decimal:
         info = self.get_account(addr)

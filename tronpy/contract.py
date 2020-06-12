@@ -1,6 +1,6 @@
 from tronpy import patch_abi
 
-from typing import Union, Optional
+from typing import Union, Optional, Any
 from eth_abi import encode_single, decode_single
 from Crypto.Hash import keccak
 
@@ -86,6 +86,9 @@ class ContractFunctions(object):
     def __dir__(self):
         return [method["name"] for method in self._contract.abi if method["type"] == "Function"]
 
+    def __iter__(self):
+        yield from [self[method] for method in dir(self)]
+
 
 class ContractMethod(object):
     def __init__(self, abi: dict, contract: Contract):
@@ -120,11 +123,16 @@ class ContractMethod(object):
         self.call_token_id = token_id
         return self
 
-    def __call__(self, *args, **kwargs):
-        # print('calling function', self._abi)
-        # print(self.function_signature)
-        # print(self.function_signature_hash)
+    def call(self, *args, **kwargs):
+        return self.__call__(*args, **kwargs)
 
+    def parse_output(self, raw: str) -> Any:
+        parsed_result = decode_single(self.output_type, bytes.fromhex(raw))
+        if len(self.outputs) == 1:
+            return parsed_result[0]
+        return parsed_result
+
+    def __call__(self, *args, **kwargs):
         parameter = ""
 
         if args and kwargs:
@@ -151,22 +159,19 @@ class ContractMethod(object):
             raise TypeError("wrong number of arguments, require {}".format(len(self.inputs)))
 
         if self._abi.get("stateMutability", None) in ['View', 'Pure']:
-            # const call
+            # const call, contract ret
             ret = self._client.trigger_const_smart_contract_function(
                 self._owner_address, self._contract.contract_address, self.function_signature, parameter,
             )
 
-            parsed_result = decode_single(self.output_type, bytes.fromhex(ret))
-            if len(self.outputs) == 1:
-                return parsed_result[0]
-            return parsed_result
+            return self.parse_output(ret)
 
         else:
             return self._client.trx._build_transaction(
-                "TriggerConstantContract",
+                "TriggerSmartContract",
                 {
                     "owner_address": keys.to_hex_address(self._owner_address),
-                    "contract_address": keys.to_hex_address(self._client.contract_address),
+                    "contract_address": keys.to_hex_address(self._contract.contract_address),
                     "data": self.function_signature_hash + parameter,
                     "call_token_value": self.call_token_value,
                     "call_value": self.call_value,
@@ -197,4 +202,7 @@ class ContractMethod(object):
     @property
     def function_type(self):
         types = ', '.join(arg["type"] + ' ' + arg.get("name", '') for arg in self.inputs)
-        return 'function {}({})'.format(self.name, types)
+        ret = 'function {}({})'.format(self.name, types)
+        if self.outputs:
+            ret += ' returns ({})'.format(', '.join(arg["type"] + ' ' + arg.get("name", '') for arg in self.outputs))
+        return ret
