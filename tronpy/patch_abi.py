@@ -1,5 +1,3 @@
-
-
 from eth_abi import encode_single, decode_single
 from eth_abi.decoding import Fixed32ByteSizeDecoder
 from eth_abi.encoding import Fixed32ByteSizeEncoder
@@ -8,14 +6,16 @@ from eth_abi.base import parse_type_str
 
 from tronpy.keys import to_base58check_address, is_address, to_tvm_address
 
+
 class TronAddressDecoder(Fixed32ByteSizeDecoder):
     value_bit_size = 20 * 8
     is_big_endian = True
     decoder_fn = staticmethod(to_base58check_address)
 
-    @parse_type_str('address')
+    @parse_type_str("address")
     def from_type_str(cls, abi_type, registry):
         return cls()
+
 
 class TronAddressEncoder(Fixed32ByteSizeEncoder):
     value_bit_size = 20 * 8
@@ -31,16 +31,15 @@ class TronAddressEncoder(Fixed32ByteSizeEncoder):
         super().validate()
 
         if self.value_bit_size != 20 * 8:
-            raise ValueError('Addresses must be 160 bits in length')
+            raise ValueError("Addresses must be 160 bits in length")
 
-    @parse_type_str('address')
+    @parse_type_str("address")
     def from_type_str(cls, abi_type, registry):
         return cls()
 
-registry.unregister('address')
+
+registry.unregister("address")
 
 registry.register(
-    BaseEquals('address'),
-    TronAddressEncoder, TronAddressDecoder,
-    label='address',
+    BaseEquals("address"), TronAddressEncoder, TronAddressDecoder, label="address",
 )

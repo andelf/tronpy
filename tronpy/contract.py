@@ -1,4 +1,3 @@
-
 from tronpy import patch_abi
 
 from typing import Union, Optional
@@ -7,10 +6,6 @@ from Crypto.Hash import keccak
 
 from tronpy import keys
 import tronpy
-
-
-
-
 
 
 def keccak256(data: bytes) -> bytes:
@@ -24,7 +19,7 @@ def assure_bytes(value: Union[str, bytes]) -> bytes:
         return bytes.fromhex(value)
     if isinstance(value, (bytes,)):
         return value
-    raise ValueError('bad bytes format')
+    raise ValueError("bad bytes format")
 
 
 class Contract(object):
@@ -38,7 +33,7 @@ class Contract(object):
         user_resource_percent: int = 100,
         origin_energy_limit: int = 0,
         origin_address: str = None,
-        owner_address: str = '410000000000000000000000000000000000000000',
+        owner_address: str = "410000000000000000000000000000000000000000",
         client=None,
     ):
         self.contract_address = addr
@@ -58,7 +53,7 @@ class Contract(object):
         super().__init__()
 
     def __str__(self):
-        return '<Contract {}>'.format(self.contract_address)
+        return "<Contract {}>".format(self.contract_address)
 
     @property
     def functions(self):
@@ -77,7 +72,7 @@ class ContractFunctions(object):
 
     def __getitem__(self, method: str):
         for method_abi in self._contract.abi:
-            if method_abi['type'] == 'Function' and method_abi['name'] == method:
+            if method_abi["type"] == "Function" and method_abi["name"] == method:
                 return ContractMethod(method_abi, self._contract)
 
         raise KeyError("contract has no method named '{}'".format(method))
@@ -89,7 +84,7 @@ class ContractFunctions(object):
             raise AttributeError("contract has no method named '{}'".format(method))
 
     def __dir__(self):
-        return super().__dir__() + [method['name'] for method in self._contract.abi if method['type'] == 'Function']
+        return [method["name"] for method in self._contract.abi if method["type"] == "Function"]
 
 
 class ContractMethod(object):
@@ -100,34 +95,65 @@ class ContractMethod(object):
         self._owner_address = contract.owner_address
         self._client = contract._client
 
-        self.inputs = abi.get('inputs', [])
-        self.outputs = abi.get('outputs', [])
+        self.inputs = abi.get("inputs", [])
+        self.outputs = abi.get("outputs", [])
+
+        self.call_value = 0
+        self.call_token_value = 0
+        self.call_token_id = 0
 
         super().__init__()
 
-    def __call__(self, *args, **kwrags):
+    def __str__(self):
+        return self.function_type
+
+    def with_owner(self, addr: str):
+        self._owner_address = addr
+        return self
+
+    def with_transfer(self, amount: int):
+        self.call_value = amount
+        return self
+
+    def with_asset_transfer(self, amount: int, token_id: int):
+        self.call_token_value = amount
+        self.call_token_id = token_id
+        return self
+
+    def __call__(self, *args, **kwargs):
         # print('calling function', self._abi)
         # print(self.function_signature)
         # print(self.function_signature_hash)
 
-        parameter = ''
+        parameter = ""
 
-        if args and kwrags:
+        if args and kwargs:
             raise ValueError("do not mix positional arguments and keyword arguments")
 
         if len(self.inputs) == 0:
-            if args or kwrags:
+            if args or kwargs:
                 raise TypeError("{} expected {} arguments".format(self.name, len(self.inputs)))
         elif args:
+            if len(args) != len(self.inputs):
+                raise TypeError("wrong number of arguments, require {} got {}".format(len(self.inputs), len(args)))
             parameter = encode_single(self.input_type, args).hex()
-        elif kwrags:
-            pass
+        elif kwargs:
+            if len(kwargs) != len(self.inputs):
+                raise TypeError("wrong number of arguments, require {} got {}".format(len(self.inputs), len(args)))
+            args = []
+            for arg in self.inputs:
+                try:
+                    args.append(kwargs[arg['name']])
+                except KeyError:
+                    raise TypeError("missing argument '{}'".format(arg['name']))
+            parameter = encode_single(self.input_type, args).hex()
+        else:
+            raise TypeError("wrong number of arguments, require {}".format(len(self.inputs)))
 
-
-        if self._abi.get('constant', None):
+        if self._abi.get("stateMutability", None) in ['View', 'Pure']:
             # const call
             ret = self._client.trigger_const_smart_contract_function(
-                self._owner_address, self._contract.contract_address, self.function_signature, parameter
+                self._owner_address, self._contract.contract_address, self.function_signature, parameter,
             )
 
             parsed_result = decode_single(self.output_type, bytes.fromhex(ret))
@@ -135,31 +161,30 @@ class ContractMethod(object):
                 return parsed_result[0]
             return parsed_result
 
-        """
-        return self._client.trx._build_inner_transaction(
-            "TriggerConstantContract",
-            {
-                "owner_address": keys.to_hex_address(self._owner_address),
-                "contract_address": keys.to_hex_address(self._client.contract_address),
-                "function_selector": self.function_signature,
-                "parameter": "",
-                "visible": True,
-            },
-        )
-        """
+        else:
+            return self._client.trx._build_transaction(
+                "TriggerConstantContract",
+                {
+                    "owner_address": keys.to_hex_address(self._owner_address),
+                    "contract_address": keys.to_hex_address(self._client.contract_address),
+                    "data": self.function_signature_hash + parameter,
+                    "call_token_value": self.call_token_value,
+                    "call_value": self.call_value,
+                    "token_id": self.call_token_id,
+                },
+            )
 
     @property
     def name(self):
-        return self._abi['name']
+        return self._abi["name"]
 
     @property
     def input_type(self):
-        return '(' + (','.join(arg['type'] for arg in self.inputs)) + ')'
+        return "(" + (",".join(arg["type"] for arg in self.inputs)) + ")"
 
     @property
     def output_type(self):
-        return '(' + (','.join(arg['type'] for arg in self.outputs)) + ')'
-
+        return "(" + (",".join(arg["type"] for arg in self.outputs)) + ")"
 
     @property
     def function_signature(self):
@@ -168,3 +193,8 @@ class ContractMethod(object):
     @property
     def function_signature_hash(self) -> str:
         return keccak256(self.function_signature.encode())[:4].hex()
+
+    @property
+    def function_type(self):
+        types = ', '.join(arg["type"] + ' ' + arg.get("name", '') for arg in self.inputs)
+        return 'function {}({})'.format(self.name, types)
