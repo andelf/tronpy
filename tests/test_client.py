@@ -8,7 +8,7 @@ def test_client_keygen():
     print(client.get_address_from_passphrase('A'))
 
 
-def xtest_client():
+def test_client():
     client = Tron(network='nile')
 
     print(client)
@@ -64,10 +64,9 @@ def test_client():
     cntr.functions.name()
 
 
-def zztest_client():
-    client = Tron()
+def test_client():
+    client = Tron(network='nile')
 
-    print(client)
     priv_key = PrivateKey(bytes.fromhex("ebf7c9cad1ca710553c22669fd3c7c70832e7024c1a32da69bbc5ad19dcc8992"))
 
     txn = (

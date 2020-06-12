@@ -55,9 +55,11 @@ class Contract(object):
     def __str__(self):
         return "<Contract {} {}>".format(self.name, self.contract_address)
 
-    def deploy(self) -> 'TransactionBuilder':
+    def deploy(self) -> Any:
         if self.contract_address:
-            raise RuntimeError("this contract has already deployed to {}".format(self.contract_address))
+            raise RuntimeError(
+                "this contract has already deployed to {}".format(self.contract_address)
+            )
 
         if self.origin_address != self.owner_address:
             raise RuntimeError("origin address and owner address mismatch")
@@ -166,25 +168,36 @@ class ContractMethod(object):
                 raise TypeError("{} expected {} arguments".format(self.name, len(self.inputs)))
         elif args:
             if len(args) != len(self.inputs):
-                raise TypeError("wrong number of arguments, require {} got {}".format(len(self.inputs), len(args)))
+                raise TypeError(
+                    "wrong number of arguments, require {} got {}".format(
+                        len(self.inputs), len(args)
+                    )
+                )
             parameter = encode_single(self.input_type, args).hex()
         elif kwargs:
             if len(kwargs) != len(self.inputs):
-                raise TypeError("wrong number of arguments, require {} got {}".format(len(self.inputs), len(args)))
+                raise TypeError(
+                    "wrong number of arguments, require {} got {}".format(
+                        len(self.inputs), len(args)
+                    )
+                )
             args = []
             for arg in self.inputs:
                 try:
-                    args.append(kwargs[arg['name']])
+                    args.append(kwargs[arg["name"]])
                 except KeyError:
-                    raise TypeError("missing argument '{}'".format(arg['name']))
+                    raise TypeError("missing argument '{}'".format(arg["name"]))
             parameter = encode_single(self.input_type, args).hex()
         else:
             raise TypeError("wrong number of arguments, require {}".format(len(self.inputs)))
 
-        if self._abi.get("stateMutability", None).lower() in ['view', 'pure']:
+        if self._abi.get("stateMutability", None).lower() in ["view", "pure"]:
             # const call, contract ret
             ret = self._client.trigger_const_smart_contract_function(
-                self._owner_address, self._contract.contract_address, self.function_signature, parameter,
+                self._owner_address,
+                self._contract.contract_address,
+                self.function_signature,
+                parameter,
             )
 
             return self.parse_output(ret)
@@ -224,8 +237,10 @@ class ContractMethod(object):
 
     @property
     def function_type(self):
-        types = ', '.join(arg["type"] + ' ' + arg.get("name", '') for arg in self.inputs)
-        ret = 'function {}({})'.format(self.name, types)
+        types = ", ".join(arg["type"] + " " + arg.get("name", "") for arg in self.inputs)
+        ret = "function {}({})".format(self.name, types)
         if self.outputs:
-            ret += ' returns ({})'.format(', '.join(arg["type"] + ' ' + arg.get("name", '') for arg in self.outputs))
+            ret += " returns ({})".format(
+                ", ".join(arg["type"] + " " + arg.get("name", "") for arg in self.outputs)
+            )
         return ret

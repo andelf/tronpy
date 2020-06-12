@@ -152,7 +152,10 @@ class Trx(object):
 
     def _build_transaction(self, type_: str, obj: dict, contract: Contract = None) -> dict:
         inner = {
-            "parameter": {"value": obj, "type_url": "type.googleapis.com/protocol.{}".format(type_)},
+            "parameter": {
+                "value": obj,
+                "type_url": "type.googleapis.com/protocol.{}".format(type_),
+            },
             "type": type_,
         }
         return TransactionBuilder(inner, client=self.client)
@@ -160,12 +163,18 @@ class Trx(object):
     def transfer(self, from_: TAddress, to: TAddress, amount: int) -> TransactionBuilder:
         return self._build_transaction(
             "TransferContract",
-            {"owner_address": keys.to_hex_address(from_), "to_address": keys.to_hex_address(to), "amount": amount},
+            {
+                "owner_address": keys.to_hex_address(from_),
+                "to_address": keys.to_hex_address(to),
+                "amount": amount,
+            },
         )
 
     # TRC10 asset
 
-    def asset_transfer(self, from_: TAddress, to: TAddress, amount: int, token_id: int) -> TransactionBuilder:
+    def asset_transfer(
+        self, from_: TAddress, to: TAddress, amount: int, token_id: int
+    ) -> TransactionBuilder:
         return self._build_transaction(
             "TransferAssetContract",
             {
@@ -228,38 +237,39 @@ class Trx(object):
 
     # Account
 
-    def account_permission_update(self, owner: TAddress, perm: dict) -> 'TransactionBuilder':
+    def account_permission_update(self, owner: TAddress, perm: dict) -> "TransactionBuilder":
         return self._build_transaction(
-            'AccountPermissionUpdate', dict(owner_address=keys.to_hex_address(owner), **perm)
+            "AccountPermissionUpdate", dict(owner_address=keys.to_hex_address(owner), **perm)
         )
 
-    def account_update(self, owner: TAddress, name: str) -> 'TransactionBuilder':
+    def account_update(self, owner: TAddress, name: str) -> "TransactionBuilder":
         return self._build_transaction(
-            'UpdateAccount', {"owner_address": keys.to_hex_address(owner), "account_name": name.encode().hex(),}
+            "UpdateAccount",
+            {"owner_address": keys.to_hex_address(owner), "account_name": name.encode().hex(),},
         )
 
     def freeze_balance(
-        self, owner: TAddress, amount: int, resource: str = 'ENERGY', *, receiver: TAddress = None
-    ) -> 'TransactionBuilder':
+        self, owner: TAddress, amount: int, resource: str = "ENERGY", *, receiver: TAddress = None
+    ) -> "TransactionBuilder":
         payload = {
             "owner_address": keys.to_hex_address(owner),
-            'frozen_balance': amount,
-            'resource': resource,
+            "frozen_balance": amount,
+            "resource": resource,
         }
         if receiver is not None:
-            payload['receiver_address'] = keys.to_hex_address(receiver)
-        return self._build_transaction('FreezeBalance', payload)
+            payload["receiver_address"] = keys.to_hex_address(receiver)
+        return self._build_transaction("FreezeBalance", payload)
 
     def unfreeze_balance(
-        self, owner: TAddress, resource: str = 'ENERGY', receiver: TAddress = None
-    ) -> 'TransactionBuilder':
+        self, owner: TAddress, resource: str = "ENERGY", receiver: TAddress = None
+    ) -> "TransactionBuilder":
         payload = {
             "owner_address": keys.to_hex_address(owner),
-            'resource': resource,
+            "resource": resource,
         }
         if receiver is not None:
-            payload['receiver_address'] = keys.to_hex_address(receiver)
-        return self._build_transaction('UnfreezeBalance', payload)
+            payload["receiver_address"] = keys.to_hex_address(receiver)
+        return self._build_transaction("UnfreezeBalance", payload)
 
 
 class Tron(object):
@@ -305,7 +315,7 @@ class Tron(object):
             elif payload["code"] == "CONTRACT_VALIDATE_ERROR":
                 raise ValidationError(msg)
             raise UnknownError(msg, payload["code"])
-        if "result" in payload and isinstance(payload['result'], (dict,)):
+        if "result" in payload and isinstance(payload["result"], (dict,)):
             return self._handle_api_error(payload["result"])
 
     # Address utilities
@@ -314,10 +324,10 @@ class Tron(object):
         if priv_key is None:
             priv_key = PrivateKey.random()
         return {
-            'base58check_address': priv_key.public_key.to_base58check_address(),
-            'hex_address': priv_key.public_key.to_hex_address(),
-            'private_key': priv_key.hex(),
-            'public_key': priv_key.public_key.hex(),
+            "base58check_address": priv_key.public_key.to_base58check_address(),
+            "hex_address": priv_key.public_key.to_hex_address(),
+            "private_key": priv_key.hex(),
+            "public_key": priv_key.public_key.hex(),
         }
 
     def get_address_from_passphrase(self, passphrase: str) -> dict:
@@ -328,7 +338,7 @@ class Tron(object):
 
     def get_account(self, addr: TAddress) -> dict:
         ret = self.provider.make_request(
-            'wallet/getaccount', {"address": keys.to_base58check_address(addr), "visible": True}
+            "wallet/getaccount", {"address": keys.to_base58check_address(addr), "visible": True}
         )
         if ret:
             return ret
@@ -337,7 +347,8 @@ class Tron(object):
 
     def get_account_resource(self, addr: TAddress) -> dict:
         ret = self.provider.make_request(
-            'wallet/getaccountresource', {"address": keys.to_base58check_address(addr), "visible": True}
+            "wallet/getaccountresource",
+            {"address": keys.to_base58check_address(addr), "visible": True},
         )
         if ret:
             return ret
@@ -366,7 +377,11 @@ class Tron(object):
         return {
             "owner": info.get(
                 "owner_permission",
-                {"permission_name": "owner", "threshold": 1, "keys": [{"address": addr, "weight": 1}],},
+                {
+                    "permission_name": "owner",
+                    "threshold": 1,
+                    "keys": [{"address": addr, "weight": 1}],
+                },
             ),
             "actives": info.get(
                 "active_permission",
@@ -387,17 +402,21 @@ class Tron(object):
     # Block query
 
     def get_latest_solid_block(self) -> dict:
-        return self.provider.make_request('walletsolidity/getnowblock')
+        return self.provider.make_request("walletsolidity/getnowblock")
 
     def get_latest_solid_block_id(self) -> str:
-        info = self.provider.make_request('wallet/getnodeinfo')
+        info = self.provider.make_request("wallet/getnodeinfo")
         return info["solidityBlock"].split(",ID:", 1)[-1]
 
     def get_block(self, id_or_num: Union[str, int]) -> dict:
         if isinstance(id_or_num, (int,)):
-            block = self.provider.make_request('wallet/getblockbynum', {'num': id_or_num, 'visible': True})
+            block = self.provider.make_request(
+                "wallet/getblockbynum", {"num": id_or_num, "visible": True}
+            )
         elif isinstance(id_or_num, (str,)):
-            block = self.provider.make_request('wallet/getblockbyid', {'value': id_or_num, 'visible': True})
+            block = self.provider.make_request(
+                "wallet/getblockbyid", {"value": id_or_num, "visible": True}
+            )
         else:
             raise TypeError("can not infer type of {}".format(id_or_num))
 
@@ -410,7 +429,9 @@ class Tron(object):
         if len(txn_id) != 64:
             raise BadHash("wrong transaction hash length")
 
-        ret = self.provider.make_request('wallet/gettransactionbyid', {"value": txn_id, "visible": True})
+        ret = self.provider.make_request(
+            "wallet/gettransactionbyid", {"value": txn_id, "visible": True}
+        )
         self._handle_api_error(ret)
         if ret:
             return ret
@@ -420,17 +441,52 @@ class Tron(object):
         if len(txn_id) != 64:
             raise BadHash("wrong transaction hash length")
 
-        ret = self.provider.make_request('wallet/gettransactioninfobyid', {"value": txn_id, "visible": True})
+        ret = self.provider.make_request(
+            "wallet/gettransactioninfobyid", {"value": txn_id, "visible": True}
+        )
         self._handle_api_error(ret)
         if ret:
             return ret
         raise TransactionNotFound
 
+    # Chain parameters
+    def list_witnesses(self) -> list:
+        # NOTE: visible parameter is ignored
+        ret = self.provider.make_request("wallet/listwitnesses", {"visible": True})
+        witnesses = ret.get("witnesses", [])
+        for witness in witnesses:
+            witness["address"] = keys.to_base58check_address(witness["address"])
+
+        return ret
+
+    def list_nodes(self) -> list:
+        # NOTE: visible parameter is ignored
+        ret = self.provider.make_request("wallet/listnodes", {"visible": True})
+        nodes = ret.get("nodes", [])
+        for node in nodes:
+            node["address"]["host"] = bytes.fromhex(node["address"]["host"]).decode()
+        return nodes
+
+    def list_assets(self) -> list:
+        ret = self.provider.make_request("wallet/getassetissuelist", {"visible": True})
+        assets = ret["assetIssue"]
+        for asset in assets:
+            asset["id"] = int(asset["id"])
+            asset["owner_address"] = keys.to_base58check_address(asset["owner_address"])
+            asset["name"] = bytes.fromhex(asset["name"]).decode()
+            if "abbr" in asset:
+                asset["abbr"] = bytes.fromhex(asset["abbr"]).decode()
+            else:
+                asset["abbr"] = ""
+            asset["description"] = bytes.fromhex(asset["description"]).decode("utf8", "replace")
+            asset["url"] = bytes.fromhex(asset["url"]).decode()
+        return assets
+
     # Smart contract
 
     def get_contract(self, addr: TAddress):
         addr = keys.to_base58check_address(addr)
-        info = self.provider.make_request('wallet/getcontract', {"value": addr, "visible": True})
+        info = self.provider.make_request("wallet/getcontract", {"value": addr, "visible": True})
 
         try:
             self._handle_api_error(info)
@@ -449,7 +505,7 @@ class Tron(object):
         )
         return cntr
 
-    def deploy_contract(self, owner: TAddress, contract: Contract) -> 'TransactionBuilder':
+    def deploy_contract(self, owner: TAddress, contract: Contract) -> "TransactionBuilder":
         contract._client = self
         contract.owner_address = owner
         contract.origin_address = owner
@@ -458,10 +514,14 @@ class Tron(object):
         return contract.deploy()
 
     def trigger_const_smart_contract_function(
-        self, owner_address: TAddress, contract_address: TAddress, function_selector: str, parameter: str,
+        self,
+        owner_address: TAddress,
+        contract_address: TAddress,
+        function_selector: str,
+        parameter: str,
     ) -> str:
         ret = self.provider.make_request(
-            'wallet/triggerconstantcontract',
+            "wallet/triggerconstantcontract",
             {
                 "owner_address": keys.to_base58check_address(owner_address),
                 "contract_address": keys.to_base58check_address(contract_address),
@@ -481,4 +541,4 @@ class Tron(object):
         return paylaod
 
     def get_sign_weight(self, txn: TransactionBuilder) -> str:
-        return self.provider.make_request('wallet/getsignweight', txn.to_json())
+        return self.provider.make_request("wallet/getsignweight", txn.to_json())
