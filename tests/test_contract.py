@@ -30,7 +30,7 @@ def test_trc20_transfer():
     print('Balance', contract.functions.balanceOf('TGQgfK497YXmjdgvun9Bg5Zu3xE15v17cu'))
     txn = (
         contract.functions.transfer.with_owner('TGQgfK497YXmjdgvun9Bg5Zu3xE15v17cu')
-        .call('TJRabPrwbZy45sbavfcjinPJC18kjpRTv8', 1_000)
+        .call('TVjsyZ7fYF3qLF6BQgPmTEZy1xrNNyVAAA', 1_000)
         .fee_limit(1_000_000)
         .build()
         .sign(priv_key)
