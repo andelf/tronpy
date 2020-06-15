@@ -8,7 +8,7 @@ from decimal import Decimal
 from urllib.parse import urljoin
 
 from tronpy import keys
-from tronpy.contract import Contract
+from tronpy.contract import Contract, ShieldedTRC20
 from tronpy.keys import PrivateKey
 from tronpy.providers import HTTPProvider
 from tronpy.defaults import conf_for_name
@@ -116,6 +116,13 @@ class TransactionBuilder(object):
 
         super().__init__()
 
+    def with_owner(self, addr: TAddress) -> "TransactionBuilder":
+        if 'owner_address' in self._raw_data['contract'][0]['parameter']['value']:
+            self._raw_data['contract'][0]['parameter']['value']['owner_address'] = keys.to_hex_address(addr)
+        else:
+            raise TypeError('can not set owner')
+        return self
+
     def permission_id(self, perm_id: int) -> "TransactionBuilder":
         self._raw_data["contract"][0]["Permission_id"] = perm_id
         return self
@@ -152,10 +159,7 @@ class Trx(object):
 
     def _build_transaction(self, type_: str, obj: dict, contract: Contract = None) -> dict:
         inner = {
-            "parameter": {
-                "value": obj,
-                "type_url": "type.googleapis.com/protocol.{}".format(type_),
-            },
+            "parameter": {"value": obj, "type_url": "type.googleapis.com/protocol.{}".format(type_),},
             "type": type_,
         }
         return TransactionBuilder(inner, client=self.client)
@@ -163,18 +167,12 @@ class Trx(object):
     def transfer(self, from_: TAddress, to: TAddress, amount: int) -> TransactionBuilder:
         return self._build_transaction(
             "TransferContract",
-            {
-                "owner_address": keys.to_hex_address(from_),
-                "to_address": keys.to_hex_address(to),
-                "amount": amount,
-            },
+            {"owner_address": keys.to_hex_address(from_), "to_address": keys.to_hex_address(to), "amount": amount,},
         )
 
     # TRC10 asset
 
-    def asset_transfer(
-        self, from_: TAddress, to: TAddress, amount: int, token_id: int
-    ) -> TransactionBuilder:
+    def asset_transfer(self, from_: TAddress, to: TAddress, amount: int, token_id: int) -> TransactionBuilder:
         return self._build_transaction(
             "TransferAssetContract",
             {
@@ -244,8 +242,7 @@ class Trx(object):
 
     def account_update(self, owner: TAddress, name: str) -> "TransactionBuilder":
         return self._build_transaction(
-            "UpdateAccount",
-            {"owner_address": keys.to_hex_address(owner), "account_name": name.encode().hex(),},
+            "UpdateAccount", {"owner_address": keys.to_hex_address(owner), "account_name": name.encode().hex(),},
         )
 
     def freeze_balance(
@@ -347,8 +344,7 @@ class Tron(object):
 
     def get_account_resource(self, addr: TAddress) -> dict:
         ret = self.provider.make_request(
-            "wallet/getaccountresource",
-            {"address": keys.to_base58check_address(addr), "visible": True},
+            "wallet/getaccountresource", {"address": keys.to_base58check_address(addr), "visible": True},
         )
         if ret:
             return ret
@@ -377,11 +373,7 @@ class Tron(object):
         return {
             "owner": info.get(
                 "owner_permission",
-                {
-                    "permission_name": "owner",
-                    "threshold": 1,
-                    "keys": [{"address": addr, "weight": 1}],
-                },
+                {"permission_name": "owner", "threshold": 1, "keys": [{"address": addr, "weight": 1}],},
             ),
             "actives": info.get(
                 "active_permission",
@@ -410,13 +402,9 @@ class Tron(object):
 
     def get_block(self, id_or_num: Union[str, int]) -> dict:
         if isinstance(id_or_num, (int,)):
-            block = self.provider.make_request(
-                "wallet/getblockbynum", {"num": id_or_num, "visible": True}
-            )
+            block = self.provider.make_request("wallet/getblockbynum", {"num": id_or_num, "visible": True})
         elif isinstance(id_or_num, (str,)):
-            block = self.provider.make_request(
-                "wallet/getblockbyid", {"value": id_or_num, "visible": True}
-            )
+            block = self.provider.make_request("wallet/getblockbyid", {"value": id_or_num, "visible": True})
         else:
             raise TypeError("can not infer type of {}".format(id_or_num))
 
@@ -429,9 +417,7 @@ class Tron(object):
         if len(txn_id) != 64:
             raise BadHash("wrong transaction hash length")
 
-        ret = self.provider.make_request(
-            "wallet/gettransactionbyid", {"value": txn_id, "visible": True}
-        )
+        ret = self.provider.make_request("wallet/gettransactionbyid", {"value": txn_id, "visible": True})
         self._handle_api_error(ret)
         if ret:
             return ret
@@ -441,9 +427,7 @@ class Tron(object):
         if len(txn_id) != 64:
             raise BadHash("wrong transaction hash length")
 
-        ret = self.provider.make_request(
-            "wallet/gettransactioninfobyid", {"value": txn_id, "visible": True}
-        )
+        ret = self.provider.make_request("wallet/gettransactioninfobyid", {"value": txn_id, "visible": True})
         self._handle_api_error(ret)
         if ret:
             return ret
@@ -505,6 +489,10 @@ class Tron(object):
         )
         return cntr
 
+    def get_contract_as_shielded_trc20(self, addr: TAddress):
+        contract = self.get_contract(addr)
+        return ShieldedTRC20(contract)
+
     def deploy_contract(self, owner: TAddress, contract: Contract) -> "TransactionBuilder":
         contract._client = self
         contract.owner_address = owner
@@ -514,11 +502,7 @@ class Tron(object):
         return contract.deploy()
 
     def trigger_const_smart_contract_function(
-        self,
-        owner_address: TAddress,
-        contract_address: TAddress,
-        function_selector: str,
-        parameter: str,
+        self, owner_address: TAddress, contract_address: TAddress, function_selector: str, parameter: str,
     ) -> str:
         ret = self.provider.make_request(
             "wallet/triggerconstantcontract",

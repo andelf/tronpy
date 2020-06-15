@@ -48,3 +48,7 @@ class TransactionNotFound(NotFound):
 
 class BlockNotFound(ValueError):
     pass
+
+
+class DoubleSpending(TransactionError):
+    pass
