@@ -23,7 +23,7 @@ from tronpy.exceptions import (
     TransactionNotFound,
 )
 
-TAddress = Union[str, bytes]
+TAddress = str
 
 
 def current_timestamp() -> int:
@@ -38,6 +38,10 @@ class TransactionRet(dict):
         self._txid = self["txid"]
 
     def wait(self, timeout=30, interval=1.6) -> dict:
+        """Wait the transaction to be on chain.
+
+        :return: TransactionInfo
+        """
         end_time = time.time() + timeout * 1_0000
         while time.time() < end_time:
             try:
@@ -49,14 +53,17 @@ class TransactionRet(dict):
 
 
 class Transaction(object):
+    """The Transaction object, signed or unsigned."""
+
     def __init__(self, raw_data: dict, client: "Tron" = None):
         self._raw_data = raw_data
         self._signature = []
         self._client = client
-        self.txid = ""
-        self._permission = None
 
-        super().__init__()
+        self.txid = ""
+        """The transaction id in hex."""
+
+        self._permission = None
 
         sign_weight = self._client.get_sign_weight(self)
         if "transaction" not in sign_weight:
@@ -75,6 +82,8 @@ class Transaction(object):
         return self
 
     def sign(self, priv_key: PrivateKey) -> "Transaction":
+        """Sign the transaction with a private key."""
+
         assert self.txid, "txID not calculated"
 
         if self._permission is not None:
@@ -93,6 +102,7 @@ class Transaction(object):
         return self
 
     def broadcast(self) -> TransactionRet:
+        """Broadcast the transaction to TRON network."""
         return TransactionRet(self._client.broadcast(self), client=self._client)
 
     def __str__(self):
@@ -100,6 +110,8 @@ class Transaction(object):
 
 
 class TransactionBuilder(object):
+    """TransactionBuilder, to build a `Transaction` object."""
+
     def __init__(self, inner: dict, client: "Tron", contract: Contract = None):
         self._client = client
         self._raw_data = {
@@ -112,6 +124,7 @@ class TransactionBuilder(object):
         self._contract = contract
 
     def with_owner(self, addr: TAddress) -> "TransactionBuilder":
+        """Set owner of the transaction."""
         if "owner_address" in self._raw_data["contract"][0]["parameter"]["value"]:
             self._raw_data["contract"][0]["parameter"]["value"]["owner_address"] = keys.to_hex_address(addr)
         else:
@@ -119,19 +132,23 @@ class TransactionBuilder(object):
         return self
 
     def permission_id(self, perm_id: int) -> "TransactionBuilder":
+        """Set permission_id of the transaction."""
         self._raw_data["contract"][0]["Permission_id"] = perm_id
         return self
 
     def memo(self, memo: Union[str, bytes]) -> "TransactionBuilder":
+        """Set memo of the transaction."""
         data = memo.encode() if isinstance(memo, (str,)) else memo
         self._raw_data["data"] = data.hex()
         return self
 
     def fee_limit(self, value: int) -> "TransactionBuilder":
+        """Set fee_limit of the transaction, in `SUN`."""
         self._raw_data["fee_limit"] = value
         return self
 
     def build(self, options=None, **kwargs) -> Transaction:
+        """Build the transaction."""
         ref_block_id = self._client.get_latest_solid_block_id()
         # last 2 byte of block number part
         self._raw_data["ref_block_bytes"] = ref_block_id[12:16]
@@ -160,6 +177,7 @@ class Trx(object):
         return TransactionBuilder(inner, client=self.client)
 
     def transfer(self, from_: TAddress, to: TAddress, amount: int) -> TransactionBuilder:
+        """Transfer TRX. `amount` in `SUN`."""
         return self._build_transaction(
             "TransferContract",
             {"owner_address": keys.to_hex_address(from_), "to_address": keys.to_hex_address(to), "amount": amount,},
@@ -275,27 +293,54 @@ class Trx(object):
         payload = {"owner_address": keys.to_hex_address(owner), "votes": votes}
         return self._build_transaction("VoteWitnessContract", payload)
 
+    # Contract
+
+    def deploy_contract(self, owner: TAddress, contract: Contract) -> "TransactionBuilder":
+        """Deploy a new contract on chain."""
+        contract._client = self.client
+        contract.owner_address = owner
+        contract.origin_address = owner
+        contract.contract_address = None
+
+        return contract.deploy()
+
 
 class Tron(object):
+    """The TRON API Client."""
+
     # Address API
     is_address = staticmethod(keys.is_address)
+    """Is object a TRON address, both hex format and base58check format."""
+
     is_base58check_address = staticmethod(keys.is_base58check_address)
+    """Is object an address in base58check format."""
+
     is_hex_address = staticmethod(keys.is_hex_address)
+    """Is object an address in hex str format."""
 
     to_base58check_address = staticmethod(keys.to_base58check_address)
+    """Convert address of any format to a base58check format."""
+
     to_hex_address = staticmethod(keys.to_hex_address)
+    """Convert address of any format to a hex format."""
+
     to_canonical_address = staticmethod(keys.to_base58check_address)
 
     def __init__(self, provider: HTTPProvider = None, *, network: str = "mainnet"):
-
         self._trx = Trx(self)
         if provider is None:
+            assert isinstance(provider, (HTTPProvider,))
             self.provider = HTTPProvider(conf_for_name(network))
         else:
             self.provider = provider
 
     @property
-    def trx(self):
+    def trx(self) -> Trx:
+        """
+        Helper object to send various transactions.
+
+        :type: Trx
+        """
         return self._trx
 
     def _handle_api_error(self, payload: dict):
@@ -325,6 +370,7 @@ class Tron(object):
     # Address utilities
 
     def generate_address(self, priv_key=None) -> dict:
+        """Generate a random address."""
         if priv_key is None:
             priv_key = PrivateKey.random()
         return {
@@ -335,13 +381,16 @@ class Tron(object):
         }
 
     def get_address_from_passphrase(self, passphrase: str) -> dict:
+        """Get an address from a passphrase, compatiable with `wallet/createaddress`."""
         priv_key = PrivateKey.from_passphrase(passphrase.encode())
         return self.generate_address(priv_key)
 
     def generate_zkey(self) -> dict:
+        """Generate a random shielded address."""
         return self.provider.make_request("wallet/getnewshieldedaddress")
 
     def get_zkey_from_sk(self, sk: str, d: str = None) -> dict:
+        """Get the shielded address from sk(spending key) and d(diversifier)."""
         if len(sk) != 64:
             raise BadKey("32 byte sk required")
         if d and len(d) != 22:
@@ -370,6 +419,8 @@ class Tron(object):
     # Account query
 
     def get_account(self, addr: TAddress) -> dict:
+        """Get account info from an address."""
+
         ret = self.provider.make_request(
             "wallet/getaccount", {"address": keys.to_base58check_address(addr), "visible": True}
         )
@@ -379,6 +430,8 @@ class Tron(object):
             raise AddressNotFound("account not found on-chain")
 
     def get_account_resource(self, addr: TAddress) -> dict:
+        """Get resource info of an account."""
+
         ret = self.provider.make_request(
             "wallet/getaccountresource", {"address": keys.to_base58check_address(addr), "visible": True},
         )
@@ -388,10 +441,14 @@ class Tron(object):
             raise AddressNotFound("account not found on-chain")
 
     def get_account_balance(self, addr: TAddress) -> Decimal:
+        """Get TRX balance of an account. Result in `TRX`."""
+
         info = self.get_account(addr)
         return Decimal(info.get("balance")) / 1_000_000
 
     def get_account_permission(self, addr: TAddress) -> dict:
+        """Get account's permission info from an address. Can be used in `account_permission_update`."""
+
         addr = keys.to_base58check_address(addr)
         # will check account existence
         info = self.get_account(addr)
@@ -433,18 +490,26 @@ class Tron(object):
         return self.provider.make_request("walletsolidity/getnowblock")
 
     def get_latest_solid_block_id(self) -> str:
+        """Get latest solid block id in hex."""
+
         info = self.provider.make_request("wallet/getnodeinfo")
         return info["solidityBlock"].split(",ID:", 1)[-1]
 
     def get_latest_block_id(self) -> str:
+        """Get latest block id in hex."""
+
         info = self.provider.make_request("wallet/getnodeinfo")
         return info["block"].split(",ID:", 1)[-1]
 
     def get_latest_block_number(self) -> int:
+        """Get latest block number. Implemented via `wallet/getnodeinfo`, which is faster than `wallet/getnowblock`."""
+
         info = self.provider.make_request("wallet/getnodeinfo")
         return int(info["block"].split(",ID:", 1)[0].replace("Num:", "", 1))
 
     def get_block(self, id_or_num: Union[str, int]) -> dict:
+        """Get block from a block id or block number."""
+
         if isinstance(id_or_num, (int,)):
             block = self.provider.make_request("wallet/getblockbynum", {"num": id_or_num, "visible": True})
         elif isinstance(id_or_num, (str,)):
@@ -458,6 +523,8 @@ class Tron(object):
             raise BlockNotFound
 
     def get_transaction(self, txn_id: str) -> dict:
+        """Get transaction from a transaction id."""
+
         if len(txn_id) != 64:
             raise BadHash("wrong transaction hash length")
 
@@ -468,6 +535,8 @@ class Tron(object):
         raise TransactionNotFound
 
     def get_transaction_info(self, txn_id: str) -> dict:
+        """Get transaction receipt info from a transaction id."""
+
         if len(txn_id) != 64:
             raise BadHash("wrong transaction hash length")
 
@@ -478,7 +547,9 @@ class Tron(object):
         raise TransactionNotFound
 
     # Chain parameters
+
     def list_witnesses(self) -> list:
+        """List all witnesses, including SR, SRP, and SRC."""
         # NOTE: visible parameter is ignored
         ret = self.provider.make_request("wallet/listwitnesses", {"visible": True})
         witnesses = ret.get("witnesses", [])
@@ -488,6 +559,7 @@ class Tron(object):
         return ret
 
     def list_nodes(self) -> list:
+        """List all nodes that current API node is connected to."""
         # NOTE: visible parameter is ignored
         ret = self.provider.make_request("wallet/listnodes", {"visible": True})
         nodes = ret.get("nodes", [])
@@ -496,14 +568,18 @@ class Tron(object):
         return nodes
 
     def get_node_info(self) -> dict:
+        """Get current API node' info."""
+
         return self.provider.make_request("wallet/getnodeinfo", {"visible": True})
 
     def get_chain_parameters(self) -> dict:
+        """List all chain parameters, values that can be changed via proposal."""
         return self.provider.make_request("wallet/getchainparameters", {"visible": True}).get("chainParameter", [])
 
     # Asset (TRC10)
 
     def get_asset(self, id: int = None, issuer: TAddress = None) -> dict:
+        """Get TRC10(asset) info by asset's id or issuer."""
         if id and issuer:
             return ValueError("either query by id or issuer")
         if id:
@@ -514,6 +590,7 @@ class Tron(object):
             )
 
     def list_assets(self) -> list:
+        """List all TRC10 tokens(assets)."""
         ret = self.provider.make_request("wallet/getassetissuelist", {"visible": True})
         assets = ret["assetIssue"]
         for asset in assets:
@@ -531,6 +608,7 @@ class Tron(object):
     # Smart contract
 
     def get_contract(self, addr: TAddress) -> Contract:
+        """Get a contract object."""
         addr = keys.to_base58check_address(addr)
         info = self.provider.make_request("wallet/getcontract", {"value": addr, "visible": True})
 
@@ -552,16 +630,9 @@ class Tron(object):
         return cntr
 
     def get_contract_as_shielded_trc20(self, addr: TAddress) -> ShieldedTRC20:
+        """Get a Shielded TRC20 Contract object."""
         contract = self.get_contract(addr)
         return ShieldedTRC20(contract)
-
-    def deploy_contract(self, owner: TAddress, contract: Contract) -> "TransactionBuilder":
-        contract._client = self
-        contract.owner_address = owner
-        contract.origin_address = owner
-        contract.contract_address = None
-
-        return contract.deploy()
 
     def trigger_const_smart_contract_function(
         self, owner_address: TAddress, contract_address: TAddress, function_selector: str, parameter: str,
