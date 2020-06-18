@@ -38,8 +38,9 @@ class TronAddressEncoder(Fixed32ByteSizeEncoder):
         return cls()
 
 
-registry.unregister("address")
+def do_patching():
+    registry.unregister("address")
 
-registry.register(
-    BaseEquals("address"), TronAddressEncoder, TronAddressDecoder, label="address",
-)
+    registry.register(
+        BaseEquals("address"), TronAddressEncoder, TronAddressDecoder, label="address",
+    )
