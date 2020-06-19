@@ -306,8 +306,12 @@ class ContractMethod(object):
 
 
 class ShieldedTRC20(object):
+    """Shielded TRC20 Wrapper."""
+
     def __init__(self, contract: Contract):
         self.shielded = contract
+        """Thi shielded TRC20 contract."""
+
         self._client = contract._client
 
         # lazy properties
@@ -316,6 +320,7 @@ class ShieldedTRC20(object):
 
     @property
     def trc20(self) -> Contract:
+        """The corresponding TRC20 contract."""
         if self._trc20 is None:
             trc20_address = "41" + self.shielded.bytecode[-52:-32].hex()
             self._trc20 = self._client.get_contract(trc20_address)
@@ -323,6 +328,7 @@ class ShieldedTRC20(object):
 
     @property
     def scale_factor(self) -> int:
+        """Scaling factor of the shielded contract."""
         if self._scale_factor is None:
             self._scale_factor = self.shielded.functions.scalingFactor()
         return self._scale_factor
@@ -330,7 +336,8 @@ class ShieldedTRC20(object):
     def get_rcm(self) -> str:
         return self._client.provider.make_request("wallet/getrcm")["value"]
 
-    def mint(self, taddr: str, zaddr: str, amount: int, memo: str = "") -> "tronpy.TransactionBuilder":
+    def mint(self, taddr: str, zaddr: str, amount: int, memo: str = "") -> "tronpy.tron.TransactionBuilder":
+        """Mint, transfer from T-address to z-address."""
         rcm = self.get_rcm()
         payload = {
             "from_amount": str(amount),
@@ -360,7 +367,8 @@ class ShieldedTRC20(object):
 
     def transfer(
         self, zkey: dict, notes: Union[list, dict], *to: Union[Tuple[str, int], Tuple[str, int, str]],
-    ) -> "tronpy.TransactionBuilder":
+    ) -> "tronpy.tron.TransactionBuilder":
+        """Transfer from z-address to z-address."""
         if isinstance(notes, (dict,)):
             notes = [notes]
 
@@ -419,7 +427,8 @@ class ShieldedTRC20(object):
             },
         )
 
-    def burn(self, zkey: dict, note: dict, to_addr: str) -> "tronpy.TransactionBuilder":
+    def burn(self, zkey: dict, note: dict, to_addr: str) -> "tronpy.tron.TransactionBuilder":
+        """Burn, transfer from z-address to T-address."""
         spends = []
         alpha = self.get_rcm()
         root, path = self.get_path(note.get("position", 0))
@@ -462,6 +471,7 @@ class ShieldedTRC20(object):
 
     # use zkey pair from wallet/getnewshieldedaddress
     def scan_incoming_notes(self, zkey: dict, start_block_number: int, end_block_number: int = None) -> list:
+        """Scan incoming notes using ivk, ak, nk."""
         if end_block_number is None:
             end_block_number = start_block_number + 1000
         payload = {
@@ -479,6 +489,7 @@ class ShieldedTRC20(object):
     def scan_outgoing_notes(
         self, zkey_or_ovk: Union[dict, str], start_block_number: int, end_block_number: int = None
     ) -> list:
+        """Scan outgoing notes using ovk."""
         if end_block_number is None:
             end_block_number = start_block_number + 1000
 
@@ -504,6 +515,7 @@ class ShieldedTRC20(object):
         return (root, path)
 
     def is_note_spent(self, zkey: dict, note: dict) -> bool:
+        """Is a note spent."""
         payload = dict(note)
         payload["shielded_TRC20_contract_address"] = keys.to_hex_address(self.shielded.contract_address)
         if "position" not in note:

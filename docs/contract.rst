@@ -163,7 +163,3 @@ API reference
    :members:
 
    .. automethod:: __call__(*args, **kwargs)
-
-
-.. autoclass:: tronpy.contract.ShieldedTRC20()
-   :members:
