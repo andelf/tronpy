@@ -64,7 +64,7 @@ def test_contract_create():
     cntr = Contract(name="SimpleStore", bytecode=bytecode, abi=abi)
 
     txn = (
-        client.deploy_contract('TGQgfK497YXmjdgvun9Bg5Zu3xE15v17cu', cntr)
+        client.trx.deploy_contract('TGQgfK497YXmjdgvun9Bg5Zu3xE15v17cu', cntr)
         .fee_limit(1_000_000)
         .build()
         .sign(priv_key)

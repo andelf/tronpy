@@ -28,6 +28,8 @@ def assure_bytes(value: Union[str, bytes]) -> bytes:
 
 
 class Contract(object):
+    """A smart contract object."""
+
     def __init__(
         self,
         addr=None,
@@ -42,15 +44,28 @@ class Contract(object):
         client=None,
     ):
         self.contract_address = addr
+        """Address of the contract"""
+
         self.bytecode = assure_bytes(bytecode)
+        """Bytecode of the contract, in ``bytes``"""
+
         self.name = name
+        """Name of the contract"""
+
         self.abi = abi or []
+        """ABI list of the contract"""
 
         self.user_resource_percent = user_resource_percent
+        """User resource percent, default 100"""
+
         self.origin_energy_limit = origin_energy_limit
+        """Origin energy limit, default 1"""
 
         self.origin_address = origin_address
+        """Origin address of the contract, i.e. contract creator"""
+
         self.owner_address = owner_address
+        """Current transaction owner's address, to call or trigger contract"""
 
         self._functions = None
         self._client = client
@@ -60,9 +75,7 @@ class Contract(object):
 
     def deploy(self) -> Any:
         if self.contract_address:
-            raise RuntimeError(
-                "this contract has already deployed to {}".format(self.contract_address)
-            )
+            raise RuntimeError("this contract has already deployed to {}".format(self.contract_address))
 
         if self.origin_address != self.owner_address:
             raise RuntimeError("origin address and owner address mismatch")
@@ -83,7 +96,8 @@ class Contract(object):
             },
         )
 
-    def update_user_resource_percent(self, percent: int) -> "tronpy.TransactionBuilder":
+    def update_user_resource_percent(self, percent: int) -> "tronpy.tron.TransactionBuilder":
+        """Create a Transaction to update user resource percent."""
         if self.origin_address != self.owner_address:
             raise RuntimeError("origin address and owner address mismatch")
 
@@ -96,7 +110,8 @@ class Contract(object):
             },
         )
 
-    def update_origin_energy_limit(self, limit: int) -> "tronpy.TransactionBuilder":
+    def update_origin_energy_limit(self, limit: int) -> "tronpy.tron.TransactionBuilder":
+        """Create a Transaction to update origin energy limit."""
         if self.origin_address != self.owner_address:
             raise RuntimeError("origin address and owner address mismatch")
 
@@ -109,7 +124,8 @@ class Contract(object):
             },
         )
 
-    def clear_abi(self) -> "tronpy.TransactionBuilder":
+    def clear_abi(self) -> "tronpy.tron.TransactionBuilder":
+        """Clear contract ABI."""
         if self.origin_address != self.owner_address:
             raise RuntimeError("origin address and owner address mismatch")
 
@@ -123,6 +139,7 @@ class Contract(object):
 
     @property
     def functions(self) -> "ContractFunctions":
+        """The :class:`~ContractFunctions` object, wraps all contract methods."""
         if self._functions is None:
             if self.abi:
                 self._functions = ContractFunctions(self)
@@ -143,6 +160,7 @@ class ContractFunctions(object):
         raise KeyError("contract has no method named '{}'".format(method))
 
     def __getattr__(self, method: str):
+        """Get the actual contract method object."""
         try:
             return self[method]
         except KeyError:
@@ -174,28 +192,37 @@ class ContractMethod(object):
         return self.function_type
 
     def with_owner(self, addr: str) -> "ContractMethod":
+        """Set the calling owner address.
+
+        Can also be changed through :meth:`TransactionBuilder.with_owner() <tronpy.tron.TransactionBuilder.with_owner>`.
+        """
         self._owner_address = addr
         return self
 
     def with_transfer(self, amount: int) -> "ContractMethod":
+        """Call a contract function with TRX transfer. ``amount`` in `SUN`."""
         self.call_value = amount
         return self
 
     def with_asset_transfer(self, amount: int, token_id: int) -> "ContractMethod":
+        """Call a contract function with TRC10 token transfer."""
         self.call_token_value = amount
         self.call_token_id = token_id
         return self
 
-    def call(self, *args, **kwargs) -> "tronpy.TransactionBuilder":
+    def call(self, *args, **kwargs) -> "tronpy.tron.TransactionBuilder":
+        """Call the contract method."""
         return self.__call__(*args, **kwargs)
 
     def parse_output(self, raw: str) -> Any:
+        """Parse contract result as result."""
         parsed_result = decode_single(self.output_type, bytes.fromhex(raw))
         if len(self.outputs) == 1:
             return parsed_result[0]
         return parsed_result
 
-    def __call__(self, *args, **kwargs) -> "tronpy.TransactionBuilder":
+    def __call__(self, *args, **kwargs) -> "tronpy.tron.TransactionBuilder":
+        """Call the contract method."""
         parameter = ""
 
         if args and kwargs:
@@ -206,19 +233,11 @@ class ContractMethod(object):
                 raise TypeError("{} expected {} arguments".format(self.name, len(self.inputs)))
         elif args:
             if len(args) != len(self.inputs):
-                raise TypeError(
-                    "wrong number of arguments, require {} got {}".format(
-                        len(self.inputs), len(args)
-                    )
-                )
+                raise TypeError("wrong number of arguments, require {} got {}".format(len(self.inputs), len(args)))
             parameter = encode_single(self.input_type, args).hex()
         elif kwargs:
             if len(kwargs) != len(self.inputs):
-                raise TypeError(
-                    "wrong number of arguments, require {} got {}".format(
-                        len(self.inputs), len(args)
-                    )
-                )
+                raise TypeError("wrong number of arguments, require {} got {}".format(len(self.inputs), len(args)))
             args = []
             for arg in self.inputs:
                 try:
@@ -232,10 +251,7 @@ class ContractMethod(object):
         if self._abi.get("stateMutability", None).lower() in ["view", "pure"]:
             # const call, contract ret
             ret = self._client.trigger_const_smart_contract_function(
-                self._owner_address,
-                self._contract.contract_address,
-                self.function_signature,
-                parameter,
+                self._owner_address, self._contract.contract_address, self.function_signature, parameter,
             )
 
             return self.parse_output(ret)
@@ -282,9 +298,7 @@ class ContractMethod(object):
         elif self._abi.get("stateMutability", None).lower() == "pure":
             ret += " pure"
         if self.outputs:
-            ret += " returns ({})".format(
-                ", ".join(arg["type"] + " " + arg.get("name", "") for arg in self.outputs)
-            )
+            ret += " returns ({})".format(", ".join(arg["type"] + " " + arg.get("name", "") for arg in self.outputs))
         return ret
 
     def as_shielded_trc20(self, trc20_addr: str) -> "ShieldedTRC20":
@@ -316,9 +330,7 @@ class ShieldedTRC20(object):
     def get_rcm(self) -> str:
         return self._client.provider.make_request("wallet/getrcm")["value"]
 
-    def mint(
-        self, taddr: str, zaddr: str, amount: int, memo: str = ""
-    ) -> "tronpy.TransactionBuilder":
+    def mint(self, taddr: str, zaddr: str, amount: int, memo: str = "") -> "tronpy.TransactionBuilder":
         rcm = self.get_rcm()
         payload = {
             "from_amount": str(amount),
@@ -347,10 +359,7 @@ class ShieldedTRC20(object):
         )
 
     def transfer(
-        self,
-        zkey: dict,
-        notes: Union[list, dict],
-        *to: Union[Tuple[str, int], Tuple[str, int, str]],
+        self, zkey: dict, notes: Union[list, dict], *to: Union[Tuple[str, int], Tuple[str, int, str]],
     ) -> "tronpy.TransactionBuilder":
         if isinstance(notes, (dict,)):
             notes = [notes]
@@ -365,13 +374,7 @@ class ShieldedTRC20(object):
             alpha = self.get_rcm()
             root, path = self.get_path(note.get("position", 0))
             spends.append(
-                {
-                    "note": note["note"],
-                    "alpha": alpha,
-                    "root": root,
-                    "path": path,
-                    "pos": note.get("position", 0),
-                }
+                {"note": note["note"], "alpha": alpha, "root": root, "path": path, "pos": note.get("position", 0),}
             )
             spend_amount += note["note"]["value"]
 
@@ -389,14 +392,7 @@ class ShieldedTRC20(object):
             rcm = self.get_rcm()
 
             receives.append(
-                {
-                    "note": {
-                        "value": amount,
-                        "payment_address": addr,
-                        "rcm": rcm,
-                        "memo": memo.encode().hex(),
-                    }
-                }
+                {"note": {"value": amount, "payment_address": addr, "rcm": rcm, "memo": memo.encode().hex(),}}
             )
 
         if spend_amount != receive_amount:
@@ -430,13 +426,7 @@ class ShieldedTRC20(object):
         if note.get("is_spent", False):
             raise DoubleSpending
         spends.append(
-            {
-                "note": note["note"],
-                "alpha": alpha,
-                "root": root,
-                "path": path,
-                "pos": note.get("position", 0),
-            }
+            {"note": note["note"], "alpha": alpha, "root": root, "path": path, "pos": note.get("position", 0),}
         )
 
         payload = {
@@ -471,9 +461,7 @@ class ShieldedTRC20(object):
         return notes
 
     # use zkey pair from wallet/getnewshieldedaddress
-    def scan_incoming_notes(
-        self, zkey: dict, start_block_number: int, end_block_number: int = None
-    ) -> list:
+    def scan_incoming_notes(self, zkey: dict, start_block_number: int, end_block_number: int = None) -> list:
         if end_block_number is None:
             end_block_number = start_block_number + 1000
         payload = {
@@ -517,9 +505,7 @@ class ShieldedTRC20(object):
 
     def is_note_spent(self, zkey: dict, note: dict) -> bool:
         payload = dict(note)
-        payload["shielded_TRC20_contract_address"] = keys.to_hex_address(
-            self.shielded.contract_address
-        )
+        payload["shielded_TRC20_contract_address"] = keys.to_hex_address(self.shielded.contract_address)
         if "position" not in note:
             payload["position"] = 0
         payload["ak"] = zkey["ak"]
