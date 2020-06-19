@@ -29,8 +29,8 @@ def test_trc20_transfer():
     contract = client.get_contract('THi2qJf6XmvTJSpZHc17HgQsmJop6kb3ia')
     print('Balance', contract.functions.balanceOf('TGQgfK497YXmjdgvun9Bg5Zu3xE15v17cu'))
     txn = (
-        contract.functions.transfer.with_owner('TGQgfK497YXmjdgvun9Bg5Zu3xE15v17cu')
-        .call('TVjsyZ7fYF3qLF6BQgPmTEZy1xrNNyVAAA', 1_000)
+        contract.functions.transfer('TVjsyZ7fYF3qLF6BQgPmTEZy1xrNNyVAAA', 1_000)
+        .with_owner('TGQgfK497YXmjdgvun9Bg5Zu3xE15v17cu')
         .fee_limit(1_000_000)
         .build()
         .sign(priv_key)

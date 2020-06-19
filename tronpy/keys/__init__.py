@@ -32,6 +32,7 @@ def public_key_to_addr(pub_key: bytes) -> bytes:
 
 
 def to_base58check_address(raw_addr: Union[str, bytes]) -> str:
+    """Convert hex address or base58check address to base58check address(and verify it)."""
     if isinstance(raw_addr, (str,)):
         if raw_addr[0] == "T" and len(raw_addr) == 34:
             try:
@@ -213,6 +214,7 @@ class PrivateKey(BaseKey):
         super().__init__()
 
     def sign_msg(self, message: bytes) -> "Signature":
+        """Sign a raw message."""
         sk = ecdsa.SigningKey.from_string(self._raw_key, curve=ecdsa.SECP256k1, hashfunc=hashlib.sha256)
         signature = sk.sign_deterministic(message)
 
@@ -228,6 +230,7 @@ class PrivateKey(BaseKey):
         return Signature(signature)
 
     def sign_msg_hash(self, message_hash: bytes) -> "Signature":
+        """Sign a message hash(sha256)."""
         sk = ecdsa.SigningKey.from_string(self._raw_key, curve=ecdsa.SECP256k1, hashfunc=hashlib.sha256)
         signature = sk.sign_digest_deterministic(message_hash)
 
@@ -244,10 +247,12 @@ class PrivateKey(BaseKey):
 
     @classmethod
     def random(cls) -> "PrivateKey":
+        """Generate a random private key."""
         return cls(bytes([random.randint(0, 255) for _ in range(32)]))
 
     @classmethod
     def from_passphrase(cls, passphrase: bytes) -> "PrivateKey":
+        """Get a private key from sha256 of a passphrase."""
         return cls(sha256(passphrase))
 
 
@@ -269,22 +274,26 @@ class Signature(ByteString):
         super().__init__()
 
     def recover_public_key_from_msg(self, message: bytes) -> PublicKey:
+        """Recover public key(address) from message and signature."""
         vks = ecdsa.VerifyingKey.from_public_key_recovery(
             self._raw_signature[:64], message, curve=ecdsa.SECP256k1, hashfunc=hashlib.sha256
         )
         return PublicKey(vks[self.v].to_string())
 
     def recover_public_key_from_msg_hash(self, message_hash: bytes) -> PublicKey:
+        """Recover public key(address) from message hash and signature."""
         vks = ecdsa.VerifyingKey.from_public_key_recovery_with_digest(
             self._raw_signature[:64], message_hash, curve=ecdsa.SECP256k1, hashfunc=hashlib.sha256
         )
         return PublicKey(vks[self.v].to_string())
 
     def verify_msg(self, message: bytes, public_key: PublicKey) -> bool:
+        """Verify message and signature."""
         vk = ecdsa.VerifyingKey.from_string(public_key.to_bytes(), curve=ecdsa.SECP256k1)
         return vk.verify(self._raw_signature[:64], message, hashfunc=hashlib.sha256)
 
     def verify_msg_hash(self, message_hash: bytes, public_key: PublicKey) -> bool:
+        """Verify message hash and signature."""
         vk = ecdsa.VerifyingKey.from_string(public_key.to_bytes(), curve=ecdsa.SECP256k1)
         return vk.verify_digest(self._raw_signature[:64], message_hash)
 
@@ -342,13 +351,13 @@ class Signature(ByteString):
 
 
 __all__ = [
-    PrivateKey,
-    PublicKey,
-    Signature,
-    to_base58check_address,
-    to_hex_address,
-    to_tvm_address,
-    is_address,
-    is_base58check_address,
-    is_hex_address,
+    "PrivateKey",
+    "PublicKey",
+    "Signature",
+    "to_base58check_address",
+    "to_hex_address",
+    "to_tvm_address",
+    "is_address",
+    "is_base58check_address",
+    "is_hex_address",
 ]

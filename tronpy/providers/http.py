@@ -5,13 +5,17 @@ from typing import Any, Union
 
 
 class HTTPProvider(object):
+    """An HTTP Provider for API request.
+
+    :params endpoint_uri: HTTP API URL base. Default value is ``"https://api.trongrid.io/"``. Can also be configured via
+        the ``TRONPY_HTTP_PROVIDER_URI`` environment variable.
+    """
+
     def __init__(self, endpoint_uri: Union[str, dict] = None):
         super().__init__()
 
         if endpoint_uri is None:
-            self.endpoint_uri = os.environ.get(
-                "TRONPY_HTTP_PROVIDER_URI", "https://api.trongrid.io/"
-            )
+            self.endpoint_uri = os.environ.get("TRONPY_HTTP_PROVIDER_URI", "https://api.trongrid.io/")
         elif isinstance(endpoint_uri, (dict,)):
             self.endpoint_uri = endpoint_uri["fullnode"]
         elif isinstance(endpoint_uri, (str,)):

@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Tuple
 import time
 from pprint import pprint
 import json
@@ -110,7 +110,7 @@ class Transaction(object):
 
 
 class TransactionBuilder(object):
-    """TransactionBuilder, to build a `Transaction` object."""
+    """TransactionBuilder, to build a :class:`~Transaction` object."""
 
     def __init__(self, inner: dict, client: "Tron", contract: Contract = None):
         self._client = client
@@ -160,7 +160,7 @@ class TransactionBuilder(object):
 
 
 class Trx(object):
-    """The Trx(transaction) API"""
+    """The Trx(transaction) API."""
 
     def __init__(self, tron):
         self._tron = tron
@@ -177,7 +177,7 @@ class Trx(object):
         return TransactionBuilder(inner, client=self.client)
 
     def transfer(self, from_: TAddress, to: TAddress, amount: int) -> TransactionBuilder:
-        """Transfer TRX. `amount` in `SUN`."""
+        """Transfer TRX. ``amount`` in `SUN`."""
         return self._build_transaction(
             "TransferContract",
             {"owner_address": keys.to_hex_address(from_), "to_address": keys.to_hex_address(to), "amount": amount,},
@@ -186,6 +186,7 @@ class Trx(object):
     # TRC10 asset
 
     def asset_transfer(self, from_: TAddress, to: TAddress, amount: int, token_id: int) -> TransactionBuilder:
+        """Transfer TRC10 tokens."""
         return self._build_transaction(
             "TransferAssetContract",
             {
@@ -212,6 +213,10 @@ class Trx(object):
         trx_num: int = 1,
         num: int = 1,
     ) -> TransactionBuilder:
+        """Issue a TRC10 token.
+
+        Almost all parameters have resonable defaults.
+        """
         if name is None:
             name = abbr
 
@@ -249,11 +254,16 @@ class Trx(object):
     # Account
 
     def account_permission_update(self, owner: TAddress, perm: dict) -> "TransactionBuilder":
+        """Update account permission.
+
+        :param perm: Permission dict from :meth:`~tronpy.Tron.get_account_permission`
+        """
         return self._build_transaction(
             "AccountPermissionUpdateContract", dict(owner_address=keys.to_hex_address(owner), **perm),
         )
 
     def account_update(self, owner: TAddress, name: str) -> "TransactionBuilder":
+        """Update account name. An account can only set name once."""
         return self._build_transaction(
             "UpdateAccountContract", {"owner_address": keys.to_hex_address(owner), "account_name": name.encode().hex()},
         )
@@ -261,6 +271,10 @@ class Trx(object):
     def freeze_balance(
         self, owner: TAddress, amount: int, resource: str = "ENERGY", *, receiver: TAddress = None
     ) -> "TransactionBuilder":
+        """Freeze balance to get energy or bandwidth, for 3 days.
+
+        :param resource: Resource type, can be ``"ENERGY"`` or ``"BANDWIDTH"``
+        """
         payload = {
             "owner_address": keys.to_hex_address(owner),
             "frozen_balance": amount,
@@ -274,6 +288,10 @@ class Trx(object):
     def unfreeze_balance(
         self, owner: TAddress, resource: str = "ENERGY", receiver: TAddress = None
     ) -> "TransactionBuilder":
+        """Unfreeze balance to get TRX back.
+
+        :param resource: Resource type, can be ``"ENERGY"`` or ``"BANDWIDTH"``
+        """
         payload = {
             "owner_address": keys.to_hex_address(owner),
             "resource": resource,
@@ -285,10 +303,12 @@ class Trx(object):
     # Witness
 
     def create_witness(self, owner: TAddress, url: str) -> "TransactionBuilder":
+        """Create a new witness, will consume 1_000 TRX."""
         payload = {"owner_address": keys.to_hex_address(owner), "url": url.encode().hex()}
         return self._build_transaction("WitnessCreateContract", payload)
 
-    def vote_witness(self, owner: TAddress, *votes: (TAddress, int)) -> "TransactionBuilder":
+    def vote_witness(self, owner: TAddress, *votes: Tuple[TAddress, int]) -> "TransactionBuilder":
+        """Vote for witnesses. Empty ``votes`` to clean voted."""
         votes = [dict(vote_address=keys.to_hex_address(addr), vote_count=count) for addr, count in votes]
         payload = {"owner_address": keys.to_hex_address(owner), "votes": votes}
         return self._build_transaction("VoteWitnessContract", payload)
@@ -306,7 +326,11 @@ class Trx(object):
 
 
 class Tron(object):
-    """The TRON API Client."""
+    """The TRON API Client.
+
+    :param provider: An :class:`~tronpy.providers.HTTPProvider` object, can be configured to use private node
+    :param network: Which network to connect, one of ``"mainnet"``, ``"shasta"``, ``"nile"``, or ``"tronex"``
+    """
 
     # Address API
     is_address = staticmethod(keys.is_address)
@@ -329,10 +353,11 @@ class Tron(object):
     def __init__(self, provider: HTTPProvider = None, *, network: str = "mainnet"):
         self._trx = Trx(self)
         if provider is None:
-            assert isinstance(provider, (HTTPProvider,))
             self.provider = HTTPProvider(conf_for_name(network))
-        else:
+        elif isinstance(provider, (HTTPProvider,)):
             self.provider = provider
+        else:
+            raise TypeError("provider is not a HTTPProvider")
 
     @property
     def trx(self) -> Trx:
@@ -466,7 +491,7 @@ class Tron(object):
         return {
             "owner": info.get(
                 "owner_permission",
-                {"permission_name": "owner", "threshold": 1, "keys": [{"address": addr, "weight": 1}],},
+                {"permission_name": "owner", "threshold": 1, "keys": [{"address": addr, "weight": 1}]},
             ),
             "actives": info.get(
                 "active_permission",
@@ -495,6 +520,10 @@ class Tron(object):
         info = self.provider.make_request("wallet/getnodeinfo")
         return info["solidityBlock"].split(",ID:", 1)[-1]
 
+    def get_latest_block(self) -> dict:
+        """Get latest block."""
+        return self.provider.make_request("wallet/getnowblock", {"visible": True})
+
     def get_latest_block_id(self) -> str:
         """Get latest block id in hex."""
 
@@ -507,13 +536,15 @@ class Tron(object):
         info = self.provider.make_request("wallet/getnodeinfo")
         return int(info["block"].split(",ID:", 1)[0].replace("Num:", "", 1))
 
-    def get_block(self, id_or_num: Union[str, int]) -> dict:
+    def get_block(self, id_or_num: Union[None, str, int] = None) -> dict:
         """Get block from a block id or block number."""
 
         if isinstance(id_or_num, (int,)):
             block = self.provider.make_request("wallet/getblockbynum", {"num": id_or_num, "visible": True})
         elif isinstance(id_or_num, (str,)):
             block = self.provider.make_request("wallet/getblockbyid", {"value": id_or_num, "visible": True})
+        elif id_or_num is None:
+            block = self.provider.make_request("wallet/getnowblock", {"visible": True})
         else:
             raise TypeError("can not infer type of {}".format(id_or_num))
 
