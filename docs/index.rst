@@ -15,6 +15,7 @@ Welcome to TronPy's documentation!
    client.rst
    trx.rst
    contract.rst
+   exceptions.rst
 
 
 TronPy is an easy-to-use TRON HTTP API client. It supports most of the java-tron 3.7 APIs, and with an experimental 4.0
@@ -28,10 +29,9 @@ Key principles:
 
 * Never use unsafe API (TronPy always sign offline)
 * Always use base58check address (API response, ABI decode/encode, ...)
-* Construct the transaction offline (more contral of ref_block, expiration)
+* Construct transactions offline (more control of ref_block, expiration)
 
 Now, :ref:`click here to start your tour with TronPy <quickstart>`.
-
 
 Indices and tables
 ==================
