@@ -10,9 +10,7 @@ The routine for sending
 
 A normal routine for sending a transaction is:
 
-.. code-block::
-
-   Create -> Sign -> Broadcast -> (wait) -> Lookup and get receipt
+  Create -> Sign -> Broadcast -> (wait) -> Lookup and get receipt
 
 TronPy chooses the `method chaining <https://en.wikipedia.org/wiki/Method_chaining>`_ approach to create,
 sign, and broadcast any transaction. All type of transactions can be created via :class:`Tron.trx <tronpy.tron.Trx>` object.
