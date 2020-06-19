@@ -57,7 +57,7 @@ Trigger call requires sign and broadcast.
 
 .. code-block:: python
 
-  >>> from tronpy import Tron, Contract                                                                                                                                                                  from tronpy.keys import PrivateKey
+  >>> from tronpy import Tron                                                                                                                                                                  from tronpy.keys import PrivateKey
   >>> from tronpy.keys import PrivateKey
 
   >>> client = Tron(network='nile')
@@ -68,8 +68,8 @@ Trigger call requires sign and broadcast.
 
   >>> txn = (
   ...         contract.functions.transfer('TVjsyZ7fYF3qLF6BQgPmTEZy1xrNNyVAAA', 1_000)
-  ...         .with_owner('TGQgfK497YXmjdgvun9Bg5Zu3xE15v17cu')
-  ...         .fee_limit(1_000_000)
+  ...         .with_owner('TGQgfK497YXmjdgvun9Bg5Zu3xE15v17cu')  # address of the private key
+  ...         .fee_limit(5_000_000)
   ...         .build()
   ...         .sign(priv_key)
   ... )
@@ -91,14 +91,79 @@ Trigger call requires sign and broadcast.
   >>> contract.functions.transfer.parse_output(_['contractResult'][0])
   True
 
+Trigger call with transfer
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Use :meth:`~tronpy.contract.ContractMethod.with_transfer` or :meth:`~tronpy.contract.ContractMethod.with_asset_transfer`.
+
+.. code-block:: python
+
+  >>> txn = (
+  ...         contract.functions.transfer.with_transfer(100_000_000)
+  ...         .call('TVjsyZ7fYF3qLF6BQgPmTEZy1xrNNyVAAA', 1_000)
+  ...         .with_owner('TGQgfK497YXmjdgvun9Bg5Zu3xE15v17cu')  # address of the private key
+  ...         .fee_limit(5_000_000)
+  ...         .build()
+  ...         .sign(priv_key)
+  ... )
+
+
+Creating smart contract
+-----------------------
+
+When you've compiled your contract code, you can deploy it on chain.
+
+.. code-block:: python
+
+  from tronpy import Tron, Contract                                                                                                                                                                  from tronpy.keys import PrivateKey
+  from tronpy.keys import PrivateKey
+
+  client = Tron(network='nile')
+  priv_key = PrivateKey(bytes.fromhex("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"))
+
+  bytecode = "608060405234801561001057600080fd5b5060c78061001f6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c806360fe47b11460375780636d4ce63c146062575b600080fd5b606060048036036020811015604b57600080fd5b8101908080359060200190929190505050607e565b005b60686088565b6040518082815260200191505060405180910390f35b8060008190555050565b6000805490509056fea2646970667358221220c8daade51f673e96205b4a991ab6b94af82edea0f4b57be087ab123f03fc40f264736f6c63430006000033"
+  abi = [
+      {
+          "inputs": [],
+          "name": "get",
+          "outputs": [{"internalType": "uint256", "name": "retVal", "type": "uint256"}],
+          "stateMutability": "view",
+          "type": "function",
+      }
+  ]
+
+  cntr = Contract(name="SimpleStore", bytecode=bytecode, abi=abi)
+
+  txn = (
+      client.trx.deploy_contract('TGQgfK497YXmjdgvun9Bg5Zu3xE15v17cu', cntr)
+      .fee_limit(5_000_000)
+      .build()
+      .sign(priv_key)
+  )
+  print(txn)
+  result = txn.broadcast().wait()
+  print(result)
+  print('Created:', result['contract_address'])
+
+  created_cntr = client.get_contract(result['contract_address'])
 
 
 API reference
 -------------
 
-.. autoclass:: tronpy.contract.Contract()
+.. autoclass:: tronpy.contract.Contract
    :members:
+
+.. autoclass:: tronpy.contract.ContractFunctions()
+   :members:
+
+   .. automethod:: __getattr__(method: str) -> tronpy.contract.ContractMethod
+
+.. autoclass:: tronpy.contract.ContractMethod()
+   :members:
+
+   .. automethod:: __call__(*args, **kwargs)
+
 
 .. autoclass:: tronpy.contract.ShieldedTRC20()
    :members:
