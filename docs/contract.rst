@@ -87,8 +87,11 @@ Trigger call requires sign and broadcast.
                        '000000000000000000000000d8dd39e2dea27a40001884901735e3940829bb44'],
             'data': '00000000000000000000000000000000000000000000000000000000000003e8'}]}
 
-  # for now, trigger output is parsed manually
+  # trigger output is parsed manually
   >>> contract.functions.transfer.parse_output(_['contractResult'][0])
+  True
+  # or use `.result()` to parse it automatically
+  >>> txn.broadcast().result()
   True
 
 Trigger call with transfer
