@@ -39,10 +39,14 @@ def test_trc20_transfer():
     )
 
     print(txn)
+    # wait
     receipt = txn.wait()
     print(receipt)
     if 'contractResult' in receipt:
         print('result:', contract.functions.transfer.parse_output(receipt['contractResult'][0]))
+
+    # result
+    print(txn.result())
 
 
 def test_contract_create():

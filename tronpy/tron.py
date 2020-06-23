@@ -5,7 +5,7 @@ import json
 from decimal import Decimal
 
 from tronpy import keys
-from tronpy.contract import Contract, ShieldedTRC20
+from tronpy.contract import Contract, ShieldedTRC20, ContractMethod
 from tronpy.keys import PrivateKey
 from tronpy.providers import HTTPProvider
 from tronpy.defaults import conf_for_name
@@ -31,11 +31,12 @@ def current_timestamp() -> int:
 
 
 class TransactionRet(dict):
-    def __init__(self, iterable, client: "Tron"):
+    def __init__(self, iterable, client: "Tron", method: ContractMethod = None):
         super().__init__(iterable)
 
         self._client = client
         self._txid = self["txid"]
+        self._method = method
 
     @property
     def txid(self):
@@ -45,7 +46,7 @@ class TransactionRet(dict):
     def wait(self, timeout=30, interval=1.6, solid=False) -> dict:
         """Wait the transaction to be on chain.
 
-        :return: TransactionInfo
+        :returns: TransactionInfo
         """
 
         get_transaction_info = self._client.get_transaction_info
@@ -61,14 +62,28 @@ class TransactionRet(dict):
 
         raise TransactionNotFound("timeout and can not find the transaction")
 
+    def result(self, timeout=30, interval=1.6, solid=False) -> dict:
+        """Wait the contract calling result.
+
+        :returns: Result of contract method
+        """
+        if self._method is None:
+            raise TypeError("Not a smart contract call")
+
+        receipt = self.wait(timeout, interval, solid)
+
+        return self._method.parse_output(receipt['contractResult'][0])
+
 
 class Transaction(object):
     """The Transaction object, signed or unsigned."""
 
-    def __init__(self, raw_data: dict, client: "Tron" = None):
+    def __init__(self, raw_data: dict, client: "Tron" = None, method: ContractMethod = None):
         self._raw_data = raw_data
         self._signature = []
         self._client = client
+
+        self._method = method
 
         self.txid = ""
         """The transaction id in hex."""
@@ -113,7 +128,7 @@ class Transaction(object):
 
     def broadcast(self) -> TransactionRet:
         """Broadcast the transaction to TRON network."""
-        return TransactionRet(self._client.broadcast(self), client=self._client)
+        return TransactionRet(self._client.broadcast(self), client=self._client, method=self._method)
 
     def __str__(self):
         return json.dumps(self.to_json(), indent=2)
@@ -122,7 +137,7 @@ class Transaction(object):
 class TransactionBuilder(object):
     """TransactionBuilder, to build a :class:`~Transaction` object."""
 
-    def __init__(self, inner: dict, client: "Tron", contract: Contract = None):
+    def __init__(self, inner: dict, client: "Tron", method: ContractMethod = None):
         self._client = client
         self._raw_data = {
             "contract": [inner],
@@ -131,7 +146,7 @@ class TransactionBuilder(object):
             "ref_block_bytes": None,
             "ref_block_hash": None,
         }
-        self._contract = contract
+        self._method = method
 
     def with_owner(self, addr: TAddress) -> "TransactionBuilder":
         """Set owner of the transaction."""
@@ -165,8 +180,10 @@ class TransactionBuilder(object):
         # last half part of block hash
         self._raw_data["ref_block_hash"] = ref_block_id[16:32]
 
-        txn = Transaction(self._raw_data, client=self._client)
-        return txn
+        if self._method:
+            return Transaction(self._raw_data, client=self._client, method=self._method)
+
+        return Transaction(self._raw_data, client=self._client)
 
 
 class Trx(object):
@@ -179,18 +196,20 @@ class Trx(object):
     def client(self) -> "Tron":
         return self._tron
 
-    def _build_transaction(self, type_: str, obj: dict, contract: Contract = None) -> dict:
+    def _build_transaction(self, type_: str, obj: dict, *, method: ContractMethod = None) -> dict:
         inner = {
-            "parameter": {"value": obj, "type_url": "type.googleapis.com/protocol.{}".format(type_),},
+            "parameter": {"value": obj, "type_url": "type.googleapis.com/protocol.{}".format(type_)},
             "type": type_,
         }
+        if method:
+            return TransactionBuilder(inner, client=self.client, method=method)
         return TransactionBuilder(inner, client=self.client)
 
     def transfer(self, from_: TAddress, to: TAddress, amount: int) -> TransactionBuilder:
         """Transfer TRX. ``amount`` in `SUN`."""
         return self._build_transaction(
             "TransferContract",
-            {"owner_address": keys.to_hex_address(from_), "to_address": keys.to_hex_address(to), "amount": amount,},
+            {"owner_address": keys.to_hex_address(from_), "to_address": keys.to_hex_address(to), "amount": amount},
         )
 
     # TRC10 asset

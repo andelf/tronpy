@@ -267,6 +267,7 @@ class ContractMethod(object):
                     "call_value": self.call_value,
                     "token_id": self.call_token_id,
                 },
+                method=self,
             )
 
     @property
@@ -363,6 +364,7 @@ class ShieldedTRC20(object):
                 "contract_address": keys.to_hex_address(self.shielded.contract_address),
                 "data": function_signature + parameter,
             },
+            method=self.shielded.functions.mint,
         )
 
     def transfer(
@@ -425,6 +427,7 @@ class ShieldedTRC20(object):
                 "contract_address": keys.to_hex_address(self.shielded.contract_address),
                 "data": function_signature + parameter,
             },
+            method=self.shielded.functions.transfer,
         )
 
     def burn(self, zkey: dict, note: dict, to_addr: str) -> "tronpy.tron.TransactionBuilder":
@@ -459,6 +462,7 @@ class ShieldedTRC20(object):
                 "contract_address": keys.to_hex_address(self.shielded.contract_address),
                 "data": function_signature + parameter,
             },
+            method=self.shielded.functions.burn,
         )
 
     def _fix_notes(self, notes: list) -> list:
