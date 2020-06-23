@@ -37,15 +37,25 @@ class TransactionRet(dict):
         self._client = client
         self._txid = self["txid"]
 
-    def wait(self, timeout=30, interval=1.6) -> dict:
+    @property
+    def txid(self):
+        """The transaction id in hex."""
+        return self._txid
+
+    def wait(self, timeout=30, interval=1.6, solid=False) -> dict:
         """Wait the transaction to be on chain.
 
         :return: TransactionInfo
         """
+
+        get_transaction_info = self._client.get_transaction_info
+        if solid:
+            get_transaction_info = self._client.get_solid_transaction_info
+
         end_time = time.time() + timeout * 1_0000
         while time.time() < end_time:
             try:
-                return self._client.get_transaction_info(self._txid)
+                return get_transaction_info(self._txid)
             except TransactionNotFound:
                 time.sleep(interval)
 
@@ -572,6 +582,18 @@ class Tron(object):
             raise BadHash("wrong transaction hash length")
 
         ret = self.provider.make_request("wallet/gettransactioninfobyid", {"value": txn_id, "visible": True})
+        self._handle_api_error(ret)
+        if ret:
+            return ret
+        raise TransactionNotFound
+
+    def get_solid_transaction_info(self, txn_id: str) -> dict:
+        """Get transaction receipt info from a transaction id, must be in solid block."""
+
+        if len(txn_id) != 64:
+            raise BadHash("wrong transaction hash length")
+
+        ret = self.provider.make_request("walletsolidity/gettransactioninfobyid", {"value": txn_id, "visible": True})
         self._handle_api_error(ret)
         if ret:
             return ret
