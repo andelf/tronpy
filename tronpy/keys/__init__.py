@@ -199,8 +199,8 @@ class PrivateKey(BaseKey):
             assert isinstance(private_key_bytes, (bytes,))
             assert len(private_key_bytes) == 32
             assert (
-                1
-                <= int.from_bytes(private_key_bytes, "big")
+                0
+                < int.from_bytes(private_key_bytes, "big")
                 < 115792089237316195423570985008687907852837564279074904382605163141518161494337
             )
         except AssertionError:
