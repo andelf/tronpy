@@ -3,6 +3,7 @@ from eth_abi.decoding import Fixed32ByteSizeDecoder
 from eth_abi.encoding import Fixed32ByteSizeEncoder
 from eth_abi.registry import registry, BaseEquals
 from eth_abi.base import parse_type_str
+import eth_abi
 
 from tronpy.keys import to_base58check_address, is_address, to_tvm_address
 
@@ -43,4 +44,11 @@ def do_patching():
 
     registry.register(
         BaseEquals("address"), TronAddressEncoder, TronAddressDecoder, label="address",
+    )
+
+    registry.register(
+        BaseEquals('trcToken'),
+        eth_abi.encoding.UnsignedIntegerEncoder,
+        eth_abi.decoding.UnsignedIntegerDecoder,
+        label='trcToken',
     )
