@@ -39,13 +39,13 @@ There are 3 types of shielded transfer:
 
 To use the :class:`~tronpy.contract.ShieldedTRC20` wrapper:
 
-`TLqtoeVB1HLAoKSNnD4dA99kErG54M5qQ4` is the ShieldedTRC20 of `JST` token(`TF17BgPaZYbz8oxbjhriubPDsA7ArKoLX3`) on Nile,
+`TEkQTDyZmbY6hngxdAsxzxy9r3bUNhRjdS` is the ShieldedTRC20 of `JST` token(`TF17BgPaZYbz8oxbjhriubPDsA7ArKoLX3`) on Nile,
 which can be acquired via [Nile Testnet Faucet](http://nileex.io/join/getJoinPage). The scaling factor is 18.
 
 .. code-block:: python
 
   client = Tron(network='nile')
-  shielded_trc20 = client.get_contract_as_shielded_trc20('TLqtoeVB1HLAoKSNnD4dA99kErG54M5qQ4')
+  shielded_trc20 = client.get_contract_as_shielded_trc20('TEkQTDyZmbY6hngxdAsxzxy9r3bUNhRjdS')
 
   taddr = 'TJRabPrwbZy45sbavfcjinPJC18kjpRTv8'
   priv_key = PrivateKey(bytes.fromhex("................omitted.............................."))
@@ -61,6 +61,57 @@ which can be acquired via [Nile Testnet Faucet](http://nileex.io/join/getJoinPag
   )
   print(txn.broadcast().wait())
 
+  # from z-addr to z-addr
+  # note is acquired via scan_incoming_notes, where is_spent == False
+  note = {
+      'index': 0,
+      'is_spent': False,
+      'note': {
+          'memo': '546865204d656d6f',
+          'payment_address': 'ztron1dt62eetht5e50rm5g......omitted......v7hmskm7rhx0dv5gyec8sn',
+          'rcm': 'fd39a0c1e298d88ad35893d4......omitted......57bffefdd076a521d70d',
+          'value': 1,
+      },
+      'position': 0,
+      'txid': 'e191f1114cbd8cbe43452b2c3141326ae4c2aba22a82ba195c9573895cbbfd84',
+  }
+
+  # transfer value unit is in shielded token, original TRC20 divided by scaling factor
+  txn = (
+      shielded_trc20.transfer(zkey1, note, (zkey2['payment_address'], 1, "oh yeah"))
+      .with_owner('TJRabPrwbZy45sbavfcjinPJC18kjpRTv8')
+      .fee_limit(5_000000)
+      .build()
+      .sign(priv_key)
+  )
+  print(txn.txid)
+  print(txn.broadcast().result())
+
+  # from z-addr to T-addr
+  # note is acquired via scan_incoming_notes, where is_spent == False
+
+  note = {
+      'note': {
+          'payment_address': 'ztron1nf7ducycjl4nm4507jmv......omitted......9j66kczw0n4r7wlvkrfjtcz',
+          'memo': '6f682079656168',
+          'value': 1,
+          'rcm': '86ced3a38ddf7e2bfa4f8......omitted......958ec860ff63da7f4608',
+      },
+      'txid': 'f9f8e9368d5ff34d4a923c46a8c53eb648a02da99089d6d60a6a3b57a27f9add',
+      'index': 0,
+      'position': 1,
+      'is_spent': False,
+  }
+
+  txn = (
+      shielded_trc20.burn(zkey2, note, "TVjsyZ7fYF3qLF6BQgPmTEZy1xrNNyVAAA")
+      .with_owner('TJRabPrwbZy45sbavfcjinPJC18kjpRTv8')
+      .fee_limit(5_000000)
+      .build()
+      .sign(priv_key)
+  )
+  print(txn.txid)
+  print(txn.broadcast().result())
 
 Scan notes
 ----------
@@ -71,7 +122,6 @@ Scan notes
 
   # or
   notes = shielded_trc20.scan_incoming_notes(zkey, client.get_latest_block_number() - 100)
-
 
 API reference
 -------------
