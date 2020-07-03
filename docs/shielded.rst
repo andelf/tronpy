@@ -39,10 +39,13 @@ There are 3 types of shielded transfer:
 
 To use the :class:`~tronpy.contract.ShieldedTRC20` wrapper:
 
+`TLqtoeVB1HLAoKSNnD4dA99kErG54M5qQ4` is the ShieldedTRC20 of `JST` token(`TF17BgPaZYbz8oxbjhriubPDsA7ArKoLX3`) on Nile,
+which can be acquired via [Nile Testnet Faucet](http://nileex.io/join/getJoinPage). The scaling factor is 18.
+
 .. code-block:: python
 
   client = Tron(network='nile')
-  shielded_trc20 = client.get_contract_as_shielded_trc20('TGbsfpmaPuSqQyEgieQTd5aZN9XvEMga7e')
+  shielded_trc20 = client.get_contract_as_shielded_trc20('TLqtoeVB1HLAoKSNnD4dA99kErG54M5qQ4')
 
   taddr = 'TJRabPrwbZy45sbavfcjinPJC18kjpRTv8'
   priv_key = PrivateKey(bytes.fromhex("................omitted.............................."))
@@ -51,10 +54,10 @@ To use the :class:`~tronpy.contract.ShieldedTRC20` wrapper:
   print('Allowance:', shielded_trc20.trc20.functions.allowance(taddr, shielded_trc20.shielded.contract_address))
 
   # or approve transferFrom
-  # shielded_trc20.trc20.functions.approve(taddr, 1000_000_000).with_owner(taddr).build().sign(priv_key).broadcast().wait()
+  # shielded_trc20.trc20.functions.approve(taddr, 1 * 10 ** 18).with_owner(taddr).build().sign(priv_key).broadcast().wait()
 
   txn = (
-      shielded_trc20.mint(taddr, zkey['payment_address'], 1_100, 'The Memo').fee_limit(5_000_000).build().sign(priv_key)
+      shielded_trc20.mint(taddr, zkey['payment_address'], 1 * 10 ** 18, 'The Memo').fee_limit(5_000_000).build().sign(priv_key)
   )
   print(txn.broadcast().wait())
 
