@@ -384,7 +384,7 @@ class ShieldedTRC20(object):
             alpha = self.get_rcm()
             root, path = self.get_path(note.get("position", 0))
             spends.append(
-                {"note": note["note"], "alpha": alpha, "root": root, "path": path, "pos": note.get("position", 0),}
+                {"note": note["note"], "alpha": alpha, "root": root, "path": path, "pos": note.get("position", 0)}
             )
             spend_amount += note["note"]["value"]
 
@@ -402,7 +402,7 @@ class ShieldedTRC20(object):
             rcm = self.get_rcm()
 
             receives.append(
-                {"note": {"value": amount, "payment_address": addr, "rcm": rcm, "memo": memo.encode().hex(),}}
+                {"note": {"value": amount, "payment_address": addr, "rcm": rcm, "memo": memo.encode().hex()}}
             )
 
         if spend_amount != receive_amount:
@@ -430,7 +430,9 @@ class ShieldedTRC20(object):
             method=self.shielded.functions.transfer,
         )
 
-    def burn(self, zkey: dict, note: dict, to_addr: str) -> "tronpy.tron.TransactionBuilder":
+    def burn(
+        self, zkey: dict, note: dict, to_addr: str, to: Union[Tuple[str, int], Tuple[str, int, str]] = None
+    ) -> "tronpy.tron.TransactionBuilder":
         """Burn, transfer from z-address to T-address."""
         spends = []
         alpha = self.get_rcm()
@@ -438,15 +440,28 @@ class ShieldedTRC20(object):
         if note.get("is_spent", False):
             raise DoubleSpending
         spends.append(
-            {"note": note["note"], "alpha": alpha, "root": root, "path": path, "pos": note.get("position", 0),}
+            {"note": note["note"], "alpha": alpha, "root": root, "path": path, "pos": note.get("position", 0)}
         )
+        change_amount = 0
+        receives = []
+        if to:
+            addr = to[0]
+            amount = to[1]
+            change_amount += amount
+            if len(to) == 3:
+                memo = to[2]
+            else:
+                memo = ""
+            rcm = self.get_rcm()
+            receives = [{"note": {"value": amount, "payment_address": addr, "rcm": rcm, "memo": memo.encode().hex(),}}]
 
         payload = {
             "ask": zkey["ask"],
             "nsk": zkey["nsk"],
             "ovk": zkey["ovk"],
             "shielded_spends": spends,
-            "to_amount": str(note["note"]["value"] * self.scale_factor),
+            "shielded_receives": receives,
+            "to_amount": str(note["note"]["value"] * self.scale_factor - change_amount),
             "transparent_to_address": keys.to_hex_address(to_addr),
             "shielded_TRC20_contract_address": keys.to_hex_address(self.shielded.contract_address),
         }
