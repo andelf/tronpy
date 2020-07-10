@@ -219,6 +219,8 @@ class ContractMethod(object):
         parsed_result = decode_single(self.output_type, bytes.fromhex(raw))
         if len(self.outputs) == 1:
             return parsed_result[0]
+        if len(self.outputs) == 0:
+            return None
         return parsed_result
 
     def __call__(self, *args, **kwargs) -> "tronpy.tron.TransactionBuilder":
@@ -450,10 +452,10 @@ class ShieldedTRC20(object):
         if not to:
             raise ValueError('burn must have a output')
         for receive in to:
-            addr = to[0]
-            amount = to[1]
-            if len(to) == 3:
-                memo = to[2]
+            addr = receive[0]
+            amount = receive[1]
+            if len(receive) == 3:
+                memo = receive[2]
             else:
                 memo = ""
 
@@ -506,8 +508,8 @@ class ShieldedTRC20(object):
                 note["position"] = 0
             if "is_spent" not in note:
                 note["is_spent"] = False
-            if "memo" in note["note"]:
-                note["note"]["memo"] = bytes.fromhex(note["note"]["memo"]).decode("utf8", 'ignore')
+            # if "memo" in note["note"]:
+            #     note["note"]["memo"] = bytes.fromhex(note["note"]["memo"]).decode("utf8", 'ignore')
         return notes
 
     # use zkey pair from wallet/getnewshieldedaddress
@@ -566,4 +568,4 @@ class ShieldedTRC20(object):
 
         ret = self._client.provider.make_request("wallet/isshieldedtrc20contractnotespent", payload)
 
-        return ret
+        return ret.get('is_spent', None)
