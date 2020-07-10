@@ -460,7 +460,9 @@ class ShieldedTRC20(object):
             if addr.startswith('ztron1'):
                 change_amount += amount
                 rcm = self.get_rcm()
-                receives = [{"note": {"value": amount, "payment_address": addr, "rcm": rcm, "memo": memo.encode().hex(),}}]
+                receives = [
+                    {"note": {"value": amount, "payment_address": addr, "rcm": rcm, "memo": memo.encode().hex(),}}
+                ]
             else:
                 # assume T-address
                 to_addr = addr
@@ -504,6 +506,8 @@ class ShieldedTRC20(object):
                 note["position"] = 0
             if "is_spent" not in note:
                 note["is_spent"] = False
+            if "memo" in note["note"]:
+                note["note"]["memo"] = bytes.fromhex(note["note"]["memo"]).decode("utf8", 'ignore')
         return notes
 
     # use zkey pair from wallet/getnewshieldedaddress
