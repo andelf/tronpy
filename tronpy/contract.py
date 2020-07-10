@@ -431,7 +431,7 @@ class ShieldedTRC20(object):
         )
 
     def burn(
-        self, zkey: dict, note: dict, to_addr: str, to: Union[Tuple[str, int], Tuple[str, int, str]] = None
+        self, zkey: dict, note: dict, *to: Union[Tuple[str, int], Tuple[str, int, str]]
     ) -> "tronpy.tron.TransactionBuilder":
         """Burn, transfer from z-address to T-address."""
         spends = []
@@ -444,16 +444,31 @@ class ShieldedTRC20(object):
         )
         change_amount = 0
         receives = []
-        if to:
+        to_addr = None
+        to_amount = 0
+        to_memo = ''
+        if not to:
+            raise ValueError('burn must have a output')
+        for receive in to:
             addr = to[0]
             amount = to[1]
-            change_amount += amount
             if len(to) == 3:
                 memo = to[2]
             else:
                 memo = ""
-            rcm = self.get_rcm()
-            receives = [{"note": {"value": amount, "payment_address": addr, "rcm": rcm, "memo": memo.encode().hex(),}}]
+
+            if addr.startswith('ztron1'):
+                change_amount += amount
+                rcm = self.get_rcm()
+                receives = [{"note": {"value": amount, "payment_address": addr, "rcm": rcm, "memo": memo.encode().hex(),}}]
+            else:
+                # assume T-address
+                to_addr = addr
+                to_amount = amount
+                to_memo = memo
+
+        if note["note"]["value"] * self.scale_factor - change_amount * self.scale_factor != to_amount:
+            raise ValueError("Balance amount is wrong")
 
         payload = {
             "ask": zkey["ask"],
@@ -461,7 +476,7 @@ class ShieldedTRC20(object):
             "ovk": zkey["ovk"],
             "shielded_spends": spends,
             "shielded_receives": receives,
-            "to_amount": str(note["note"]["value"] * self.scale_factor - change_amount),
+            "to_amount": str(to_amount),
             "transparent_to_address": keys.to_hex_address(to_addr),
             "shielded_TRC20_contract_address": keys.to_hex_address(self.shielded.contract_address),
         }
@@ -470,7 +485,7 @@ class ShieldedTRC20(object):
         self._client._handle_api_error(ret)
         parameter = ret["trigger_contract_input"]
         function_signature = self.shielded.functions.burn.function_signature_hash
-        return self._client.trx._build_transaction(
+        txn = self._client.trx._build_transaction(
             "TriggerSmartContract",
             {
                 "owner_address": "410000000000000000000000000000000000000000",
@@ -479,6 +494,9 @@ class ShieldedTRC20(object):
             },
             method=self.shielded.functions.burn,
         )
+        if to_memo:
+            txn = txn.memo(to_memo)
+        return txn
 
     def _fix_notes(self, notes: list) -> list:
         for note in notes:
