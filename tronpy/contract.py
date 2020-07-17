@@ -34,7 +34,7 @@ class Contract(object):
         self,
         addr=None,
         *,
-        bytecode: Union[str, bytes],
+        bytecode: Union[str, bytes] = '',
         name: str = None,
         abi: Optional[dict] = None,
         user_resource_percent: int = 100,
@@ -46,8 +46,7 @@ class Contract(object):
         self.contract_address = addr
         """Address of the contract"""
 
-        self.bytecode = assure_bytes(bytecode)
-        """Bytecode of the contract, in ``bytes``"""
+        self._bytecode = assure_bytes(bytecode)
 
         self.name = name
         """Name of the contract"""
@@ -73,6 +72,15 @@ class Contract(object):
     def __str__(self):
         return "<Contract {} {}>".format(self.name, self.contract_address)
 
+    @property
+    def bytecode(self):
+        """Bytecode of the contract, in ``hex`` format"""
+        return self._bytecode.hex()
+
+    @bytecode.setter
+    def bytecode(self, value):
+        self._bytecode = assure_bytes(value)
+
     def deploy(self) -> Any:
         if self.contract_address:
             raise RuntimeError("this contract has already deployed to {}".format(self.contract_address))
@@ -87,7 +95,7 @@ class Contract(object):
                 "new_contract": {
                     "origin_address": keys.to_hex_address(self.origin_address),
                     "abi": {"entrys": self.abi},
-                    "bytecode": self.bytecode.hex(),
+                    "bytecode": self.bytecode,
                     "call_value": 0,  # TODO
                     "name": self.name,
                     "consume_user_resource_percent": self.user_resource_percent,
@@ -147,6 +155,15 @@ class Contract(object):
             raise ValueError("can not call a contract without ABI")
         return self._functions
 
+    @property
+    def constructor(self) -> "ContractConstructor":
+        """The constructor of the contract."""
+        for method_abi in self.abi:
+            if method_abi['type'] == 'Constructor':
+                return ContractConstructor(method_abi, self)
+
+        raise NameError("Contract has no constructor")
+
 
 class ContractFunctions(object):
     def __init__(self, contract):
@@ -171,6 +188,54 @@ class ContractFunctions(object):
 
     def __iter__(self):
         yield from [self[method] for method in dir(self)]
+
+
+class ContractConstructor(object):
+    """The constructor method of a contract."""
+
+    def __init__(self, abi: dict, contract: Contract):
+
+        self._abi = abi
+        self._contract = contract
+
+        self.inputs = abi.get("inputs", [])
+        self.outputs = abi.get("outputs", [])
+
+    def __str__(self):
+        types = ", ".join(arg["type"] + " " + arg.get("name", "") for arg in self.inputs)
+        ret = "construct({})".format(types)
+        return ret
+
+    @property
+    def input_type(self) -> str:
+        return "(" + (",".join(arg["type"] for arg in self.inputs)) + ")"
+
+    def encode_parameter(self, *args, **kwargs) -> str:
+        """Encode constructor parameters according to ABI."""
+        parameter = ""
+
+        if args and kwargs:
+            raise ValueError("do not mix positional arguments and keyword arguments")
+
+        if len(self.inputs) == 0:
+            if args or kwargs:
+                raise TypeError("{} expected {} arguments".format(self.name, len(self.inputs)))
+        elif args:
+            if len(args) != len(self.inputs):
+                raise TypeError("wrong number of arguments, require {} got {}".format(len(self.inputs), len(args)))
+            parameter = encode_single(self.input_type, args).hex()
+        elif kwargs:
+            if len(kwargs) != len(self.inputs):
+                raise TypeError("wrong number of arguments, require {} got {}".format(len(self.inputs), len(args)))
+            args = []
+            for arg in self.inputs:
+                try:
+                    args.append(kwargs[arg["name"]])
+                except KeyError:
+                    raise TypeError("missing argument '{}'".format(arg["name"]))
+            parameter = encode_single(self.input_type, args).hex()
+
+        return parameter
 
 
 class ContractMethod(object):
@@ -325,7 +390,7 @@ class ShieldedTRC20(object):
     def trc20(self) -> Contract:
         """The corresponding TRC20 contract."""
         if self._trc20 is None:
-            trc20_address = "41" + self.shielded.bytecode[-52:-32].hex()
+            trc20_address = "41" + self.shielded._bytecode[-52:-32].hex()
             self._trc20 = self._client.get_contract(trc20_address)
         return self._trc20
 
