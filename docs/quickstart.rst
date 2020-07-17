@@ -52,6 +52,16 @@ Private network
 
    client = Tron(HTTPProvider("http://127.0.0.1:8090"))  # Use private network as HTTP API endpoint
 
+With custom default fee limit
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The default fee limit is ``5_000_000`` for contract deploy or trigger, ``0`` otherwise.
+
+.. code-block: python
+
+  # set fee_limit 10 TRX
+  client = Tron(network='nile', conf={'fee_limit': 10_000_000})
+
 Getting Blockchain Info
 ^^^^^^^^^^^^^^^^^^^^^^^
 

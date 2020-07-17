@@ -160,6 +160,19 @@ When you've compiled your contract code, you can deploy it on chain.
   parameter = cntr.constructor.encode_parameter("TRh5N2iAmjyeJbbCXsDuo7PNZvyjVWtL2e", 18)
   cntr.bytecode = bytecode + parameter
 
+Default Fee Limit
+-----------------
+
+The default fee limit is ``5_000_000`` for contract deploy or trigger, ``0`` otherwise.
+
+Fee limit is set by ``.fee_limit()`` method of transaction.
+
+It also can be set via `conf` object:
+
+.. code-block: python
+
+  client = Tron(network='nile', conf={'fee_limit': 10_000_000})
+
 API reference
 -------------
 
