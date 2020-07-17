@@ -39,7 +39,7 @@ There are 3 types of shielded transfer:
 
 To use the :class:`~tronpy.contract.ShieldedTRC20` wrapper:
 
-`TEkQTDyZmbY6hngxdAsxzxy9r3bUNhRjdS` is the ShieldedTRC20 of `JST` token(`TF17BgPaZYbz8oxbjhriubPDsA7ArKoLX3`) on Nile,
+``TEkQTDyZmbY6hngxdAsxzxy9r3bUNhRjdS`` is the ShieldedTRC20 of `JST` token(``TF17BgPaZYbz8oxbjhriubPDsA7ArKoLX3``) on Nile,
 which can be acquired via [Nile Testnet Faucet](http://nileex.io/join/getJoinPage). The scaling factor is 18.
 
 .. code-block:: python

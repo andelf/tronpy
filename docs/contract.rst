@@ -73,7 +73,7 @@ Trigger call requires sign and broadcast.
   ...         .build()
   ...         .sign(priv_key)
   ... )
-  >>> txn.broadcast()  # or txn.broadcast().wait()
+  >>> txn.broadcast()  # or txn.broadcast()
   {'result': True, 'txid': '63609d84524b754a97c111eec152700f273979bb00dad993d8dcce5848b4dd9a'}
   >>> _.wait()
   {'id': '63609d84524b754a97c111eec152700f273979bb00dad993d8dcce5848b4dd9a',
@@ -87,7 +87,7 @@ Trigger call requires sign and broadcast.
                        '000000000000000000000000d8dd39e2dea27a40001884901735e3940829bb44'],
             'data': '00000000000000000000000000000000000000000000000000000000000003e8'}]}
 
-  # trigger output is parsed manually
+  # trigger output can be parsed manually
   >>> contract.functions.transfer.parse_output(_['contractResult'][0])
   True
   # or use `.result()` to parse it automatically
@@ -115,6 +115,10 @@ Creating smart contract
 -----------------------
 
 When you've compiled your contract code, you can deploy it on chain.
+
+.. note::
+
+   The constructor's parameters are provided via `bytecode`.
 
 .. code-block:: python
 
