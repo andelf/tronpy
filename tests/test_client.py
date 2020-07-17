@@ -1,5 +1,6 @@
 from tronpy import Tron
 from tronpy.keys import PrivateKey
+import pytest
 
 
 def test_client_keygen():
@@ -27,7 +28,7 @@ def test_client():
     print(txn)
 
 
-def test_client():
+def test_client_get_contract():
     client = Tron()
 
     print(client)
@@ -64,7 +65,7 @@ def test_client():
     cntr.functions.name()
 
 
-def test_client():
+def test_client_transfer_trc10():
     client = Tron(network='nile')
 
     priv_key = PrivateKey(bytes.fromhex("ebf7c9cad1ca710553c22669fd3c7c70832e7024c1a32da69bbc5ad19dcc8992"))
@@ -82,3 +83,13 @@ def test_client():
     )
 
     print(txn)
+
+
+def test_client_timeout():
+    import requests.exceptions
+
+    # must be a timeout
+    client = Tron(network='nile', conf={'timeout': 0.0001})
+
+    with pytest.raises(requests.exceptions.Timeout):
+        client.get_block()
