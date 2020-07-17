@@ -154,11 +154,11 @@ When you've compiled your contract code, you can deploy it on chain.
 
    The constructor's parameters are provided via `bytecode`.
 
-.. code-block: python
+.. code-block:: python
 
-   cntr = Contract(name="SimpleStore", bytecode=bytecode, abi=abi)
-   parameter = cntr.constructor.encode_parameter("TRh5N2iAmjyeJbbCXsDuo7PNZvyjVWtL2e", 18)
-   cntr.bytecode = bytecode + parameter
+  cntr = Contract(name="SimpleStore", bytecode=bytecode, abi=abi)
+  parameter = cntr.constructor.encode_parameter("TRh5N2iAmjyeJbbCXsDuo7PNZvyjVWtL2e", 18)
+  cntr.bytecode = bytecode + parameter
 
 Default Fee Limit
 -----------------
@@ -169,7 +169,7 @@ Fee limit is set by ``.fee_limit()`` method of transaction.
 
 It also can be set via `conf` object:
 
-.. code-block: python
+.. code-block:: python
 
   client = Tron(network='nile', conf={'fee_limit': 10_000_000})
 
