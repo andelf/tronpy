@@ -463,7 +463,7 @@ class ShieldedTRC20(object):
                 change_amount += amount
                 rcm = self.get_rcm()
                 receives = [
-                    {"note": {"value": amount, "payment_address": addr, "rcm": rcm, "memo": memo.encode().hex(),}}
+                    {"note": {"value": amount, "payment_address": addr, "rcm": rcm, "memo": memo.encode().hex()}}
                 ]
             else:
                 # assume T-address
