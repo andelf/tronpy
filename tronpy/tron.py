@@ -27,7 +27,7 @@ TAddress = str
 
 DEFAULT_CONF = {
     'fee_limit': 5_000_000,
-    'timeout': 5_000,
+    'timeout': 10.0,  # in second
 }
 
 
@@ -389,19 +389,20 @@ class Tron(object):
     to_canonical_address = staticmethod(keys.to_base58check_address)
 
     def __init__(self, provider: HTTPProvider = None, *, network: str = "mainnet", conf: dict = None):
-        self._trx = Trx(self)
-        if provider is None:
-            self.provider = HTTPProvider(conf_for_name(network))
-        elif isinstance(provider, (HTTPProvider,)):
-            self.provider = provider
-        else:
-            raise TypeError("provider is not a HTTPProvider")
-
         self.conf = DEFAULT_CONF
         """The config dict."""
 
         if conf is not None:
             self.conf = dict(DEFAULT_CONF, **conf)
+
+        if provider is None:
+            self.provider = HTTPProvider(conf_for_name(network), self.conf['timeout'])
+        elif isinstance(provider, (HTTPProvider,)):
+            self.provider = provider
+        else:
+            raise TypeError("provider is not a HTTPProvider")
+
+        self._trx = Trx(self)
 
     @property
     def trx(self) -> Trx:
