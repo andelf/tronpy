@@ -116,10 +116,6 @@ Creating smart contract
 
 When you've compiled your contract code, you can deploy it on chain.
 
-.. note::
-
-   The constructor's parameters are provided via `bytecode`.
-
 .. code-block:: python
 
   from tronpy import Tron, Contract                                                                                                                                                                  from tronpy.keys import PrivateKey
@@ -154,6 +150,15 @@ When you've compiled your contract code, you can deploy it on chain.
 
   created_cntr = client.get_contract(result['contract_address'])
 
+.. note::
+
+   The constructor's parameters are provided via `bytecode`.
+
+.. code-block: python
+
+  cntr = Contract(name="SimpleStore", bytecode=bytecode, abi=abi)
+  parameter = cntr.constructor.encode_parameter("TRh5N2iAmjyeJbbCXsDuo7PNZvyjVWtL2e", 18)
+  cntr.bytecode = bytecode + parameter
 
 API reference
 -------------
