@@ -25,6 +25,11 @@ from tronpy.exceptions import (
 
 TAddress = str
 
+DEFAULT_CONF = {
+    'fee_limit': 5_000_000,
+    'timeout': 5_000,
+}
+
 
 def current_timestamp() -> int:
     return int(time.time() * 1000)
@@ -146,6 +151,10 @@ class TransactionBuilder(object):
             "ref_block_bytes": None,
             "ref_block_hash": None,
         }
+
+        if inner.get('type', None) in ['TriggerSmartContract', 'CreateSmartContract']:
+            self._raw_data["fee_limit"] = self._client.conf['fee_limit']
+
         self._method = method
 
     def with_owner(self, addr: TAddress) -> "TransactionBuilder":
@@ -379,7 +388,7 @@ class Tron(object):
 
     to_canonical_address = staticmethod(keys.to_base58check_address)
 
-    def __init__(self, provider: HTTPProvider = None, *, network: str = "mainnet"):
+    def __init__(self, provider: HTTPProvider = None, *, network: str = "mainnet", conf: dict = None):
         self._trx = Trx(self)
         if provider is None:
             self.provider = HTTPProvider(conf_for_name(network))
@@ -387,6 +396,12 @@ class Tron(object):
             self.provider = provider
         else:
             raise TypeError("provider is not a HTTPProvider")
+
+        self.conf = DEFAULT_CONF
+        """The config dict."""
+
+        if conf is not None:
+            self.conf = dict(DEFAULT_CONF, **conf)
 
     @property
     def trx(self) -> Trx:
