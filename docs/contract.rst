@@ -156,9 +156,9 @@ When you've compiled your contract code, you can deploy it on chain.
 
 .. code-block: python
 
-  cntr = Contract(name="SimpleStore", bytecode=bytecode, abi=abi)
-  parameter = cntr.constructor.encode_parameter("TRh5N2iAmjyeJbbCXsDuo7PNZvyjVWtL2e", 18)
-  cntr.bytecode = bytecode + parameter
+   cntr = Contract(name="SimpleStore", bytecode=bytecode, abi=abi)
+   parameter = cntr.constructor.encode_parameter("TRh5N2iAmjyeJbbCXsDuo7PNZvyjVWtL2e", 18)
+   cntr.bytecode = bytecode + parameter
 
 Default Fee Limit
 -----------------

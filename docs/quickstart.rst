@@ -59,8 +59,8 @@ The default fee limit is ``5_000_000`` for contract deploy or trigger, ``0`` oth
 
 .. code-block: python
 
-  # set fee_limit 10 TRX
-  client = Tron(network='nile', conf={'fee_limit': 10_000_000})
+   # set fee_limit 10 TRX
+   client = Tron(network='nile', conf={'fee_limit': 10_000_000})
 
 Connection timeout
 ^^^^^^^^^^^^^^^^^^
@@ -69,8 +69,8 @@ The default timeout is 10s.
 
 .. code-block: python
 
-  # set timeout to 20s for a slow network
-  client = Tron(network='nile', conf={'timeout': 20.0})
+   # set timeout to 20s for a slow network
+   client = Tron(network='nile', conf={'timeout': 20.0})
 
 
 Getting Blockchain Info
