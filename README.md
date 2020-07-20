@@ -1,5 +1,7 @@
 # tronpy
 
+[![PyPI version](https://badge.fury.io/py/tronpy.svg)](https://pypi.org/project/tronpy/)
+
 TRON Python Client Library. [Documentation](https://tronpy.readthedocs.io/en/latest/index.html)
 
 ## How to use
