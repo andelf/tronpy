@@ -46,7 +46,11 @@ class TransactionNotFound(NotFound):
     pass
 
 
-class BlockNotFound(ValueError):
+class BlockNotFound(NotFound):
+    pass
+
+
+class AssetNotFound(NotFound):
     pass
 
 

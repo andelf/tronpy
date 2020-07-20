@@ -14,6 +14,7 @@ from tronpy.exceptions import (
     BadKey,
     BadHash,
     BlockNotFound,
+    AssetNotFound,
     TaposError,
     UnknownError,
     TransactionError,
@@ -516,6 +517,19 @@ class Tron(object):
         info = self.get_account(addr)
         return Decimal(info.get("balance")) / 1_000_000
 
+    def get_account_asset_balances(self, addr: TAddress) -> dict:
+        """Get all TRC10 token balances of an account."""
+        info = self.get_account(addr)
+        return {p['key']: p['value'] for p in info.get("assetV2", {}) if p['value'] > 0}
+
+    def get_account_asset_balance(self, addr: TAddress, token_id: Union[int, str]) -> int:
+        """Get TRC10 token balance of an account. Result is in raw amount."""
+        if int(token_id) < 1000000 or int(token_id) > 1999999:
+            raise ValueError("invalid token_id range")
+
+        balances = self.get_account_asset_balances(addr)
+        return balances.get(str(token_id), 0)
+
     def get_account_permission(self, addr: TAddress) -> dict:
         """Get account's permission info from an address. Can be used in `account_permission_update`."""
 
@@ -676,6 +690,15 @@ class Tron(object):
             return self.provider.make_request(
                 "wallet/getassetissuebyaccount", {"address": keys.to_base58check_address(issuer), "visible": True},
             )
+
+    def get_asset_from_name(self, name: str) -> dict:
+        """Get asset info from its abbr name, might fail if there're duplicates."""
+        assets = [asset for asset in self.list_assets() if asset['abbr'] == name]
+        if assets:
+            if len(assets) == 1:
+                return assets[0]
+            raise ValueError("duplicated assets with the same name", [asset['id'] for asset in assets])
+        raise AssetNotFound
 
     def list_assets(self) -> list:
         """List all TRC10 tokens(assets)."""
