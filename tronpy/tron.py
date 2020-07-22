@@ -515,7 +515,7 @@ class Tron(object):
         """Get TRX balance of an account. Result in `TRX`."""
 
         info = self.get_account(addr)
-        return Decimal(info.get("balance")) / 1_000_000
+        return Decimal(info.get("balance", 0)) / 1_000_000
 
     def get_account_asset_balances(self, addr: TAddress) -> dict:
         """Get all TRC10 token balances of an account."""
