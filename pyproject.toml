@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tronpy"
-version = "0.0.9"
+version = "0.1.0"
 description = "TRON Python client library"
 authors = ["andelf <andelf@gmail.com>"]
 license = "MIT"
