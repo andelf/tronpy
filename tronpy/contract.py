@@ -1,16 +1,10 @@
-from tronpy import patch_abi
-
 from typing import Union, Optional, Any, Tuple
-from eth_abi import encode_single, decode_single
 from Crypto.Hash import keccak
 import random
 
-from tronpy import keys
 from tronpy.exceptions import DoubleSpending
+from tronpy.abi import trx_abi
 import tronpy
-
-
-patch_abi.do_patching()
 
 
 def keccak256(data: bytes) -> bytes:
@@ -223,7 +217,7 @@ class ContractConstructor(object):
         elif args:
             if len(args) != len(self.inputs):
                 raise TypeError("wrong number of arguments, require {} got {}".format(len(self.inputs), len(args)))
-            parameter = encode_single(self.input_type, args).hex()
+            parameter = trx_abi.encode_single(self.input_type, args).hex()
         elif kwargs:
             if len(kwargs) != len(self.inputs):
                 raise TypeError("wrong number of arguments, require {} got {}".format(len(self.inputs), len(args)))
@@ -233,7 +227,7 @@ class ContractConstructor(object):
                     args.append(kwargs[arg["name"]])
                 except KeyError:
                     raise TypeError("missing argument '{}'".format(arg["name"]))
-            parameter = encode_single(self.input_type, args).hex()
+            parameter = trx_abi.encode_single(self.input_type, args).hex()
 
         return parameter
 
@@ -281,7 +275,7 @@ class ContractMethod(object):
 
     def parse_output(self, raw: str) -> Any:
         """Parse contract result as result."""
-        parsed_result = decode_single(self.output_type, bytes.fromhex(raw))
+        parsed_result = trx_abi.decode_single(self.output_type, bytes.fromhex(raw))
         if len(self.outputs) == 1:
             return parsed_result[0]
         if len(self.outputs) == 0:
@@ -301,7 +295,7 @@ class ContractMethod(object):
         elif args:
             if len(args) != len(self.inputs):
                 raise TypeError("wrong number of arguments, require {} got {}".format(len(self.inputs), len(args)))
-            parameter = encode_single(self.input_type, args).hex()
+            parameter = trx_abi.encode_single(self.input_type, args).hex()
         elif kwargs:
             if len(kwargs) != len(self.inputs):
                 raise TypeError("wrong number of arguments, require {} got {}".format(len(self.inputs), len(args)))
@@ -311,7 +305,7 @@ class ContractMethod(object):
                     args.append(kwargs[arg["name"]])
                 except KeyError:
                     raise TypeError("missing argument '{}'".format(arg["name"]))
-            parameter = encode_single(self.input_type, args).hex()
+            parameter = trx_abi.encode_single(self.input_type, args).hex()
         else:
             raise TypeError("wrong number of arguments, require {}".format(len(self.inputs)))
 
