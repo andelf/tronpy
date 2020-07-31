@@ -16,6 +16,7 @@ Welcome to TronPy's documentation!
    trx.rst
    contract.rst
    shielded.rst
+   abi.rst
    exceptions.rst
 
 
