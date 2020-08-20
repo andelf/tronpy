@@ -731,9 +731,9 @@ class Tron(object):
 
         cntr = Contract(
             addr=addr,
-            bytecode=info["bytecode"],
+            bytecode=info.get("bytecode", ''),
             name=info.get("name", ""),
-            abi=info["abi"].get("entrys", []),
+            abi=info.get("abi", {}).get("entrys", []),
             origin_energy_limit=info.get("origin_energy_limit", 0),
             user_resource_percent=info["consume_user_resource_percent"],
             client=self,
