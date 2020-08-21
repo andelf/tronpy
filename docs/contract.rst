@@ -173,6 +173,50 @@ It also can be set via `conf` object:
 
   client = Tron(network='nile', conf={'fee_limit': 10_000_000})
 
+Contract with Un-published ABI
+------------------------------
+
+You can set JSON ABI via ``cntr.abi = [...]``.
+
+.. code-block:: python
+
+  import json
+
+  from tronpy import Tron
+  from tronpy import keys
+
+
+  dzi_trade = 'TS..........(omitted).............j'
+  from_addr = 'TV..........(omitted).............a'
+  priv_key = keys.PrivateKey(bytes.fromhex("975a...............(omitted)..............8d97b"))
+  abi = '''
+  [{"constant":false,
+    "inputs":[{"name":"min_tokens","type":"uint256"},{"name":"deadline","type":"uint256"}],
+    "name":"trxToTokenSwapInput",
+    "outputs":[{"name":"","type":"uint256"}],
+    "payable":true,
+    "stateMutability":"payable",
+    "type":"Function"}]
+  '''
+
+
+  client = Tron(network='nile')
+
+  cntr = client.get_contract(dzi_trade)
+  cntr.abi = json.loads(abi)  # load ABI, while contract on chain has no ABI set.
+
+  # call contract functions with TRX transfer
+  txn = (
+      cntr.functions.trxToTokenSwapInput.with_transfer(1_000_000_000)(1_000_000_000_000, 5)
+      .with_owner(from_addr)
+      .fee_limit(1_000_000_000)
+      .build()
+      .sign(priv_key)
+  )
+  print("txn =>", txn)
+  print("broadcast and result =>", txn.broadcast().wait())
+
+
 API reference
 -------------
 
