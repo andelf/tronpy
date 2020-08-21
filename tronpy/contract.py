@@ -1,9 +1,9 @@
 from typing import Union, Optional, Any, Tuple
 from Crypto.Hash import keccak
-import random
 
 from tronpy.exceptions import DoubleSpending
 from tronpy.abi import trx_abi
+from tronpy import keys
 import tronpy
 
 
