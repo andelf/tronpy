@@ -165,7 +165,7 @@ class ContractFunctions(object):
 
     def __getitem__(self, method: str):
         for method_abi in self._contract.abi:
-            if method_abi["type"] == "Function" and method_abi["name"] == method:
+            if method_abi["type"].lower() == "function" and method_abi["name"] == method:
                 return ContractMethod(method_abi, self._contract)
 
         raise KeyError("contract has no method named '{}'".format(method))
@@ -178,7 +178,7 @@ class ContractFunctions(object):
             raise AttributeError("contract has no method named '{}'".format(method))
 
     def __dir__(self):
-        return [method["name"] for method in self._contract.abi if method["type"] == "Function"]
+        return [method["name"] for method in self._contract.abi if method["type"].lower() == "function"]
 
     def __iter__(self):
         yield from [self[method] for method in dir(self)]
@@ -337,11 +337,22 @@ class ContractMethod(object):
 
     @property
     def input_type(self) -> str:
-        return "(" + (",".join(arg["type"] for arg in self.inputs)) + ")"
+        return "(" + (",".join(self.__format_json_abi_type_entry(arg) for arg in self.inputs)) + ")"
 
     @property
     def output_type(self) -> str:
-        return "(" + (",".join(arg["type"] for arg in self.outputs)) + ")"
+        return "({})".format(",".join(self.__format_json_abi_type_entry(arg) for arg in self.outputs))
+
+    def __format_json_abi_type_entry(self, entry) -> str:
+        if entry['type'].startswith('tuple'):
+            surfix = entry['type'][5:]
+            if 'components' not in entry:
+                raise ValueError("ABIEncoderV2 used, ABI should be set by hand")
+            return "({}){}".format(
+                ",".join(self.__format_json_abi_type_entry(arg) for arg in entry['components']), surfix
+            )
+        else:
+            return entry['type']
 
     @property
     def function_signature(self) -> str:
