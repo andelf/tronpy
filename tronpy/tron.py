@@ -23,6 +23,7 @@ from tronpy.exceptions import (
     ApiError,
     AddressNotFound,
     TransactionNotFound,
+    TvmError,
 )
 
 TAddress = str
@@ -90,7 +91,7 @@ class TransactionRet(dict):
                         msg = "{}: {}".format(msg, error_msg)
                 except Exception:
                     pass
-            raise TransactionError(msg)
+            raise TvmError(msg)
 
         return self._method.parse_output(receipt['contractResult'][0])
 
@@ -774,7 +775,7 @@ class Tron(object):
             },
         )
         self._handle_api_error(ret)
-        msg = TransactionError(ret['result']['message'])
+        msg = ret['result']['message']
         if 'message' in ret['result']:
             result = ret.get('constant_result', [])
             try:
@@ -783,7 +784,7 @@ class Tron(object):
                     msg = "{}: {}".format(msg, error_msg)
             except Exception:
                 pass
-            raise TransactionError(msg)
+            raise TvmError(msg)
         return ret["constant_result"][0]
 
     # Transaction handling
