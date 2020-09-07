@@ -319,8 +319,7 @@ class Trx(object):
     def account_update(self, owner: TAddress, name: str) -> "TransactionBuilder":
         """Update account name. An account can only set name once."""
         return self._build_transaction(
-            "UpdateAccountContract",
-            {"owner_address": keys.to_hex_address(owner), "account_name": name.encode().hex()},
+            "UpdateAccountContract", {"owner_address": keys.to_hex_address(owner), "account_name": name.encode().hex()},
         )
 
     def freeze_balance(
@@ -751,7 +750,7 @@ class Tron(object):
             name=info.get("name", ""),
             abi=info.get("abi", {}).get("entrys", []),
             origin_energy_limit=info.get("origin_energy_limit", 0),
-            user_resource_percent=info["consume_user_resource_percent"],
+            user_resource_percent=info.get("consume_user_resource_percent", 100),
             client=self,
         )
         return cntr
