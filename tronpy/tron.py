@@ -774,8 +774,8 @@ class Tron(object):
             },
         )
         self._handle_api_error(ret)
-        msg = ret['result']['message']
         if 'message' in ret['result']:
+            msg = ret['result']['message']
             result = ret.get('constant_result', [])
             try:
                 if result and len(result[0]) > (4 + 32) * 2:
