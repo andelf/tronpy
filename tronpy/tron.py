@@ -80,8 +80,8 @@ class TransactionRet(dict):
 
         receipt = self.wait(timeout, interval, solid)
 
-        if receipt['result'] == 'FAILED':
-            msg = receipt['resMessage']
+        if receipt.get('result', None) == 'FAILED':
+            msg = receipt.get('resMessage', receipt['result'])
 
             if receipt['receipt']['result'] == 'REVERT':
                 try:
@@ -774,7 +774,7 @@ class Tron(object):
             },
         )
         self._handle_api_error(ret)
-        if 'message' in ret['result']:
+        if 'message' in ret.get('result', {}):
             msg = ret['result']['message']
             result = ret.get('constant_result', [])
             try:
