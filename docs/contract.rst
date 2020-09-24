@@ -118,7 +118,7 @@ When you've compiled your contract code, you can deploy it on chain.
 
 .. code-block:: python
 
-  from tronpy import Tron, Contract                                                                                                                                                                  from tronpy.keys import PrivateKey
+  from tronpy import Tron, Contract
   from tronpy.keys import PrivateKey
 
   client = Tron(network='nile')
