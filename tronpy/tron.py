@@ -611,15 +611,23 @@ class Tron(object):
         info = self.provider.make_request("wallet/getnodeinfo")
         return int(info["block"].split(",ID:", 1)[0].replace("Num:", "", 1))
 
-    def get_block(self, id_or_num: Union[None, str, int] = None) -> dict:
-        """Get block from a block id or block number."""
+    def get_block(self, id_or_num: Union[None, str, int] = None, *, visible: bool = True) -> dict:
+        """Get block from a block id or block number.
+
+        Parameters
+        ----------
+        id_or_num
+            Block number, or Block hash(id), or `None`(default) to get the latest block.
+        visible : bool
+            With `visible=False` to get non-base58check addresses and strings instead of hex strings.
+        """
 
         if isinstance(id_or_num, (int,)):
-            block = self.provider.make_request("wallet/getblockbynum", {"num": id_or_num, "visible": True})
+            block = self.provider.make_request("wallet/getblockbynum", {"num": id_or_num, "visible": visible})
         elif isinstance(id_or_num, (str,)):
-            block = self.provider.make_request("wallet/getblockbyid", {"value": id_or_num, "visible": True})
+            block = self.provider.make_request("wallet/getblockbyid", {"value": id_or_num, "visible": visible})
         elif id_or_num is None:
-            block = self.provider.make_request("wallet/getnowblock", {"visible": True})
+            block = self.provider.make_request("wallet/getnowblock", {"visible": visible})
         else:
             raise TypeError("can not infer type of {}".format(id_or_num))
 
