@@ -617,9 +617,9 @@ class Tron(object):
         Parameters
         ----------
         id_or_num
-            Block number, or Block hash(id), or `None`(default) to get the latest block.
+            Block number, or Block hash(id), or ``None``(default) to get the latest block.
         visible : bool
-            With `visible=False` to get non-base58check addresses and strings instead of hex strings.
+            With ``visible=False`` to get non-base58check addresses and strings instead of hex strings.
         """
 
         if isinstance(id_or_num, (int,)):
