@@ -24,6 +24,7 @@ from tronpy.exceptions import (
     AddressNotFound,
     TransactionNotFound,
     TvmError,
+    BugInJavaTron,
 )
 
 TAddress = str
@@ -622,7 +623,9 @@ class Tron(object):
         else:
             raise TypeError("can not infer type of {}".format(id_or_num))
 
-        if block:
+        if 'Error' in (block or {}):
+            raise BugInJavaTron(block)
+        elif block:
             return block
         else:
             raise BlockNotFound

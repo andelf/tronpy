@@ -25,8 +25,10 @@ class UnknownError(Exception):
 class TransactionError(Exception):
     pass
 
+
 class TvmError(Exception):
     pass
+
 
 class ValidationError(Exception):
     pass
@@ -57,4 +59,8 @@ class AssetNotFound(NotFound):
 
 
 class DoubleSpending(TransactionError):
+    pass
+
+
+class BugInJavaTron(Exception):
     pass
