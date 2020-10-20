@@ -1,10 +1,17 @@
-from tronpy import Tron
+from tronpy import Tron, AsyncTron
 from tronpy.keys import PrivateKey
 import pytest
 
 
 def test_client_keygen():
     client = Tron()
+    print(client.generate_address())
+    print(client.get_address_from_passphrase('A'))
+
+
+@pytest.mark.asyncio
+def test_async_client_keygen():
+    client = AsyncTron()
     print(client.generate_address())
     print(client.get_address_from_passphrase('A'))
 
@@ -26,6 +33,53 @@ def test_client():
     )
 
     print(txn)
+
+
+@pytest.mark.asyncio
+async def test_async_client():
+    async with AsyncTron(network='nile') as client:
+        print(client)
+        priv_key = PrivateKey(bytes.fromhex("8888888888888888888888888888888888888888888888888888888888888888"))
+
+        txb = (
+            client.trx.transfer("TJzXt1sZautjqXnpjQT4xSCBHNSYgBkDr3", "TVjsyZ7fYF3qLF6BQgPmTEZy1xrNNyVAAA", 1_000)
+            .memo("test memo")
+            .fee_limit(100_000_000)
+        )
+        txn = await txb.build()
+        txn.inspect()
+        txn_ret = await txn.sign(priv_key).broadcast()
+
+        print(txn_ret)
+        print(await txn_ret.wait())
+
+
+@pytest.mark.asyncio
+async def test_async_manual_client():
+    from httpx import AsyncClient, Timeout, Limits
+    from tronpy.providers.async_http import AsyncHTTPProvider
+
+    _http_client = AsyncClient(limits=Limits(max_connections=100, max_keepalive_connections=20),
+                               timeout=Timeout(timeout=10, connect=5, read=5))
+    provider = AsyncHTTPProvider(client=_http_client)
+    client = AsyncTron(network='nile', provider=provider)
+    print(client)
+
+    priv_key = PrivateKey(bytes.fromhex("8888888888888888888888888888888888888888888888888888888888888888"))
+    txb = (
+        client.trx.transfer("TJzXt1sZautjqXnpjQT4xSCBHNSYgBkDr3", "TVjsyZ7fYF3qLF6BQgPmTEZy1xrNNyVAAA", 1_000)
+        .memo("test memo")
+        .fee_limit(100_000_000)
+    )
+    txn = await txb.build()
+    txn.inspect()
+    txn_ret = await txn.sign(priv_key).broadcast()
+
+    print(txn_ret)
+    print(await txn_ret.wait())
+
+    # must call .close at end to release connections
+    await client.close()
 
 
 def test_client_get_contract():
@@ -65,6 +119,18 @@ def test_client_get_contract():
     cntr.functions.name()
 
 
+@pytest.mark.asyncio
+async def test_async_client_get_contract():
+    async with AsyncTron() as client:
+        cntr = await client.get_contract("TMDRdYAcXbQDajbGFy4rgXcNLYswuYsfk1")
+        print(cntr)
+
+        print(cntr.abi)
+        # print(client.get_contract("TTjacDH5PL8hpWirqU7HQQNZDyF723PuCg"))
+
+        print(await cntr.functions.name())
+
+
 def test_client_transfer_trc10():
     client = Tron(network='nile')
 
@@ -85,6 +151,24 @@ def test_client_transfer_trc10():
     print(txn)
 
 
+@pytest.mark.asyncio
+async def test_client_transfer_trc10():
+    async with AsyncTron(network='nile') as client:
+        priv_key = PrivateKey(bytes.fromhex("ebf7c9cad1ca710553c22669fd3c7c70832e7024c1a32da69bbc5ad19dcc8992"))
+
+        txb = (
+            client.trx.asset_transfer("TGxv9UXRNMh4E6b33iuH1pqJfBffz6hXnV", "TVjsyZ7fYF3qLF6BQgPmTEZy1xrNNyVAAA", 1_000,
+                                      token_id=1000047)
+            .memo("test transfer coin")
+            .fee_limit(0)
+        )
+        txn = await txb.build()
+        txn.inspect()
+        txn = txn.sign(priv_key)
+        txn_ret = await txn.broadcast()
+        print(txn_ret)
+
+
 def test_client_timeout():
     import requests.exceptions
 
@@ -93,3 +177,12 @@ def test_client_timeout():
 
     with pytest.raises(requests.exceptions.Timeout):
         client.get_block()
+
+
+@pytest.mark.asyncio
+async def test_async_client_timeout():
+    from httpx import TimeoutException
+    # must be a timeout
+    async with AsyncTron(network='nile', conf={'timeout': 0.0001}) as client:
+        with pytest.raises(TimeoutException):
+            await client.get_block()
