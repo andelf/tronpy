@@ -26,7 +26,7 @@ def test_const_functions():
 
 
 @pytest.mark.asyncio
-def test_async_const_functions():
+async def test_async_const_functions():
     async with AsyncTron(network='nile') as client:
         contract = await client.get_contract('THi2qJf6XmvTJSpZHc17HgQsmJop6kb3ia')
         assert contract
@@ -148,7 +148,7 @@ async def test_async_contract_create():
         txb = client.trx.deploy_contract('TGQgfK497YXmjdgvun9Bg5Zu3xE15v17cu', cntr).fee_limit(1_000_000)
         txn = await txb.build()
         txn = txn.sign(priv_key).inspect()
-        txn_ret = txn.broadcast()
+        txn_ret = await txn.broadcast()
 
         print(txn_ret)
         result = await txn_ret.wait()

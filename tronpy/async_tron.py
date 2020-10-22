@@ -90,7 +90,7 @@ class AsyncTransactionRet(dict):
                 try:
                     result = receipt.get('contractResult', [])
                     if result and len(result[0]) > (4 + 32) * 2:
-                        error_msg = tron_abi.decode_single('string', bytes.fromhex(result[0])[4 + 32:])
+                        error_msg = tron_abi.decode_single('string', bytes.fromhex(result[0])[4 + 32 :])
                         msg = "{}: {}".format(msg, error_msg)
                 except Exception:
                     pass
@@ -235,7 +235,9 @@ class AsyncTrx(object):
     def client(self) -> "AsyncTron":
         return self._tron
 
-    def _build_transaction(self, type_: str, obj: dict, *, method: AsyncContractMethod = None) -> AsyncTransactionBuilder:
+    def _build_transaction(
+        self, type_: str, obj: dict, *, method: AsyncContractMethod = None
+    ) -> AsyncTransactionBuilder:
         inner = {
             "parameter": {"value": obj, "type_url": "type.googleapis.com/protocol.{}".format(type_)},
             "type": type_,
@@ -396,7 +398,7 @@ class AsyncTrx(object):
 
 # noinspection PyBroadException
 class AsyncTron(object):
-    """The TRON API Client.
+    """The Async TRON API Client.
 
     :param provider: An :class:`~tronpy.providers.HTTPProvider` object, can be configured to use private node
     :param network: Which network to connect, one of ``"mainnet"``, ``"shasta"``, ``"nile"``, or ``"tronex"``
@@ -694,8 +696,9 @@ class AsyncTron(object):
         if len(txn_id) != 64:
             raise BadHash("wrong transaction hash length")
 
-        ret = await self.provider.make_request("walletsolidity/gettransactioninfobyid",
-                                               {"value": txn_id, "visible": True})
+        ret = await self.provider.make_request(
+            "walletsolidity/gettransactioninfobyid", {"value": txn_id, "visible": True}
+        )
         self._handle_api_error(ret)
         if ret:
             return ret
@@ -818,7 +821,7 @@ class AsyncTron(object):
             result = ret.get('constant_result', [])
             try:
                 if result and len(result[0]) > (4 + 32) * 2:
-                    error_msg = tron_abi.decode_single('string', bytes.fromhex(result[0])[4 + 32:])
+                    error_msg = tron_abi.decode_single('string', bytes.fromhex(result[0])[4 + 32 :])
                     msg = "{}: {}".format(msg, error_msg)
             except Exception:
                 pass

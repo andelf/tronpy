@@ -3,20 +3,21 @@ from urllib.parse import urljoin
 from typing import Any, Union
 
 import httpx
-from httpx import Headers
+from httpx import Timeout
 
 DEFAULT_TIMEOUT = 10.0
 
 
 class AsyncHTTPProvider(object):
-    """An HTTP Provider for API request.
+    """An Async HTTP Provider for API request.
 
     :params endpoint_uri: HTTP API URL base. Default value is ``"https://api.trongrid.io/"``. Can also be configured via
         the ``TRONPY_HTTP_PROVIDER_URI`` environment variable.
     """
 
-    def __init__(self, endpoint_uri: Union[str, dict] = None, timeout: float = DEFAULT_TIMEOUT,
-                 client: httpx.AsyncClient = None):
+    def __init__(
+        self, endpoint_uri: Union[str, dict] = None, timeout: float = DEFAULT_TIMEOUT, client: httpx.AsyncClient = None
+    ):
         super().__init__()
 
         if endpoint_uri is None:
@@ -28,9 +29,9 @@ class AsyncHTTPProvider(object):
         else:
             raise TypeError("unknown endpoint uri {}".format(endpoint_uri))
 
-        self.headers = Headers({"User-Agent": "Tronpy/0.0.1"})
+        headers = {"User-Agent": "Tronpy/0.2.0"}
         if client is None:
-            self.client = httpx.AsyncClient()
+            self.client = httpx.AsyncClient(headers=headers, timeout=Timeout(timeout))
         else:
             self.client = client
 
@@ -41,6 +42,6 @@ class AsyncHTTPProvider(object):
         if params is None:
             params = {}
         url = urljoin(self.endpoint_uri, method)
-        resp = await self.client.post(url, json=params, timeout=self.timeout)
+        resp = await self.client.post(url, json=params)
         resp.raise_for_status()
         return resp.json()

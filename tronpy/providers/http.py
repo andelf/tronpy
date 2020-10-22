@@ -27,7 +27,7 @@ class HTTPProvider(object):
             raise TypeError("unknown endpoint uri {}".format(endpoint_uri))
 
         self.sess = requests.session()
-        self.sess.headers["User-Agent"] = "Tronpy/0.0.1"
+        self.sess.headers["User-Agent"] = "Tronpy/0.2.0"
 
         self.timeout = timeout
         """Request timeout in second."""
