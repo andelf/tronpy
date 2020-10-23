@@ -630,12 +630,8 @@ class AsyncTron(object):
     async def get_block(self, id_or_num: Union[None, str, int] = None, *, visible: bool = True) -> dict:
         """Get block from a block id or block number.
 
-        Parameters
-        ----------
-        id_or_num
-            Block number, or Block hash(id), or ``None`` (default) to get the latest block.
-        visible : bool
-            Use ``visible=False`` to get non-base58check addresses and strings instead of hex strings.
+        :param id_or_num: Block number, or Block hash(id), or ``None`` (default) to get the latest block.
+        :param visible: Use ``visible=False`` to get non-base58check addresses and strings instead of hex strings.
         """
 
         if isinstance(id_or_num, (int,)):

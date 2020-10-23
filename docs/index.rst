@@ -17,11 +17,11 @@ Welcome to TronPy's documentation!
    contract.rst
    shielded.rst
    abi.rst
+   async.rst
    exceptions.rst
 
 
-TronPy is an easy-to-use TRON HTTP API client. It supports most of the java-tron 3.7 APIs, and with an experimental 4.0
-Shielded TRC20 Contract API support.
+TronPy is an easy-to-use TRON HTTP API client. It supports most of the java-tron 4.1 APIs.
 
 .. note::
 
