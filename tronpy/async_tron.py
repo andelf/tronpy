@@ -611,6 +611,12 @@ class AsyncTron(object):
         info = await self.provider.make_request("wallet/getnodeinfo")
         return info["solidityBlock"].split(",ID:", 1)[-1]
 
+    async def get_latest_solid_block_number(self) -> int:
+        """Get latest solid block number. Implemented via `wallet/getnodeinfo`,
+        which is faster than `walletsolidity/getnowblock`."""
+        info = await self.provider.make_request("wallet/getnodeinfo")
+        return int(info["solidityBlock"].split(",ID:", 1)[0].replace("Num:", "", 1))
+
     async def get_latest_block(self) -> dict:
         """Get latest block."""
         return await self.provider.make_request("wallet/getnowblock", {"visible": True})
