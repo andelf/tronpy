@@ -411,6 +411,8 @@ class Tron(object):
 
         if conf is not None:
             self.conf = dict(DEFAULT_CONF, **conf)
+            if provider is not None and self.conf['timeout'] != DEFAULT_TIMEOUT['timeout']:
+                raise ValueError("timeout value should be set in provider")
 
         if provider is None:
             self.provider = HTTPProvider(conf_for_name(network), self.conf['timeout'])
