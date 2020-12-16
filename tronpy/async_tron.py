@@ -329,6 +329,18 @@ class AsyncTrx(object):
         :param owner: Address of owner
         :param perm: Permission dict from :meth:`~tronpy.Tron.get_account_permission`
         """
+
+        if 'owner' in perm:
+            for key in perm['owner']['keys']:
+                key['address'] = keys.to_hex_address(key['address'])
+        if 'actives' in perm:
+            for act in perm['actives']:
+                for key in act['keys']:
+                    key['address'] = keys.to_hex_address(key['address'])
+        if perm.get('witness', None):
+            for key in perm['witness']['keys']:
+                key['address'] = keys.to_hex_address(key['address'])
+
         return self._build_transaction(
             "AccountPermissionUpdateContract", dict(owner_address=keys.to_hex_address(owner), **perm),
         )
