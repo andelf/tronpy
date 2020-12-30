@@ -16,7 +16,7 @@ install_requires = [
 
 setup_kwargs = {
     'name': 'tronpy',
-    'version': '0.2.1',
+    'version': '0.2.2',
     'description': 'TRON Python client library',
     'long_description': '# tronpy\n\nTRON Python Client Library.\n\n## How to use\n\n```python\nfrom tronpy import Tron\n\nclient = Tron(network=\'nile\')\n# Private key of TJzXt1sZautjqXnpjQT4xSCBHNSYgBkDr3\npriv_key = PrivateKey(bytes.fromhex("8888888888888888888888888888888888888888888888888888888888888888"))\n\ntxn = (\n    client.trx.transfer("TJzXt1sZautjqXnpjQT4xSCBHNSYgBkDr3", "TVjsyZ7fYF3qLF6BQgPmTEZy1xrNNyVAAA", 1_000)\n    .memo("test memo")\n    .fee_limit(100_000_000)\n    .build()\n    .inspect()\n    .sign(priv_key)\n    .broadcast()\n)\n\nprint(txn)\n# > {\'result\': True, \'txid\': \'5182b96bc0d74f416d6ba8e22380e5920d8627f8fb5ef5a6a11d4df030459132\'}\nprint(txn.wait())\n# > {\'id\': \'5182b96bc0d74f416d6ba8e22380e5920d8627f8fb5ef5a6a11d4df030459132\', \'blockNumber\': 6415370, \'blockTimeStamp\': 1591951155000, \'contractResult\': [\'\'], \'receipt\': {\'net_usage\': 283}}\n```\n',
     'author': 'andelf',
