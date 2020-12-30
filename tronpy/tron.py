@@ -452,9 +452,9 @@ class Tron(object):
             raise ApiError(payload["Error"])
         if "code" in payload:
             try:
-                msg = bytes.fromhex(payload["message"]).decode()
+                msg = bytes.fromhex(payload.get("message", '')).decode()
             except Exception:
-                msg = payload["message"]
+                msg = payload.get("message", str(payload))
 
             if payload["code"] == "SIGERROR":
                 raise BadSignature(msg)
