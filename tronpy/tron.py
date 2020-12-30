@@ -452,7 +452,7 @@ class Tron(object):
             raise ApiError(payload["Error"])
         if "code" in payload:
             try:
-                msg = bytes.fromhex(payload.get("message", '')).decode()
+                msg = bytes.fromhex(payload["message"]).decode()
             except Exception:
                 msg = payload.get("message", str(payload))
 

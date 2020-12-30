@@ -469,7 +469,7 @@ class AsyncTron(object):
             try:
                 msg = bytes.fromhex(payload["message"]).decode()
             except Exception:
-                msg = payload["message"]
+                msg = payload.get("message", str(payload))
 
             if payload["code"] == "SIGERROR":
                 raise BadSignature(msg)
