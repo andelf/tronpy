@@ -64,7 +64,7 @@ class AsyncTransactionRet(dict):
         if solid:
             get_transaction_info = self._client.get_solid_transaction_info
 
-        end_time = time.time() + timeout * 1_0000
+        end_time = time.time() + timeout
         while time.time() < end_time:
             try:
                 return await get_transaction_info(self._txid)
