@@ -222,7 +222,7 @@ class Trx(object):
     def client(self) -> "Tron":
         return self._tron
 
-    def _build_transaction(self, type_: str, obj: dict, *, method: ContractMethod = None) -> dict:
+    def _build_transaction(self, type_: str, obj: dict, *, method: ContractMethod = None) -> TransactionBuilder:
         inner = {
             "parameter": {"value": obj, "type_url": "type.googleapis.com/protocol.{}".format(type_)},
             "type": type_,
@@ -311,6 +311,7 @@ class Trx(object):
     def account_permission_update(self, owner: TAddress, perm: dict) -> "TransactionBuilder":
         """Update account permission.
 
+        :param owner:
         :param perm: Permission dict from :meth:`~tronpy.Tron.get_account_permission`
         """
 
@@ -340,7 +341,10 @@ class Trx(object):
     ) -> "TransactionBuilder":
         """Freeze balance to get energy or bandwidth, for 3 days.
 
+        :param owner:
+        :param amount:
         :param resource: Resource type, can be ``"ENERGY"`` or ``"BANDWIDTH"``
+        :param receiver:
         """
         payload = {
             "owner_address": keys.to_hex_address(owner),
@@ -357,7 +361,9 @@ class Trx(object):
     ) -> "TransactionBuilder":
         """Unfreeze balance to get TRX back.
 
+        :param owner:
         :param resource: Resource type, can be ``"ENERGY"`` or ``"BANDWIDTH"``
+        :param receiver:
         """
         payload = {
             "owner_address": keys.to_hex_address(owner),
@@ -693,14 +699,13 @@ class Tron(object):
 
     # Chain parameters
 
-    def list_witnesses(self) -> list:
+    def list_witnesses(self) -> dict:
         """List all witnesses, including SR, SRP, and SRC."""
         # NOTE: visible parameter is ignored
         ret = self.provider.make_request("wallet/listwitnesses", {"visible": True})
         witnesses = ret.get("witnesses", [])
         for witness in witnesses:
             witness["address"] = keys.to_base58check_address(witness["address"])
-
         return ret
 
     def list_nodes(self) -> list:
@@ -821,5 +826,5 @@ class Tron(object):
         self._handle_api_error(payload)
         return payload
 
-    def get_sign_weight(self, txn: TransactionBuilder) -> str:
+    def get_sign_weight(self, txn: Transaction) -> dict:
         return self.provider.make_request("wallet/getsignweight", txn.to_json())
