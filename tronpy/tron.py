@@ -862,7 +862,7 @@ class Tron(object):
         if (only_to is not None) and (only_from is not None):
             raise ValueError("Both only_to and only_from cannot be set")
 
-        payload = {"address": keys.to_base58check_address(addr)}
+        payload = {}
         if only_confirmed is not None:
             payload = {"only_confirmed": only_confirmed}
         if only_unconfirmed is not None:
@@ -883,7 +883,10 @@ class Tron(object):
             payload = {"max_timestamp": max_timestamp}
         if search_internal is not None:
             payload = {"search_internal": search_internal}
-        ret = self.provider.make_request("v1/accounts/address/transactions", payload)
+        ret = self.provider.make_request(
+            "v1/accounts/{}/transactions".format(keys.to_base58check_address(addr)),
+            params=payload,
+            url_params=True)
         self._handle_api_error(ret)
         if ret:
             return ret

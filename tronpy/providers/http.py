@@ -32,10 +32,13 @@ class HTTPProvider(object):
         self.timeout = timeout
         """Request timeout in second."""
 
-    def make_request(self, method: str, params: Any = None) -> dict:
+    def make_request(self, method: str, params: Any = None, url_params = False) -> dict:
         if params is None:
             params = {}
         url = urljoin(self.endpoint_uri, method)
-        resp = self.sess.post(url, json=params, timeout=self.timeout)
+        if url_params:
+            resp = self.sess.post(url, params=params, timeout=self.timeout)
+        else:
+            resp = self.sess.post(url, json=params, timeout=self.timeout)
         resp.raise_for_status()
         return resp.json()
