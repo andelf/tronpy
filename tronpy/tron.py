@@ -828,3 +828,63 @@ class Tron(object):
 
     def get_sign_weight(self, txn: Transaction) -> dict:
         return self.provider.make_request("wallet/getsignweight", txn.to_json())
+
+    def get_transactions(self, addr: str,
+                         only_confirmed:bool = None, only_unconfirmed = None,
+                         only_to:bool = None, only_from:bool = None,
+                         limit:int = None, fingerprint:str = None, order_by:str = None,
+                         min_timestamp = None, max_timestamp = None,
+                         search_internal:bool = None) -> dict:
+        """
+        Get transaction info by account address
+        Note: The same time window can get up to 1000 pieces of data. If you need to get more data, you can move the time window to get more data.
+
+        Parameters
+        ----------
+        addr: owner address in base58 or hex
+        only_confirmed: true | false. If false, it returns both confirmed and unconfirmed transactions. If no param is specified, it returns both confirmed and unconfirmed transactions. Cannot be used at the same time with only_unconfirmed param.
+        only_unconfirmed: true | false. If false, it returns both confirmed and unconfirmed transactions. If no param is specified, it returns both confirmed and unconfirmed transactions. Cannot be used at the same time with only_confirmed param.
+        only_to: true | false. If true, only transactions to this address, default: false
+        only_from: true | false. If true, only transactions from this address, default: false
+        limit: number of transactions per page, default 20, max 200
+        fingerprint: fingerprint of the last transaction returned by the previous page; when using it, the other parameters and filters should remain the same
+        order_by: block_timestamp,asc | block_timestamp,desc (default)
+        min_timestamp: minimum block_timestamp, default 0
+        max_timestamp: maximum block_timestamp, default now
+        search_internal: true (default) | false. If true, query params applied to both normal and internal transactions. If false, query params only applied to normal transactions.
+
+        Returns
+        -------
+        List (in dict) of last transactions assciated with this address
+        """
+        if (only_confirmed is not None) and (only_unconfirmed is not None):
+            raise ValueError("Both only_confirmed and only_unconfirmed cannot be set")
+        if (only_to is not None) and (only_from is not None):
+            raise ValueError("Both only_to and only_from cannot be set")
+
+        payload = {"address": keys.to_base58check_address(addr)}
+        if only_confirmed is not None:
+            payload = {"only_confirmed": only_confirmed}
+        if only_unconfirmed is not None:
+            payload = {"only_unconfirmed": only_unconfirmed}
+        if only_to is not None:
+            payload = {"only_to": only_to}
+        if only_from is not None:
+            payload = {"only_from": only_from}
+        if limit is not None:
+            payload = {"limit": limit}
+        if fingerprint is not None:
+            payload = {"fingerprint": fingerprint}
+        if order_by is not None:
+            payload = {"order_by": order_by}
+        if min_timestamp is not None:
+            payload = {"min_timestamp": min_timestamp}
+        if max_timestamp is not None:
+            payload = {"max_timestamp": max_timestamp}
+        if search_internal is not None:
+            payload = {"search_internal": search_internal}
+        ret = self.provider.make_request("v1/accounts/address/transactions", payload)
+        self._handle_api_error(ret)
+        if ret:
+            return ret
+        raise TransactionNotFound
