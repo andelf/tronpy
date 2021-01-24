@@ -37,7 +37,7 @@ class HTTPProvider(object):
             params = {}
         url = urljoin(self.endpoint_uri, method)
         if url_params:
-            resp = self.sess.post(url, params=params, timeout=self.timeout)
+            resp = self.sess.get(url, params=params, timeout=self.timeout)
         else:
             resp = self.sess.post(url, json=params, timeout=self.timeout)
         resp.raise_for_status()
