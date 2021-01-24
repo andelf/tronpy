@@ -699,14 +699,14 @@ class Tron(object):
 
     # Chain parameters
 
-    def list_witnesses(self) -> dict:
+    def list_witnesses(self) -> list:
         """List all witnesses, including SR, SRP, and SRC."""
         # NOTE: visible parameter is ignored
         ret = self.provider.make_request("wallet/listwitnesses", {"visible": True})
         witnesses = ret.get("witnesses", [])
         for witness in witnesses:
             witness["address"] = keys.to_base58check_address(witness["address"])
-        return ret
+        return witnesses
 
     def list_nodes(self) -> list:
         """List all nodes that current API node is connected to."""
