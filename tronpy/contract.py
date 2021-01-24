@@ -213,7 +213,7 @@ class ContractConstructor(object):
 
         if len(self.inputs) == 0:
             if args or kwargs:
-                raise TypeError("{} expected {} arguments".format(self.name, len(self.inputs)))
+                raise TypeError("{} constructor requires {} arguments".format(self._contract.name, len(self.inputs)))
         elif args:
             if len(args) != len(self.inputs):
                 raise TypeError("wrong number of arguments, require {} got {}".format(len(self.inputs), len(args)))
