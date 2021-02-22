@@ -47,7 +47,7 @@ Take TRC20 as an example, the `balance query` is a very common task:
   # Symbol: RMB
 
   precision = cntr.functions.decimals()
-  print('Balance:', cntr.functions.balanceOf('TJRabPrwbZy45sbavfcjinPJC18kjpRTv8') / precision)
+  print('Balance:', cntr.functions.balanceOf('TJRabPrwbZy45sbavfcjinPJC18kjpRTv8') / 10 ** precision)
   # Balance: 100000.0
 
 Trigger call
