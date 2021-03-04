@@ -54,7 +54,7 @@ def test_trc20_transfer():
     txn = (
         contract.functions.transfer('TVjsyZ7fYF3qLF6BQgPmTEZy1xrNNyVAAA', 1_000)
         .with_owner('TGQgfK497YXmjdgvun9Bg5Zu3xE15v17cu')
-        .fee_limit(1_000_000)
+        .fee_limit(5_000_000)
         .build()
         .sign(priv_key)
         .inspect()
@@ -79,7 +79,7 @@ async def test_async_trc20_transfer():
         contract = await client.get_contract('THi2qJf6XmvTJSpZHc17HgQsmJop6kb3ia')
         print('Balance', await contract.functions.balanceOf('TGQgfK497YXmjdgvun9Bg5Zu3xE15v17cu'))
         txb = await contract.functions.transfer('TVjsyZ7fYF3qLF6BQgPmTEZy1xrNNyVAAA', 1_000)
-        txb = txb.with_owner('TGQgfK497YXmjdgvun9Bg5Zu3xE15v17cu').fee_limit(1_000_000)
+        txb = txb.with_owner('TGQgfK497YXmjdgvun9Bg5Zu3xE15v17cu').fee_limit(5_000_000)
         txn = await txb.build()
         txn = txn.sign(priv_key).inspect()
         txn_ret = await txn.broadcast()
@@ -115,7 +115,7 @@ def test_contract_create():
 
     txn = (
         client.trx.deploy_contract('TGQgfK497YXmjdgvun9Bg5Zu3xE15v17cu', cntr)
-        .fee_limit(1_000_000)
+        .fee_limit(5_000_000)
         .build()
         .sign(priv_key)
         .inspect()

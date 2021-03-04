@@ -30,7 +30,7 @@ from tronpy.exceptions import (
 TAddress = str
 
 DEFAULT_CONF = {
-    'fee_limit': 5_000_000,
+    'fee_limit': 10_000_000,
     'timeout': 10.0,  # in second
 }
 
