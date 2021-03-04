@@ -6,6 +6,7 @@ import httpx
 from httpx import Timeout
 
 DEFAULT_TIMEOUT = 10.0
+DEFAULT_API_KEY = 'f92221d5-7056-4366-b96f-65d3662ec2d9'
 
 
 class AsyncHTTPProvider(object):
@@ -16,7 +17,11 @@ class AsyncHTTPProvider(object):
     """
 
     def __init__(
-        self, endpoint_uri: Union[str, dict] = None, timeout: float = DEFAULT_TIMEOUT, client: httpx.AsyncClient = None
+        self,
+        endpoint_uri: Union[str, dict] = None,
+        timeout: float = DEFAULT_TIMEOUT,
+        client: httpx.AsyncClient = None,
+        api_key: str = DEFAULT_API_KEY,
     ):
         super().__init__()
 
@@ -29,7 +34,7 @@ class AsyncHTTPProvider(object):
         else:
             raise TypeError("unknown endpoint uri {}".format(endpoint_uri))
 
-        headers = {"User-Agent": "Tronpy/0.2.0"}
+        headers = {"User-Agent": "Tronpy/0.2", "Tron-Pro-Api-Key": api_key}
         if client is None:
             self.client = httpx.AsyncClient(headers=headers, timeout=Timeout(timeout))
         else:

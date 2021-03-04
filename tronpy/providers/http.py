@@ -5,6 +5,7 @@ from typing import Any, Union
 
 
 DEFAULT_TIMEOUT = 10.0
+DEFAULT_API_KEY = 'f92221d5-7056-4366-b96f-65d3662ec2d9'
 
 
 class HTTPProvider(object):
@@ -14,7 +15,9 @@ class HTTPProvider(object):
         the ``TRONPY_HTTP_PROVIDER_URI`` environment variable.
     """
 
-    def __init__(self, endpoint_uri: Union[str, dict] = None, timeout: float = DEFAULT_TIMEOUT):
+    def __init__(
+        self, endpoint_uri: Union[str, dict] = None, timeout: float = DEFAULT_TIMEOUT, api_key: str = DEFAULT_API_KEY
+    ):
         super().__init__()
 
         if endpoint_uri is None:
@@ -27,7 +30,8 @@ class HTTPProvider(object):
             raise TypeError("unknown endpoint uri {}".format(endpoint_uri))
 
         self.sess = requests.session()
-        self.sess.headers["User-Agent"] = "Tronpy/0.2.0"
+        self.sess.headers["User-Agent"] = "Tronpy/0.2"
+        self.sess.headers["Tron-Pro-Api-Key"] = api_key
 
         self.timeout = timeout
         """Request timeout in second."""
