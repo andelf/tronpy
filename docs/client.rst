@@ -55,6 +55,12 @@ Use HTTP Proxy
 
 .. code-block:: python
 
+  from tronpy import Tron
+  from tronpy.providers import HTTPProvider
+
+  provider = HTTPProvider(api_key="API KEY HERE")
+  provider.sess.proxies = {"https": "....", "http": "..."}
+  client = Tron(provider)
 
 
 API reference
