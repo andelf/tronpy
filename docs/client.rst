@@ -33,6 +33,30 @@ The :class:`~tronpy.Tron` wraps many query APIs and utility functions. You can q
    'private_key': '.................omitted.....................',
    'public_key': '..................omitted.....................'}
 
+Using TronGrid API Key
+----------------------
+
+You can register an API Key at `TronGrid <https://www.trongrid.io/>`_.
+
+.. code-block:: python
+
+  from tronpy import Tron
+  from tronpy.providers import HTTPProvider
+
+  client = Tron(HTTPProvider(api_key="Your api_key here"))  # Use mainnet(trongrid) with a single api_key
+
+  # or
+
+  client = Tron(HTTPProvider(api_key=["key1", "key2", "key3"]))  # Use mainnet(trongrid) with multiple api_key
+
+
+Use HTTP Proxy
+--------------
+
+.. code-block:: python
+
+
+
 API reference
 -------------
 
