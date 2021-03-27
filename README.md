@@ -8,6 +8,7 @@ TRON Python Client Library. [Documentation](https://tronpy.readthedocs.io/en/lat
 
 ```python
 from tronpy import Tron
+from tronpy.keys import PrivateKey
 
 client = Tron(network='nile')
 # Private key of TJzXt1sZautjqXnpjQT4xSCBHNSYgBkDr3
