@@ -1,4 +1,4 @@
-from typing import Union, Tuple
+from typing import Union, Tuple, Optional
 import time
 from pprint import pprint
 import json
@@ -100,29 +100,44 @@ class TransactionRet(dict):
 class Transaction(object):
     """The Transaction object, signed or unsigned."""
 
-    def __init__(self, raw_data: dict, client: "Tron" = None, method: ContractMethod = None):
-        self._raw_data = raw_data
-        self._signature = []
+    def __init__(self, raw_data: dict, client: "Tron" = None, method: ContractMethod = None,
+                 txid: str = "", permission: dict = None, signature: list = None):
+        self._raw_data: dict = raw_data
+        self._signature: list = signature or []
         self._client = client
 
         self._method = method
 
-        self.txid = ""
+        self.txid: str = txid
         """The transaction id in hex."""
 
-        self._permission = None
+        self._permission: Optional[dict] = permission
 
-        sign_weight = self._client.get_sign_weight(self)
-        if "transaction" not in sign_weight:
-            self._client._handle_api_error(sign_weight)
-            return  # unreachable
+        if not self.txid or not self._permission:
+            sign_weight = self._client.get_sign_weight(self)
+            if "transaction" not in sign_weight:
+                self._client._handle_api_error(sign_weight)
+                return  # unreachable
+            self.txid = sign_weight["transaction"]["transaction"]["txID"]
 
-        self.txid = sign_weight["transaction"]["transaction"]["txID"]
-        # when account not exist on-chain
-        self._permission = sign_weight.get("permission", None)
+            # when account not exist on-chain
+            self._permission = sign_weight.get("permission", None)
 
     def to_json(self) -> dict:
-        return {"txID": self.txid, "raw_data": self._raw_data, "signature": self._signature}
+        return {
+            "txID": self.txid, "raw_data": self._raw_data,
+            "signature": self._signature, "permission": self._permission
+        }
+
+    @classmethod
+    def from_json(cls, data: Union[str, dict], client: "Tron" = None):
+        if isinstance(json, str):
+            data = json.loads(data)
+        return cls(
+            client=client,
+            txid=data['txID'], permission=data['permission'],
+            raw_data=data['raw_data'], signature=data['signature']
+        )
 
     def inspect(self) -> "Transaction":
         pprint(self.to_json())
@@ -132,6 +147,7 @@ class Transaction(object):
         """Sign the transaction with a private key."""
 
         assert self.txid, "txID not calculated"
+        assert self.is_expired is False, 'expired'
 
         if self._permission is not None:
             addr_of_key = priv_key.public_key.to_hex_address()
@@ -151,6 +167,34 @@ class Transaction(object):
     def broadcast(self) -> TransactionRet:
         """Broadcast the transaction to TRON network."""
         return TransactionRet(self._client.broadcast(self), client=self._client, method=self._method)
+
+    @property
+    def is_expired(self) -> bool:
+        return current_timestamp() >= self._raw_data['expiration']
+
+    def update(self):
+        """update Transaction, change ref_block and txID, remove all signature"""
+        self._raw_data["timestamp"] = current_timestamp()
+        self._raw_data["expiration"] = self._raw_data["timestamp"] + 60_000
+        ref_block_id = self._client.get_latest_solid_block_id()
+        # last 2 byte of block number part
+        self._raw_data["ref_block_bytes"] = ref_block_id[12:16]
+        # last half part of block hash
+        self._raw_data["ref_block_hash"] = ref_block_id[16:32]
+
+        self.txid = ""
+        self._permission = None
+        self._signature = []
+        sign_weight = self._client.get_sign_weight(self)
+        if "transaction" not in sign_weight:
+            self._client._handle_api_error(sign_weight)
+            return  # unreachable
+        self.txid = sign_weight["transaction"]["transaction"]["txID"]
+
+        # when account not exist on-chain
+        self._permission = sign_weight.get("permission", None)
+        # remove all _signature
+        self._signature = []
 
     def __str__(self):
         return json.dumps(self.to_json(), indent=2)
