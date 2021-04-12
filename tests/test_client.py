@@ -1,5 +1,8 @@
+import time
+
 from tronpy import Tron, AsyncTron
 from tronpy.keys import PrivateKey
+from tronpy.tron import Transaction
 import pytest
 
 
@@ -33,6 +36,40 @@ def test_client():
     )
 
     print(txn)
+
+
+def test_client_sign_offline():
+    client = Tron(network='nile')
+    priv_key = PrivateKey(bytes.fromhex("8888888888888888888888888888888888888888888888888888888888888888"))
+    tx = client.trx.transfer(
+        "TJzXt1sZautjqXnpjQT4xSCBHNSYgBkDr3", "TVjsyZ7fYF3qLF6BQgPmTEZy1xrNNyVAAA", 1
+    ).memo("test memo").fee_limit(100_000_000).build()
+    tx_j = tx.to_json()
+    # offline
+    tx_offline = Transaction.from_json(tx_j)    # tx_offline._client is None so it's offline
+    tx_offline.sign(priv_key)
+    tx_j2 = tx_offline.to_json()
+    # online
+    tx_2 = Transaction.from_json(tx_j2, client=client)
+    tx_2.broadcast()
+
+
+def test_client_update_tx():
+    client = Tron(network='nile')
+    priv_key = PrivateKey(bytes.fromhex("8888888888888888888888888888888888888888888888888888888888888888"))
+    tx: Transaction = client.trx.transfer(
+        "TJzXt1sZautjqXnpjQT4xSCBHNSYgBkDr3", "TVjsyZ7fYF3qLF6BQgPmTEZy1xrNNyVAAA", 1
+    ).memo("test memo").fee_limit(100_000_000).build()
+    tx.sign(priv_key)
+    tx.broadcast()
+    tx_id = tx.txid
+    # update and transfer again
+    time.sleep(0.01)
+    tx.update()
+    assert tx_id != tx.txid
+    assert tx._signature == []
+    tx.sign(priv_key)
+    tx.broadcast()
 
 
 @pytest.mark.asyncio
