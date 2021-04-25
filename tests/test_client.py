@@ -3,6 +3,7 @@ import time
 from tronpy import Tron, AsyncTron
 from tronpy.keys import PrivateKey
 from tronpy.tron import Transaction
+from tronpy.async_tron import AsyncTransaction
 import pytest
 
 
@@ -52,6 +53,23 @@ def test_client_sign_offline():
     # online
     tx_2 = Transaction.from_json(tx_j2, client=client)
     tx_2.broadcast()
+
+
+@pytest.mark.asyncio
+async def test_async_client_sign_offline():
+    async with AsyncTron(network='nile') as client:
+        priv_key = PrivateKey(bytes.fromhex("8888888888888888888888888888888888888888888888888888888888888888"))
+        tx = await client.trx.transfer(
+            "TJzXt1sZautjqXnpjQT4xSCBHNSYgBkDr3", "TVjsyZ7fYF3qLF6BQgPmTEZy1xrNNyVAAA", 1
+        ).memo("test memo").fee_limit(100_000_000).build()
+        tx_j = tx.to_json()
+        # offline
+        tx_offline = await AsyncTransaction.from_json(tx_j)    # tx_offline._client is None so it's offline
+        tx_offline.sign(priv_key)
+        tx_j2 = tx_offline.to_json()
+        # online
+        tx_2 = await AsyncTransaction.from_json(tx_j2, client=client)
+        await tx_2.broadcast()
 
 
 def test_client_update_tx():
