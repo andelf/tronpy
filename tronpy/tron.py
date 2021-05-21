@@ -88,7 +88,7 @@ class TransactionRet(dict):
                 try:
                     result = receipt.get('contractResult', [])
                     if result and len(result[0]) > (4 + 32) * 2:
-                        error_msg = tron_abi.decode_single('string', bytes.fromhex(result[0])[4 + 32 :])
+                        error_msg = tron_abi.decode_single('string', bytes.fromhex(result[0])[4 + 32:])
                         msg = "{}: {}".format(msg, error_msg)
                 except Exception:
                     pass
@@ -167,6 +167,11 @@ class Transaction(object):
     def broadcast(self) -> TransactionRet:
         """Broadcast the transaction to TRON network."""
         return TransactionRet(self._client.broadcast(self), client=self._client, method=self._method)
+
+    def set_signature(self, signature: [] or list) -> "Transaction":
+        """ set transaction signature """
+        self._signature = signature
+        return self
 
     @property
     def is_expired(self) -> bool:
@@ -297,20 +302,20 @@ class Trx(object):
         )
 
     def asset_issue(
-        self,
-        owner: TAddress,
-        abbr: str,
-        total_supply: int,
-        *,
-        url: str,
-        name: str = None,
-        description: str = "",
-        start_time: int = None,
-        end_time: int = None,
-        precision: int = 6,
-        frozen_supply: list = None,
-        trx_num: int = 1,
-        num: int = 1,
+            self,
+            owner: TAddress,
+            abbr: str,
+            total_supply: int,
+            *,
+            url: str,
+            name: str = None,
+            description: str = "",
+            start_time: int = None,
+            end_time: int = None,
+            precision: int = 6,
+            frozen_supply: list = None,
+            trx_num: int = 1,
+            num: int = 1,
     ) -> TransactionBuilder:
         """Issue a TRC10 token.
 
@@ -381,7 +386,7 @@ class Trx(object):
         )
 
     def freeze_balance(
-        self, owner: TAddress, amount: int, resource: str = "ENERGY", *, receiver: TAddress = None
+            self, owner: TAddress, amount: int, resource: str = "ENERGY", *, receiver: TAddress = None
     ) -> "TransactionBuilder":
         """Freeze balance to get energy or bandwidth, for 3 days.
 
@@ -401,7 +406,7 @@ class Trx(object):
         return self._build_transaction("FreezeBalanceContract", payload)
 
     def unfreeze_balance(
-        self, owner: TAddress, resource: str = "ENERGY", receiver: TAddress = None
+            self, owner: TAddress, resource: str = "ENERGY", receiver: TAddress = None
     ) -> "TransactionBuilder":
         """Unfreeze balance to get TRX back.
 
@@ -838,7 +843,7 @@ class Tron(object):
         return ShieldedTRC20(contract)
 
     def trigger_const_smart_contract_function(
-        self, owner_address: TAddress, contract_address: TAddress, function_selector: str, parameter: str,
+            self, owner_address: TAddress, contract_address: TAddress, function_selector: str, parameter: str,
     ) -> str:
         ret = self.provider.make_request(
             "wallet/triggerconstantcontract",
@@ -856,7 +861,7 @@ class Tron(object):
             result = ret.get('constant_result', [])
             try:
                 if result and len(result[0]) > (4 + 32) * 2:
-                    error_msg = tron_abi.decode_single('string', bytes.fromhex(result[0])[4 + 32 :])
+                    error_msg = tron_abi.decode_single('string', bytes.fromhex(result[0])[4 + 32:])
                     msg = "{}: {}".format(msg, error_msg)
             except Exception:
                 pass

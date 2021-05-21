@@ -185,6 +185,10 @@ class AsyncTransaction(object):
         """Broadcast the transaction to TRON network."""
         return AsyncTransactionRet(await self._client.broadcast(self), client=self._client, method=self._method)
 
+    def set_signature(self , signature: list or []) -> "AsyncTransaction":
+        """set async transaction signature"""
+        self._signature = signature
+        return self
     @property
     def is_expired(self) -> bool:
         return current_timestamp() >= self._raw_data['expiration']
