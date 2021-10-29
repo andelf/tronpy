@@ -1,8 +1,8 @@
-from typing import Union, Tuple, Optional
 import time
-from pprint import pprint
 import json
+from pprint import pprint
 from decimal import Decimal
+from typing import Union, Tuple, Optional
 
 from tronpy import keys
 from tronpy.contract import Contract, ShieldedTRC20, ContractMethod
@@ -866,7 +866,7 @@ class Tron(object):
     # Transaction handling
 
     def broadcast(self, txn: Transaction) -> dict:
-        payload = self.provider.make_request("/wallet/broadcasttransaction", txn.to_json())
+        payload = self.provider.make_request("wallet/broadcasttransaction", txn.to_json())
         self._handle_api_error(payload)
         if payload.get('txid') is None:
             payload['txid'] = txn.txid
