@@ -23,7 +23,7 @@ requests = "^2.23.0"
 base58 = "^2.0.0"
 pycryptodome = "^3.9.7"
 eth_abi = "^2.1.1"
-httpx = "^0.16.1"
+httpx = "^0.18.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.4.3"
