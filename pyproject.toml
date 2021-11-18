@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tronpy"
-version = "0.2.6"
+version = "0.2.8"
 description = "TRON Python client library"
 authors = ["andelf <andelf@gmail.com>"]
 license = "MIT"
@@ -18,7 +18,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.6"
-ecdsa = "^0.15"
+ecdsa = "^0.17"
 requests = "^2.23.0"
 base58 = "^2.0.0"
 pycryptodome = "^3.9.7"
