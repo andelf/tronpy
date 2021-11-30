@@ -1,6 +1,7 @@
 from eth_abi import encode_single, decode_single
 from eth_abi.decoding import Fixed32ByteSizeDecoder
 from eth_abi.encoding import Fixed32ByteSizeEncoder
+from eth_abi.exceptions import NonEmptyPaddingBytes
 from eth_abi.registry import BaseEquals
 from eth_abi.base import parse_type_str
 from eth_abi.codec import ABICodec
@@ -19,6 +20,15 @@ class TronAddressDecoder(Fixed32ByteSizeDecoder):
     @parse_type_str("address")
     def from_type_str(cls, abi_type, registry):
         return cls()
+
+    def validate_padding_bytes(self, value, padding_bytes):
+        value_byte_size = self._get_value_byte_size()
+        padding_size = self.data_byte_size - value_byte_size
+
+        if padding_bytes != b'\x00' * padding_size and padding_bytes != b'\x00' * (padding_size - 2) + b'\x00A':
+            raise NonEmptyPaddingBytes(
+                "Padding bytes were not empty: {0}".format(repr(padding_bytes))
+            )
 
 
 class TronAddressEncoder(Fixed32ByteSizeEncoder):

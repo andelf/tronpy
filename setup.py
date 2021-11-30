@@ -12,6 +12,7 @@ install_requires = [
     'pycryptodome>=3.9.7,<4.0.0',
     'requests>=2.23.0,<3.0.0',
     'httpx==0.16.1',
+    'hexbytes==0.2.2',
 ]
 
 setup_kwargs = {

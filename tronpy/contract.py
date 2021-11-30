@@ -1,5 +1,6 @@
 from typing import Union, Optional, Any, Tuple
 from Crypto.Hash import keccak
+from hexbytes import HexBytes
 
 from tronpy.exceptions import DoubleSpending
 from tronpy.abi import trx_abi
@@ -157,6 +158,27 @@ class Contract(object):
                 return ContractConstructor(method_abi, self)
 
         raise NameError("Contract has no constructor")
+
+    def decode_function_input(self, data) -> Tuple['ContractMethod', dict[str, Any]]:
+        data = HexBytes(data)
+        selector, params = data[:4], data[4:]
+
+        func = self.get_function_by_selector(selector)
+
+        names = [arg['name'] for arg in func.inputs]
+
+        decoded = trx_abi.decode_single(func.input_type, params)
+
+        return func, dict(zip(names, decoded))
+
+    def get_function_by_selector(self, selector: HexBytes) -> Union['ContractMethod', None]:
+        selector = selector.hex()[2:]
+
+        for fn in self.functions:
+            if selector == fn.function_signature_hash:
+                return fn
+
+        return None
 
 
 class ContractFunctions(object):
