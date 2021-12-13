@@ -1,4 +1,4 @@
-from typing import Union, Optional, Any, Tuple
+from typing import Union, Optional, Any, Tuple, Dict
 from Crypto.Hash import keccak
 from hexbytes import HexBytes
 
@@ -159,7 +159,7 @@ class Contract(object):
 
         raise NameError("Contract has no constructor")
 
-    def decode_function_input(self, data) -> Tuple['ContractMethod', dict[str, Any]]:
+    def decode_function_input(self, data) -> Tuple['ContractMethod', Dict[str, Any]]:
         data = HexBytes(data)
         selector, params = data[:4], data[4:]
 
