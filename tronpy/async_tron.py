@@ -1,10 +1,9 @@
-from typing import Union, Tuple, Optional
-import asyncio
-from typing import Union, Tuple
 import time
-from pprint import pprint
 import json
+import asyncio
+from pprint import pprint
 from decimal import Decimal
+from typing import Union, Tuple, Optional
 
 from tronpy import keys
 from tronpy.async_contract import AsyncContract, ShieldedTRC20, AsyncContractMethod
@@ -895,7 +894,7 @@ class AsyncTron(object):
     # Transaction handling
 
     async def broadcast(self, txn: AsyncTransaction) -> dict:
-        payload = await self.provider.make_request("/wallet/broadcasttransaction", txn.to_json())
+        payload = await self.provider.make_request("wallet/broadcasttransaction", txn.to_json())
         self._handle_api_error(payload)
         return payload
 

@@ -1,4 +1,4 @@
-from typing import Union, Optional, Any, Tuple
+from typing import Union, Optional, Any, Tuple, List
 from Crypto.Hash import keccak
 
 from tronpy.exceptions import DoubleSpending
@@ -30,7 +30,7 @@ class Contract(object):
         *,
         bytecode: Union[str, bytes] = '',
         name: str = None,
-        abi: Optional[dict] = None,
+        abi: Optional[Union[dict, List[dict]]] = None,
         user_resource_percent: int = 100,
         origin_energy_limit: int = 1,
         origin_address: str = None,
