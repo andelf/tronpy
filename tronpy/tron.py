@@ -241,7 +241,10 @@ class TransactionBuilder(object):
         """Set fee_limit of the transaction, in `SUN`."""
         self._raw_data["fee_limit"] = value
         return self
-
+    def value(self, value: int) -> "TransactionBuilder":
+        """Set the call_value."""
+        self._raw_data["contract"][0]["parameter"]["value"]["call_value"] = value
+        return self
     def build(self, options=None, **kwargs) -> Transaction:
         """Build the transaction."""
         ref_block_id = self._client.get_latest_solid_block_id()
