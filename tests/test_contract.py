@@ -1,5 +1,3 @@
-import asyncio
-
 import pytest
 
 from tronpy import Tron, Contract
@@ -7,10 +5,19 @@ from tronpy import AsyncTron, AsyncContract
 from tronpy.keys import PrivateKey
 
 
+# test_net address
+FROM_ADDR = '8888888888888888888888888888888888'
+# test_net private key
+FROM_PRIV_KEY = PrivateKey(bytes.fromhex("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"))
+# test_net address
+TO_ADDR = '7777777777777777777777777777777777'
+CNR_ADDR = "THi2qJf6XmvTJSpZHc17HgQsmJop6kb3ia"
+
+
 def test_const_functions():
     client = Tron(network='nile')
 
-    contract = client.get_contract('THi2qJf6XmvTJSpZHc17HgQsmJop6kb3ia')
+    contract = client.get_contract(CNR_ADDR)
     assert contract
 
     assert 'name' in dir(contract.functions)
@@ -28,7 +35,7 @@ def test_const_functions():
 @pytest.mark.asyncio
 async def test_async_const_functions():
     async with AsyncTron(network='nile') as client:
-        contract = await client.get_contract('THi2qJf6XmvTJSpZHc17HgQsmJop6kb3ia')
+        contract = await client.get_contract(CNR_ADDR)
         assert contract
 
         assert 'name' in dir(contract.functions)
@@ -44,19 +51,16 @@ async def test_async_const_functions():
 
 
 def test_trc20_transfer():
-    # TGQgfK497YXmjdgvun9Bg5Zu3xE15v17cu
-    priv_key = PrivateKey(bytes.fromhex("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"))
-
     client = Tron(network='nile')
 
-    contract = client.get_contract('THi2qJf6XmvTJSpZHc17HgQsmJop6kb3ia')
-    print('Balance', contract.functions.balanceOf('TGQgfK497YXmjdgvun9Bg5Zu3xE15v17cu'))
+    contract = client.get_contract(CNR_ADDR)
+    print('Balance', contract.functions.balanceOf(FROM_ADDR))
     txn = (
-        contract.functions.transfer('TVjsyZ7fYF3qLF6BQgPmTEZy1xrNNyVAAA', 1_000)
-        .with_owner('TGQgfK497YXmjdgvun9Bg5Zu3xE15v17cu')
+        contract.functions.transfer(TO_ADDR, 1_000)
+        .with_owner(FROM_ADDR)
         .fee_limit(5_000_000)
         .build()
-        .sign(priv_key)
+        .sign(FROM_PRIV_KEY)
         .inspect()
         .broadcast()
     )
@@ -74,14 +78,13 @@ def test_trc20_transfer():
 
 @pytest.mark.asyncio
 async def test_async_trc20_transfer():
-    priv_key = PrivateKey(bytes.fromhex("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"))
     async with AsyncTron(network='nile') as client:
-        contract = await client.get_contract('THi2qJf6XmvTJSpZHc17HgQsmJop6kb3ia')
-        print('Balance', await contract.functions.balanceOf('TGQgfK497YXmjdgvun9Bg5Zu3xE15v17cu'))
-        txb = await contract.functions.transfer('TVjsyZ7fYF3qLF6BQgPmTEZy1xrNNyVAAA', 1_000)
-        txb = txb.with_owner('TGQgfK497YXmjdgvun9Bg5Zu3xE15v17cu').fee_limit(5_000_000)
+        contract = await client.get_contract(CNR_ADDR)
+        print('Balance', await contract.functions.balanceOf(FROM_ADDR))
+        txb = await contract.functions.transfer(TO_ADDR, 1_000)
+        txb = txb.with_owner(FROM_ADDR).fee_limit(5_000_000)
         txn = await txb.build()
-        txn = txn.sign(priv_key).inspect()
+        txn = txn.sign(FROM_PRIV_KEY).inspect()
         txn_ret = await txn.broadcast()
 
         print(txn)
@@ -97,9 +100,7 @@ async def test_async_trc20_transfer():
 
 def test_contract_create():
     # TGQgfK497YXmjdgvun9Bg5Zu3xE15v17cu
-    priv_key = PrivateKey(bytes.fromhex("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"))
     client = Tron(network='nile')
-
     bytecode = "608060405234801561001057600080fd5b5060c78061001f6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c806360fe47b11460375780636d4ce63c146062575b600080fd5b606060048036036020811015604b57600080fd5b8101908080359060200190929190505050607e565b005b60686088565b6040518082815260200191505060405180910390f35b8060008190555050565b6000805490509056fea2646970667358221220c8daade51f673e96205b4a991ab6b94af82edea0f4b57be087ab123f03fc40f264736f6c63430006000033"
     abi = [
         {
@@ -114,10 +115,10 @@ def test_contract_create():
     cntr = Contract(name="SimpleStore", bytecode=bytecode, abi=abi)
 
     txn = (
-        client.trx.deploy_contract('TGQgfK497YXmjdgvun9Bg5Zu3xE15v17cu', cntr)
+        client.trx.deploy_contract(FROM_ADDR, cntr)
         .fee_limit(5_000_000)
         .build()
-        .sign(priv_key)
+        .sign(FROM_PRIV_KEY)
         .inspect()
         .broadcast()
     )
@@ -129,8 +130,6 @@ def test_contract_create():
 
 @pytest.mark.asyncio
 async def test_async_contract_create():
-    # TGQgfK497YXmjdgvun9Bg5Zu3xE15v17cu
-    priv_key = PrivateKey(bytes.fromhex("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"))
     async with AsyncTron(network='nile') as client:
         bytecode = "608060405234801561001057600080fd5b5060c78061001f6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c806360fe47b11460375780636d4ce63c146062575b600080fd5b606060048036036020811015604b57600080fd5b8101908080359060200190929190505050607e565b005b60686088565b6040518082815260200191505060405180910390f35b8060008190555050565b6000805490509056fea2646970667358221220c8daade51f673e96205b4a991ab6b94af82edea0f4b57be087ab123f03fc40f264736f6c63430006000033"
         abi = [
@@ -145,9 +144,9 @@ async def test_async_contract_create():
 
         cntr = AsyncContract(name="SimpleStore", bytecode=bytecode, abi=abi)
 
-        txb = client.trx.deploy_contract('TGQgfK497YXmjdgvun9Bg5Zu3xE15v17cu', cntr).fee_limit(1_000_000)
+        txb = client.trx.deploy_contract(FROM_ADDR, cntr).fee_limit(1_000_000)
         txn = await txb.build()
-        txn = txn.sign(priv_key).inspect()
+        txn = txn.sign(FROM_PRIV_KEY).inspect()
         txn_ret = await txn.broadcast()
 
         print(txn_ret)

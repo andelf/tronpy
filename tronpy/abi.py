@@ -64,4 +64,4 @@ trx_abi = ABICodec(registry)
 # alias
 tron_abi = trx_abi
 
-__all__ = ["trx_abi"]
+__all__ = ["trx_abi", "tron_abi"]
