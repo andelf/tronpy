@@ -30,7 +30,7 @@ The mainnet
 
    from tronpy import Tron
 
-   client = Tron()  # The default provicder, mainnet
+   client = Tron()  # The default provider, mainnet
 
 Testnets
 ^^^^^^^^
