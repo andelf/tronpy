@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tronpy"
-version = "0.2.8"
+version = "0.2.9"
 description = "TRON Python client library"
 authors = ["andelf <andelf@gmail.com>"]
 license = "MIT"
@@ -23,7 +23,7 @@ requests = "^2.23.0"
 base58 = "^2.0.0"
 pycryptodome = "^3.9.7"
 eth_abi = "^2.1.1"
-httpx = "^0.18.2"
+httpx = "^0.22.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.4.3"
