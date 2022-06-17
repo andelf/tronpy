@@ -598,6 +598,16 @@ class Tron(object):
         info = self.get_account(addr)
         return Decimal(info.get("balance", 0)) / 1_000_000
 
+    def get_account_bandwidth(self, addr: TAddress) -> int:
+        """Query the bandwidth of the account"""
+        ret = self.provider.make_request(
+            "wallet/getaccountnet", {"address": keys.to_base58check_address(addr)}
+        )
+        if ret:
+            return ret['freeNetLimit'] - ret.get('freeNetUsed', 0)
+        else:
+            raise AddressNotFound("account not found on-chain")
+
     def get_account_asset_balances(self, addr: TAddress) -> dict:
         """Get all TRC10 token balances of an account."""
         info = self.get_account(addr)

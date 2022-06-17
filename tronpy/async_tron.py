@@ -593,6 +593,18 @@ class AsyncTron(object):
         else:
             raise AddressNotFound("account not found on-chain")
 
+    # Bandwidth query
+    async def get_bandwidth(self, addr: TAddress) -> dict:
+        """Query the bandwidth of the account"""
+
+        ret = await self.provider.make_request(
+            "wallet/getaccountnet", {"address": keys.to_base58check_address(addr)}
+        )
+        if ret:
+            return ret['freeNetLimit'] - ret.get('freeNetUsed', 0)
+        else:
+            raise AddressNotFound("account not found on-chain")
+
     async def get_account_resource(self, addr: TAddress) -> dict:
         """Get resource info of an account."""
 
