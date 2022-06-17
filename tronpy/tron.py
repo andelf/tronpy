@@ -598,7 +598,7 @@ class Tron(object):
         info = self.get_account(addr)
         return Decimal(info.get("balance", 0)) / 1_000_000
 
-    def get_account_bandwidth(self, addr: TAddress) -> int:
+    def get_bandwidth(self, addr: TAddress) -> int:
         """Query the bandwidth of the account"""
         ret = self.provider.make_request(
             "wallet/getaccountnet", {"address": keys.to_base58check_address(addr)}
