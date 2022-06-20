@@ -804,7 +804,10 @@ class Tron(object):
                 asset["abbr"] = bytes.fromhex(asset["abbr"]).decode()
             else:
                 asset["abbr"] = ""
-            asset["description"] = bytes.fromhex(asset["description"]).decode("utf8", "replace")
+            if "description" in asset:
+                asset["description"] = bytes.fromhex(asset["description"]).decode("utf8", "replace")
+            else:
+                asset["description"] = ""
             asset["url"] = bytes.fromhex(asset["url"]).decode()
         return assets
 
