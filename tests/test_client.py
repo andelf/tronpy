@@ -6,6 +6,14 @@ from tronpy.tron import Transaction
 from tronpy.async_tron import AsyncTransaction
 import pytest
 
+# test_net address
+FROM_ADDR = '8888888888888888888888888888888888'
+# test_net private key
+FROM_PRIV_KEY = PrivateKey(bytes.fromhex("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"))
+# test_net address
+TO_ADDR = '7777777777777777777777777777777777'
+CNR_ADDR = "THi2qJf6XmvTJSpZHc17HgQsmJop6kb3ia"
+
 
 def test_client_keygen():
     client = Tron()
@@ -23,16 +31,13 @@ def test_async_client_keygen():
 def test_client():
     client = Tron(network='nile')
 
-    print(client)
-    priv_key = PrivateKey(bytes.fromhex("8888888888888888888888888888888888888888888888888888888888888888"))
-
     txn = (
-        client.trx.transfer("TJzXt1sZautjqXnpjQT4xSCBHNSYgBkDr3", "TVjsyZ7fYF3qLF6BQgPmTEZy1xrNNyVAAA", 1_000)
+        client.trx.transfer(FROM_ADDR, TO_ADDR, 1_000)
         .memo("test memo")
         .fee_limit(100_000_000)
         .build()
         .inspect()
-        .sign(priv_key)
+        .sign(FROM_PRIV_KEY)
         .broadcast()
     )
 
@@ -41,14 +46,13 @@ def test_client():
 
 def test_client_sign_offline():
     client = Tron(network='nile')
-    priv_key = PrivateKey(bytes.fromhex("8888888888888888888888888888888888888888888888888888888888888888"))
     tx = client.trx.transfer(
-        "TJzXt1sZautjqXnpjQT4xSCBHNSYgBkDr3", "TVjsyZ7fYF3qLF6BQgPmTEZy1xrNNyVAAA", 1
+        FROM_ADDR, TO_ADDR, 1
     ).memo("test memo").fee_limit(100_000_000).build()
     tx_j = tx.to_json()
     # offline
     tx_offline = Transaction.from_json(tx_j)    # tx_offline._client is None so it's offline
-    tx_offline.sign(priv_key)
+    tx_offline.sign(FROM_PRIV_KEY)
     tx_j2 = tx_offline.to_json()
     # online
     tx_2 = Transaction.from_json(tx_j2, client=client)
@@ -58,14 +62,13 @@ def test_client_sign_offline():
 @pytest.mark.asyncio
 async def test_async_client_sign_offline():
     async with AsyncTron(network='nile') as client:
-        priv_key = PrivateKey(bytes.fromhex("8888888888888888888888888888888888888888888888888888888888888888"))
         tx = await client.trx.transfer(
-            "TJzXt1sZautjqXnpjQT4xSCBHNSYgBkDr3", "TVjsyZ7fYF3qLF6BQgPmTEZy1xrNNyVAAA", 1
+            FROM_ADDR, TO_ADDR, 1
         ).memo("test memo").fee_limit(100_000_000).build()
         tx_j = tx.to_json()
         # offline
         tx_offline = await AsyncTransaction.from_json(tx_j)    # tx_offline._client is None so it's offline
-        tx_offline.sign(priv_key)
+        tx_offline.sign(FROM_PRIV_KEY)
         tx_j2 = tx_offline.to_json()
         # online
         tx_2 = await AsyncTransaction.from_json(tx_j2, client=client)
@@ -74,11 +77,10 @@ async def test_async_client_sign_offline():
 
 def test_client_update_tx():
     client = Tron(network='nile')
-    priv_key = PrivateKey(bytes.fromhex("8888888888888888888888888888888888888888888888888888888888888888"))
     tx: Transaction = client.trx.transfer(
-        "TJzXt1sZautjqXnpjQT4xSCBHNSYgBkDr3", "TVjsyZ7fYF3qLF6BQgPmTEZy1xrNNyVAAA", 1
+        FROM_ADDR, TO_ADDR, 1
     ).memo("test memo").fee_limit(100_000_000).build()
-    tx.sign(priv_key)
+    tx.sign(FROM_PRIV_KEY)
     tx.broadcast()
     tx_id = tx.txid
     # update and transfer again
@@ -86,24 +88,21 @@ def test_client_update_tx():
     tx.update()
     assert tx_id != tx.txid
     assert tx._signature == []
-    tx.sign(priv_key)
+    tx.sign(FROM_PRIV_KEY)
     tx.broadcast()
 
 
 @pytest.mark.asyncio
 async def test_async_client():
     async with AsyncTron(network='nile') as client:
-        print(client)
-        priv_key = PrivateKey(bytes.fromhex("8888888888888888888888888888888888888888888888888888888888888888"))
-
         txb = (
-            client.trx.transfer("TJzXt1sZautjqXnpjQT4xSCBHNSYgBkDr3", "TVjsyZ7fYF3qLF6BQgPmTEZy1xrNNyVAAA", 1_000)
+            client.trx.transfer(FROM_ADDR, TO_ADDR, 1_000)
             .memo("test memo")
             .fee_limit(100_000_000)
         )
         txn = await txb.build()
         txn.inspect()
-        txn_ret = await txn.sign(priv_key).broadcast()
+        txn_ret = await txn.sign(FROM_PRIV_KEY).broadcast()
 
         print(txn_ret)
         print(await txn_ret.wait())
@@ -121,14 +120,13 @@ async def test_async_manual_client():
     provider = AsyncHTTPProvider(CONF_NILE, client=_http_client)
     client = AsyncTron(provider=provider)
 
-    priv_key = PrivateKey(bytes.fromhex("8888888888888888888888888888888888888888888888888888888888888888"))
     txb = (
-        client.trx.transfer("TJzXt1sZautjqXnpjQT4xSCBHNSYgBkDr3", "TVjsyZ7fYF3qLF6BQgPmTEZy1xrNNyVAAA", 1_000)
+        client.trx.transfer(FROM_ADDR, TO_ADDR, 1_000)
         .memo("test memo")
         .fee_limit(1_000_000)
     )
     txn = await txb.build()
-    txn_ret = await txn.sign(priv_key).broadcast()
+    txn_ret = await txn.sign(FROM_PRIV_KEY).broadcast()
 
     print(txn_ret)
     print(await txn_ret.wait())
@@ -139,8 +137,6 @@ async def test_async_manual_client():
 
 def test_client_get_contract():
     client = Tron()
-    priv_key = PrivateKey(bytes.fromhex("ebf7c9cad1ca710553c22669fd3c7c70832e7024c1a32da69bbc5ad19dcc8992"))
-
     """
     txn = (
         client.trx.asset_issue(
@@ -157,47 +153,33 @@ def test_client_get_contract():
     print(txn)
     """
 
-    # print(client.get_account_permission("TGxv9UXRNMh4E6b33iuH1pqJfBffz6hXnV"))
-
-    # very old address, of mainnet
-    # print(client.get_account_resource("TTjacDH5PL8hpWirqU7HQQNZDyF723PuCg"))
-    # "TGj1Ej1qRzL9feLTLhjwgxXF4Ct6GTWg2U"))
-
     cntr = client.get_contract("TMDRdYAcXbQDajbGFy4rgXcNLYswuYsfk1")
-    print(cntr)
-
-    print(cntr.abi)
-    # print(client.get_contract("TTjacDH5PL8hpWirqU7HQQNZDyF723PuCg"))
-
-    cntr.functions.name()
+    assert cntr
+    assert cntr.abi
+    assert cntr.functions.name()
 
 
 @pytest.mark.asyncio
 async def test_async_client_get_contract():
     async with AsyncTron() as client:
         cntr = await client.get_contract("TMDRdYAcXbQDajbGFy4rgXcNLYswuYsfk1")
-        print(cntr)
-
-        print(cntr.abi)
-        # print(client.get_contract("TTjacDH5PL8hpWirqU7HQQNZDyF723PuCg"))
-
-        print(await cntr.functions.name())
+        assert cntr
+        assert cntr.abi
+        assert cntr.functions.name()
 
 
 def test_client_transfer_trc10():
     client = Tron(network='nile')
 
-    priv_key = PrivateKey(bytes.fromhex("ebf7c9cad1ca710553c22669fd3c7c70832e7024c1a32da69bbc5ad19dcc8992"))
-
     txn = (
         client.trx.asset_transfer(
-            "TGxv9UXRNMh4E6b33iuH1pqJfBffz6hXnV", "TVjsyZ7fYF3qLF6BQgPmTEZy1xrNNyVAAA", 1_000000, token_id=1000047
+            FROM_ADDR, TO_ADDR, 1_000000, token_id=1000047
         )
         .memo("test transfer coin")
         .fee_limit(0)
         .build()
         .inspect()
-        .sign(priv_key)
+        .sign(FROM_PRIV_KEY)
         .broadcast()
     )
 
@@ -207,18 +189,16 @@ def test_client_transfer_trc10():
 @pytest.mark.asyncio
 async def test_client_transfer_trc10():
     async with AsyncTron(network='nile') as client:
-        priv_key = PrivateKey(bytes.fromhex("ebf7c9cad1ca710553c22669fd3c7c70832e7024c1a32da69bbc5ad19dcc8992"))
-
         txb = (
             client.trx.asset_transfer(
-                "TGxv9UXRNMh4E6b33iuH1pqJfBffz6hXnV", "TVjsyZ7fYF3qLF6BQgPmTEZy1xrNNyVAAA", 1_000, token_id=1000047
+                FROM_ADDR, TO_ADDR, 1_000, token_id=1000016
             )
             .memo("test transfer coin")
             .fee_limit(0)
         )
         txn = await txb.build()
         txn.inspect()
-        txn = txn.sign(priv_key)
+        txn = txn.sign(FROM_PRIV_KEY)
         txn_ret = await txn.broadcast()
         print(txn_ret)
 

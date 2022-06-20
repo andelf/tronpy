@@ -1,10 +1,12 @@
-from typing import Union, Optional, Any, Tuple, List
+import itertools
+from typing import Union, Optional, Any, Tuple, List, Generator
 from Crypto.Hash import keccak
+from eth_utils import decode_hex
 
+import tronpy
 from tronpy.exceptions import DoubleSpending
 from tronpy.abi import trx_abi
-from tronpy import keys
-import tronpy
+from tronpy.keys import to_hex_address
 
 
 def keccak256(data: bytes) -> bytes:
@@ -61,6 +63,7 @@ class Contract(object):
         """Current transaction owner's address, to call or trigger contract"""
 
         self._functions = None
+        self._events = None
         self._client = client
 
     def __str__(self):
@@ -85,9 +88,9 @@ class Contract(object):
         return self._client.trx._build_transaction(
             "CreateSmartContract",
             {
-                "owner_address": keys.to_hex_address(self.owner_address),
+                "owner_address": to_hex_address(self.owner_address),
                 "new_contract": {
-                    "origin_address": keys.to_hex_address(self.origin_address),
+                    "origin_address": to_hex_address(self.origin_address),
                     "abi": {"entrys": self.abi},
                     "bytecode": self.bytecode,
                     "call_value": 0,  # TODO
@@ -106,8 +109,8 @@ class Contract(object):
         return self._client.trx._build_transaction(
             "UpdateSettingContract",
             {
-                "owner_address": keys.to_hex_address(self.owner_address),
-                "contract_address": keys.to_hex_address(self.contract_address),
+                "owner_address": to_hex_address(self.owner_address),
+                "contract_address": to_hex_address(self.contract_address),
                 "consume_user_resource_percent": percent,
             },
         )
@@ -120,8 +123,8 @@ class Contract(object):
         return self._client.trx._build_transaction(
             "UpdateEnergyLimitContract",
             {
-                "owner_address": keys.to_hex_address(self.owner_address),
-                "contract_address": keys.to_hex_address(self.contract_address),
+                "owner_address": to_hex_address(self.owner_address),
+                "contract_address": to_hex_address(self.contract_address),
                 "origin_energy_limit": limit,
             },
         )
@@ -134,8 +137,8 @@ class Contract(object):
         return self._client.trx._build_transaction(
             "ClearAbiContract",
             {
-                "owner_address": keys.to_hex_address(self.owner_address),
-                "contract_address": keys.to_hex_address(self.contract_address),
+                "owner_address": to_hex_address(self.owner_address),
+                "contract_address": to_hex_address(self.contract_address),
             },
         )
 
@@ -157,6 +160,87 @@ class Contract(object):
                 return ContractConstructor(method_abi, self)
 
         raise NameError("Contract has no constructor")
+
+    @property
+    def events(self) -> "ContractEvents":
+        """The :class:`~ContractEvents` object, wraps all contract events."""
+        if self._events is None:
+            if self.abi:
+                self._events = ContractEvents(self)
+                return self._events
+            raise ValueError("can not call a contract without ABI")
+        return self._events
+
+
+class ContractEvents(object):
+    def __init__(self, contract):
+        self._contract = contract
+
+    def __getitem__(self, event_name: str):
+        for _abi in self._contract.abi:
+            if _abi["type"].lower() == "event" and _abi["name"] == event_name:
+                return ContractEvent(_abi, self._contract, event_name)
+
+        raise KeyError("contract has no event named '{}'".format(event_name))
+
+    def __getattr__(self, event: str):
+        """Get the actual contract event object."""
+        try:
+            return self[event]
+        except KeyError:
+            raise AttributeError("contract has no method named '{}'".format(event))
+
+    def __dir__(self):
+        return [event["name"] for event in self._contract.abi if event["type"].lower() == "event"]
+
+    def __iter__(self):
+        yield from [self[event] for event in dir(self)]
+
+
+class ContractEvent(object):
+    def __init__(self, abi: dict, contract: "Contract", event_name: str):
+        self._abi = abi
+        self._contract = contract
+        self._event_name = event_name
+
+    def process_receipt(self, txn_receipt: dict) -> Generator:
+        return self.parse_logs(txn_receipt['log'])
+
+    def parse_logs(self, logs: List[dict]):
+        for log in logs:
+            if log['address'] != self._contract.contract_address:
+                continue
+            yield self.get_event_data(log)
+
+    def get_event_data(self, log: dict):
+        data_types, data_names, topic_types, topic_names = [], [], [], []   # cannot use `[[]] * 4`
+        for arg in self._abi['inputs']:
+            if arg.get('indexed', False) is False:
+                data_types.append(arg['type'])
+                data_names.append(arg['name'])
+            else:
+                topic_types.append(arg['type'])
+                topic_names.append(arg['name'])
+
+        topics = log['topics'][1:]
+        decoded_topic_data = [
+            trx_abi.decode_single(topic_type, decode_hex(topic_data))
+            for topic_type, topic_data
+            in zip(topic_types, topics)
+        ]
+
+        data = decode_hex(log['data'])
+        decoded_data = trx_abi.decode_abi(data_types, data)
+
+        event_args = dict(itertools.chain(
+            zip(topic_names, decoded_topic_data),
+            zip(data_names, decoded_data),
+        ))
+        return {
+            'args': event_args,
+            'event': self._event_name,
+            'address': log['address'],
+        }
 
 
 class ContractFunctions(object):
@@ -284,6 +368,11 @@ class ContractMethod(object):
 
     def __call__(self, *args, **kwargs) -> "tronpy.tron.TransactionBuilder":
         """Call the contract method."""
+        parameter = self._prepare_parameter(*args, **kwargs)
+        return self._trigger_contract(parameter)
+
+    def _prepare_parameter(self, *args, **kwargs) -> "tronpy.tron.TransactionBuilder":
+        """Prepare parameter."""
         parameter = ""
 
         if args and kwargs:
@@ -308,7 +397,9 @@ class ContractMethod(object):
             parameter = trx_abi.encode_single(self.input_type, args).hex()
         else:
             raise TypeError("wrong number of arguments, require {}".format(len(self.inputs)))
+        return parameter
 
+    def _trigger_contract(self, parameter):
         if self._abi.get("stateMutability", None).lower() in ["view", "pure"]:
             # const call, contract ret
             ret = self._client.trigger_const_smart_contract_function(
@@ -321,8 +412,8 @@ class ContractMethod(object):
             return self._client.trx._build_transaction(
                 "TriggerSmartContract",
                 {
-                    "owner_address": keys.to_hex_address(self._owner_address),
-                    "contract_address": keys.to_hex_address(self._contract.contract_address),
+                    "owner_address": to_hex_address(self._owner_address),
+                    "contract_address": to_hex_address(self._contract.contract_address),
                     "data": self.function_signature_hash + parameter,
                     "call_token_value": self.call_token_value,
                     "call_value": self.call_value,
@@ -422,7 +513,7 @@ class ShieldedTRC20(object):
                     "memo": memo.encode().hex(),
                 }
             },
-            "shielded_TRC20_contract_address": keys.to_hex_address(self.shielded.contract_address),
+            "shielded_TRC20_contract_address": to_hex_address(self.shielded.contract_address),
         }
 
         ret = self._client.provider.make_request("wallet/createshieldedcontractparameters", payload)
@@ -432,8 +523,8 @@ class ShieldedTRC20(object):
         return self._client.trx._build_transaction(
             "TriggerSmartContract",
             {
-                "owner_address": keys.to_hex_address(taddr),
-                "contract_address": keys.to_hex_address(self.shielded.contract_address),
+                "owner_address": to_hex_address(taddr),
+                "contract_address": to_hex_address(self.shielded.contract_address),
                 "data": function_signature + parameter,
             },
             method=self.shielded.functions.mint,
@@ -486,7 +577,7 @@ class ShieldedTRC20(object):
             "ovk": zkey["ovk"],
             "shielded_spends": spends,
             "shielded_receives": receives,
-            "shielded_TRC20_contract_address": keys.to_hex_address(self.shielded.contract_address),
+            "shielded_TRC20_contract_address": to_hex_address(self.shielded.contract_address),
         }
         ret = self._client.provider.make_request("wallet/createshieldedcontractparameters", payload)
         self._client._handle_api_error(ret)
@@ -496,7 +587,7 @@ class ShieldedTRC20(object):
             "TriggerSmartContract",
             {
                 "owner_address": "0000000000000000000000000000000000000000",
-                "contract_address": keys.to_hex_address(self.shielded.contract_address),
+                "contract_address": to_hex_address(self.shielded.contract_address),
                 "data": function_signature + parameter,
             },
             method=self.shielded.functions.transfer,
@@ -551,8 +642,8 @@ class ShieldedTRC20(object):
             "shielded_spends": spends,
             "shielded_receives": receives,
             "to_amount": str(to_amount),
-            "transparent_to_address": keys.to_hex_address(to_addr),
-            "shielded_TRC20_contract_address": keys.to_hex_address(self.shielded.contract_address),
+            "transparent_to_address": to_hex_address(to_addr),
+            "shielded_TRC20_contract_address": to_hex_address(self.shielded.contract_address),
         }
 
         ret = self._client.provider.make_request("wallet/createshieldedcontractparameters", payload)
@@ -563,7 +654,7 @@ class ShieldedTRC20(object):
             "TriggerSmartContract",
             {
                 "owner_address": "410000000000000000000000000000000000000000",
-                "contract_address": keys.to_hex_address(self.shielded.contract_address),
+                "contract_address": to_hex_address(self.shielded.contract_address),
                 "data": function_signature + parameter,
             },
             method=self.shielded.functions.burn,
@@ -590,7 +681,7 @@ class ShieldedTRC20(object):
         payload = {
             "start_block_index": start_block_number,
             "end_block_index": end_block_number,
-            "shielded_TRC20_contract_address": keys.to_hex_address(self.shielded.contract_address),
+            "shielded_TRC20_contract_address": to_hex_address(self.shielded.contract_address),
             "ivk": zkey["ivk"],
             "ak": zkey["ak"],
             "nk": zkey["nk"],
@@ -613,7 +704,7 @@ class ShieldedTRC20(object):
         payload = {
             "start_block_index": start_block_number,
             "end_block_index": end_block_number,
-            "shielded_TRC20_contract_address": keys.to_hex_address(self.shielded.contract_address),
+            "shielded_TRC20_contract_address": to_hex_address(self.shielded.contract_address),
             "ovk": ovk,
         }
         ret = self._client.provider.make_request("wallet/scanshieldedtrc20notesbyovk", payload)
@@ -630,7 +721,7 @@ class ShieldedTRC20(object):
     def is_note_spent(self, zkey: dict, note: dict) -> bool:
         """Is a note spent."""
         payload = dict(note)
-        payload["shielded_TRC20_contract_address"] = keys.to_hex_address(self.shielded.contract_address)
+        payload["shielded_TRC20_contract_address"] = to_hex_address(self.shielded.contract_address)
         if "position" not in note:
             payload["position"] = 0
         payload["ak"] = zkey["ak"]
