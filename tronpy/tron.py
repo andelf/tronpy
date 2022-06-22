@@ -604,7 +604,8 @@ class Tron(object):
             "wallet/getaccountnet", {"address": keys.to_base58check_address(addr)}
         )
         if ret:
-            return ret['freeNetLimit'] - ret.get('freeNetUsed', 0)
+            # (freeNetLimit - freeNetUsed) + (NetLimit - NetUsed)
+            return ret['freeNetLimit'] - ret.get('freeNetUsed', 0) + ret.get('NetLimit', 0) - ret.get('NetUsed', 0)
         else:
             raise AddressNotFound("account not found on-chain")
 
