@@ -1,3 +1,5 @@
+nothing really change but these two requests,httpx lib are bit old so i just updated it 
+
 # tronpy
 
 [![PyPI version](https://badge.fury.io/py/tronpy.svg)](https://pypi.org/project/tronpy/)
