@@ -903,7 +903,7 @@ class Tron(object):
         if only_confirmed is not None:
             query_params['only_confirmed'] = only_confirmed
         return self.provider.make_request(
-            f"transactions/{transaction_id}/events",
+            f"v1/transactions/{transaction_id}/events",
             method_type="GET",
             query_params=query_params
         )
@@ -941,7 +941,7 @@ class Tron(object):
         if limit is not None:
             query_params['limit'] = limit
         return self.provider.make_request(
-            f"contracts/{contract_address}/events",
+            f"v1/contracts/{contract_address}/events",
             method_type="GET",
             query_params=query_params
         )
@@ -961,7 +961,7 @@ class Tron(object):
         if fingerprint is not None:
             query_params['fingerprint'] = fingerprint
         return self.provider.make_request(
-            f"blocks/{block_number}/events",
+            f"v1/blocks/{block_number}/events",
             method_type="GET",
             query_params=query_params
         )
