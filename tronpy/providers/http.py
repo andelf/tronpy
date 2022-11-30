@@ -62,14 +62,19 @@ class HTTPProvider(object):
         self.timeout = timeout
         """Request timeout in second."""
 
-    def make_request(self, method: str, params: Any = None) -> dict:
+    def make_request(
+            self,
+            method: str,
+            params: Any = None,
+            method_type: str = "POST",
+            query_params: dict[str, Any] = None) -> dict:
         if self.use_api_key:
             self.sess.headers["Tron-Pro-Api-Key"] = self.random_api_key
 
         if params is None:
             params = {}
         url = urljoin(self.endpoint_uri, method)
-        resp = self.sess.post(url, json=params, timeout=self.timeout)
+        resp = self.sess.request(method_type, url, json=params, timeout=self.timeout, params=query_params)
 
         if self.use_api_key:
             if resp.status_code == 403 and b'Exceed the user daily usage' in resp.content:

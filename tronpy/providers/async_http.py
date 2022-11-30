@@ -43,10 +43,15 @@ class AsyncHTTPProvider(object):
         self.timeout = timeout
         """Request timeout in second."""
 
-    async def make_request(self, method: str, params: Any = None) -> dict:
+    async def make_request(
+            self,
+            method: str,
+            params: Any = None,
+            method_type: str = "POST",
+            query_params: dict[str, Any] = None) -> dict:
         if params is None:
             params = {}
         url = urljoin(self.endpoint_uri, method)
-        resp = await self.client.post(url, json=params)
+        resp = await self.client.request(method_type, url, json=params, params=query_params)
         resp.raise_for_status()
         return resp.json()

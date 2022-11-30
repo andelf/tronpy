@@ -3,7 +3,7 @@ import json
 import asyncio
 from pprint import pprint
 from decimal import Decimal
-from typing import Union, Tuple, Optional
+from typing import Union, Tuple, Optional, Literal
 
 from tronpy import keys
 from tronpy.async_contract import AsyncContract, ShieldedTRC20, AsyncContractMethod
@@ -913,6 +913,83 @@ class AsyncTron(object):
 
     async def get_sign_weight(self, txn: AsyncTransaction) -> dict:
         return await self.provider.make_request("wallet/getsignweight", txn.to_json())
+
+    # Events
+
+    async def get_events_by_transaction_id(
+            self,
+            transaction_id: str,
+            only_unconfirmed: bool = None,
+            only_confirmed: bool = None
+    ) -> dict:
+        query_params = {}
+        if only_unconfirmed is not None:
+            query_params['only_unconfirmed'] = only_unconfirmed
+        if only_confirmed is not None:
+            query_params['only_confirmed'] = only_confirmed
+        return await self.provider.make_request(
+            f"transactions/{transaction_id}/events",
+            method_type="GET",
+            query_params=query_params
+        )
+
+    async def get_events_by_contract_address(
+            self,
+            contract_address: TAddress,
+            event_name: str = None,
+            block_number: int = None,
+            only_unconfirmed: bool = None,
+            only_confirmed: bool = None,
+            min_block_timestamp: int = None,
+            max_block_timestamp: int = None,
+            order_by: str = None,
+            fingerprint: str = None,
+            limit: int = None
+    ):
+        query_params = {}
+        if event_name is not None:
+            query_params['event_name'] = event_name
+        if block_number is not None:
+            query_params['block_number'] = block_number
+        if only_unconfirmed is not None:
+            query_params['only_unconfirmed'] = only_unconfirmed
+        if only_confirmed is not None:
+            query_params['only_confirmed'] = only_confirmed
+        if min_block_timestamp is not None:
+            query_params['min_block_timestamp'] = min_block_timestamp
+        if max_block_timestamp is not None:
+            query_params['max_block_timestamp'] = max_block_timestamp
+        if order_by is not None:
+            query_params['order_by'] = order_by
+        if fingerprint is not None:
+            query_params['fingerprint'] = fingerprint
+        if limit is not None:
+            query_params['limit'] = limit
+        return await self.provider.make_request(
+            f"contracts/{contract_address}/events",
+            method_type="GET",
+            query_params=query_params
+        )
+
+    async def get_events_by_block_number(
+            self,
+            block_number: int | Literal["latest"] = "latest",
+            only_confirmed: bool = None,
+            limit: int = None,
+            fingerprint: str = None
+    ):
+        query_params = {}
+        if only_confirmed is not None:
+            query_params['only_confirmed'] = only_confirmed
+        if limit is not None:
+            query_params['limit'] = limit
+        if fingerprint is not None:
+            query_params['fingerprint'] = fingerprint
+        return await self.provider.make_request(
+            f"blocks/{block_number}/events",
+            method_type="GET",
+            query_params=query_params
+        )
 
     async def close(self):
         if not self.provider.client.is_closed:
