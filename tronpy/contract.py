@@ -40,6 +40,7 @@ class Contract(object):
         client=None,
     ):
         self.contract_address = addr
+        self.address = addr
         """Address of the contract"""
 
         self._bytecode = assure_bytes(bytecode)
@@ -171,6 +172,15 @@ class Contract(object):
             raise ValueError("can not call a contract without ABI")
         return self._events
 
+    def get_function_by_selector(self, selector) -> Union['ContractMethod', None]:
+        selector = selector.hex()
+
+        for fn in self.functions:
+            if selector == fn.function_signature_hash:
+                return fn
+
+        return None
+
 
 class ContractEvents(object):
     def __init__(self, contract):
@@ -178,7 +188,7 @@ class ContractEvents(object):
 
     def __getitem__(self, event_name: str):
         for _abi in self._contract.abi:
-            if _abi["type"].lower() == "event" and _abi["name"] == event_name:
+            if _abi.get("type", "").lower() == "event" and _abi["name"] == event_name:
                 return ContractEvent(_abi, self._contract, event_name)
 
         raise KeyError("contract has no event named '{}'".format(event_name))
@@ -191,7 +201,7 @@ class ContractEvents(object):
             raise AttributeError("contract has no method named '{}'".format(event))
 
     def __dir__(self):
-        return [event["name"] for event in self._contract.abi if event["type"].lower() == "event"]
+        return [event["name"] for event in self._contract.abi if event.get("type", "").lower() == "event"]
 
     def __iter__(self):
         yield from [self[event] for event in dir(self)]
@@ -249,7 +259,7 @@ class ContractFunctions(object):
 
     def __getitem__(self, method: str):
         for method_abi in self._contract.abi:
-            if method_abi["type"].lower() == "function" and method_abi["name"] == method:
+            if method_abi.get("type", "").lower() == "function" and method_abi["name"] == method:
                 return ContractMethod(method_abi, self._contract)
 
         raise KeyError("contract has no method named '{}'".format(method))
@@ -262,7 +272,7 @@ class ContractFunctions(object):
             raise AttributeError("contract has no method named '{}'".format(method))
 
     def __dir__(self):
-        return [method["name"] for method in self._contract.abi if method["type"].lower() == "function"]
+        return [method["name"] for method in self._contract.abi if method.get("type", "").lower() == "function"]
 
     def __iter__(self):
         yield from [self[method] for method in dir(self)]
@@ -280,13 +290,13 @@ class ContractConstructor(object):
         self.outputs = abi.get("outputs", [])
 
     def __str__(self):
-        types = ", ".join(arg["type"] + " " + arg.get("name", "") for arg in self.inputs)
+        types = ", ".join(arg.get("type", "") + " " + arg.get("name", "") for arg in self.inputs)
         ret = "construct({})".format(types)
         return ret
 
     @property
     def input_type(self) -> str:
-        return "(" + (",".join(arg["type"] for arg in self.inputs)) + ")"
+        return "(" + (",".join(arg.get("type", "") for arg in self.inputs)) + ")"
 
     def encode_parameter(self, *args, **kwargs) -> str:
         """Encode constructor parameters according to ABI."""
@@ -455,14 +465,14 @@ class ContractMethod(object):
 
     @property
     def function_type(self) -> str:
-        types = ", ".join(arg["type"] + " " + arg.get("name", "") for arg in self.inputs)
+        types = ", ".join(arg.get("type", "") + " " + arg.get("name", "") for arg in self.inputs)
         ret = "function {}({})".format(self.name, types)
         if self._abi.get("stateMutability", None).lower() == "view":
             ret += " view"
         elif self._abi.get("stateMutability", None).lower() == "pure":
             ret += " pure"
         if self.outputs:
-            ret += " returns ({})".format(", ".join(arg["type"] + " " + arg.get("name", "") for arg in self.outputs))
+            ret += " returns ({})".format(", ".join(arg.get("type", "") + " " + arg.get("name", "") for arg in self.outputs))
         return ret
 
     def as_shielded_trc20(self, trc20_addr: str) -> "ShieldedTRC20":

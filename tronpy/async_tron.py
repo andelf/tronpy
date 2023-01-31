@@ -110,16 +110,16 @@ class AsyncTransaction(object):
                  txid: str = "",
                  permission: dict = None,
                  signature: list = None):
-        self._raw_data: dict = raw_data
-        self._signature: list = signature or []
+        self._raw_data: dict = raw_data.get("raw_data", raw_data)
+        self._signature: list = raw_data.get("signature", signature or [])
         self._client = client
 
         self._method = method
 
-        self.txid: str = txid
+        self.txid: str = raw_data.get("txID", txid)
         """The transaction id in hex."""
 
-        self._permission: Optional[dict] = permission
+        self._permission: Optional[dict] = raw_data.get("permission", permission)
 
         # IMPORTANT must use "Transaction.create" to create a new Transaction
 
@@ -682,8 +682,12 @@ class AsyncTron(object):
     async def get_latest_solid_block_id(self) -> str:
         """Get latest solid block id in hex."""
 
-        info = await self.provider.make_request("wallet/getnodeinfo")
-        return info["solidityBlock"].split(",ID:", 1)[-1]
+        try:
+            info = await self.provider.make_request("wallet/getnodeinfo")
+            return info["solidityBlock"].split(",ID:", 1)[-1]
+        except Exception:
+            info = await self.get_latest_solid_block()
+            return info["blockID"]
 
     async def get_latest_solid_block_number(self) -> int:
         """Get latest solid block number. Implemented via `wallet/getnodeinfo`,
@@ -869,6 +873,7 @@ class AsyncTron(object):
             abi=info.get("abi", {}).get("entrys", []),
             origin_energy_limit=info.get("origin_energy_limit", 0),
             user_resource_percent=info.get("consume_user_resource_percent", 100),
+            origin_address=info.get("origin_address", ""),
             client=self,
         )
         return cntr

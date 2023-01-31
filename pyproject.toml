@@ -17,13 +17,13 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.6.2,<4.0"
-ecdsa = "^0.17"
-requests = "^2.23.0"
-base58 = "^2.0.0"
-pycryptodome = "^3.9.7"
-eth_abi = "^2.1.1"
-httpx = "^0.22"
+python = ">=3.7,<4.0"
+base58 = "*"
+ecdsa = ">=0.18,<0.19"
+eth_abi = ">=4.0.0a,<5.0.0"
+pycryptodome = "<4"
+requests = "*"
+httpx = "*"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7"
@@ -59,5 +59,5 @@ exclude = '''
 '''
 
 [build-system]
-requires = ["poetry >= 0.12, <1"]
-build-backend = "poetry.masonry.api"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
