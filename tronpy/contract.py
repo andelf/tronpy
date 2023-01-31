@@ -157,7 +157,7 @@ class Contract(object):
     def constructor(self) -> "ContractConstructor":
         """The constructor of the contract."""
         for method_abi in self.abi:
-            if method_abi['type'] == 'Constructor':
+            if method_abi.get('type', '').lower() == 'constructor':
                 return ContractConstructor(method_abi, self)
 
         raise NameError("Contract has no constructor")
@@ -226,10 +226,10 @@ class ContractEvent(object):
         data_types, data_names, topic_types, topic_names = [], [], [], []   # cannot use `[[]] * 4`
         for arg in self._abi['inputs']:
             if arg.get('indexed', False) is False:
-                data_types.append(arg['type'])
+                data_types.append(arg.get('type', ''))
                 data_names.append(arg['name'])
             else:
-                topic_types.append(arg['type'])
+                topic_types.append(arg.get('type', ''))
                 topic_names.append(arg['name'])
 
         topics = log['topics'][1:]
@@ -445,7 +445,7 @@ class ContractMethod(object):
         return "({})".format(",".join(self.__format_json_abi_type_entry(arg) for arg in self.outputs))
 
     def __format_json_abi_type_entry(self, entry) -> str:
-        if entry['type'].startswith('tuple'):
+        if entry.get('type', '').startswith('tuple'):
             surfix = entry['type'][5:]
             if 'components' not in entry:
                 raise ValueError("ABIEncoderV2 used, ABI should be set by hand")
@@ -453,7 +453,7 @@ class ContractMethod(object):
                 ",".join(self.__format_json_abi_type_entry(arg) for arg in entry['components']), surfix
             )
         else:
-            return entry['type']
+            return entry.get('type', '')
 
     @property
     def function_signature(self) -> str:
