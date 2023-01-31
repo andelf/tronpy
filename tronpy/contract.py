@@ -37,11 +37,15 @@ class Contract(object):
         origin_energy_limit: int = 1,
         origin_address: str = None,
         owner_address: str = "410000000000000000000000000000000000000000",
+        code_hash: str = None,
         client=None,
     ):
         self.contract_address = addr
         self.address = addr
         """Address of the contract"""
+
+        self.code_hash = code_hash
+        """Hash of smart contract bytecode."""
 
         self._bytecode = assure_bytes(bytecode)
 

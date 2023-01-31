@@ -846,6 +846,8 @@ class Tron(object):
             abi=info.get("abi", {}).get("entrys", []),
             origin_energy_limit=info.get("origin_energy_limit", 0),
             user_resource_percent=info.get("consume_user_resource_percent", 100),
+            origin_address=info.get("origin_address", ""),
+            code_hash=info.get("code_hash", ""),
             client=self,
         )
         return cntr
