@@ -254,6 +254,10 @@ class AsyncTransactionBuilder(object):
         self._raw_data["data"] = data.hex()
         return self
 
+    def expiration(self, expiration: int) -> "AsyncTransactionBuilder":
+        self._raw_data['expiration'] = current_timestamp() + expiration
+        return self
+
     def fee_limit(self, value: int) -> "AsyncTransactionBuilder":
         """Set fee_limit of the transaction, in `SUN`."""
         self._raw_data["fee_limit"] = value

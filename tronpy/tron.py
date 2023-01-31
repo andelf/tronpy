@@ -237,6 +237,10 @@ class TransactionBuilder(object):
         self._raw_data["data"] = data.hex()
         return self
 
+    def expiration(self, expiration: int) -> "TransactionBuilder":
+        self._raw_data['expiration'] = current_timestamp() + expiration
+        return self
+
     def fee_limit(self, value: int) -> "TransactionBuilder":
         """Set fee_limit of the transaction, in `SUN`."""
         self._raw_data["fee_limit"] = value
