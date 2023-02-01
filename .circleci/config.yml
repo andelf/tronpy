@@ -30,8 +30,11 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Prepare
+          name: Install poetry
           command: pip install poetry
+      - run:
+          name: Prepare
+          command: poetry init
 
       - run:
           name: Run tests
