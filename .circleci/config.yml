@@ -1,0 +1,86 @@
+version: 2.1
+
+orbs:
+  bitcartcc: bitcartcc/bitcartcc-shared@1
+
+executors:
+  main-executor:
+    parameters:
+      v:
+        type: string
+        default: "3.8"
+
+    docker:
+      - image: cimg/python:<< parameters.v >>
+
+    environment:
+      TEST_ARGS: "--junitxml test-results/pytest/coverage.xml --cov-report html:coverage"
+
+commands:
+  install_dependencies:
+    steps:
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ .Branch }}-{{ checksum "~/.pyenv/version" }}-{{ checksum "setup.py" }}
+
+      - run:
+          name: install library
+          command: |
+            virtualenv ~/venv
+            echo ". ~/venv/bin/activate" >> $BASH_ENV
+            source $BASH_ENV
+            pip install -U .
+
+      - save_cache:
+          paths:
+            - ~/venv
+          key: v1-dependencies-{{ .Branch }}-{{ checksum "~/.pyenv/version" }}-{{ checksum "setup.py" }}
+
+  upload-results:
+    steps:
+      - store_test_results:
+          path: test-results
+
+      - store_artifacts:
+          path: coverage
+
+      - store_artifacts:
+          path: test-results
+
+jobs:
+  test:
+    parameters:
+      v:
+        type: string
+
+    executor:
+      name: main-executor
+      v: << parameters.v >>
+
+    environment:
+      PYTHON: << parameters.v >>
+
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+
+      - install_dependencies
+
+      - run:
+          name: run fast tests
+          command: |
+            pytest
+
+      - upload-results
+
+workflows:
+  version: 2
+  test_and_deploy:
+    jobs:
+      - test:
+          name: test-<< matrix.v >>
+          matrix:
+            parameters:
+              v:
+                - "3.8"
