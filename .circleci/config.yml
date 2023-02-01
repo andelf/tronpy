@@ -34,7 +34,7 @@ jobs:
           command: pip install poetry
       - run:
           name: Prepare
-          command: poetry init
+          command: poetry install
 
       - run:
           name: Run tests
