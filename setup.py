@@ -15,7 +15,7 @@ install_requires = [
 
 setup_kwargs = {
     "name": "tronpy",
-    "version": "0.2.6",
+    "version": "0.3.0",
     "description": "TRON Python client library",
     "long_description": open("README.md").read(),
     "long_description_content_type": "text/markdown",
