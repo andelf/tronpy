@@ -99,6 +99,9 @@ class AsyncTransactionRet(dict):
         return self._method.parse_output(receipt['contractResult'][0])
 
 
+EMPTY = object()
+
+
 # noinspection PyBroadException,PyProtectedMember
 class AsyncTransaction(object):
     """The Transaction object, signed or unsigned."""
@@ -126,7 +129,7 @@ class AsyncTransaction(object):
     @classmethod
     async def create(cls, *args, **kwargs) -> Optional["AsyncTransaction"]:
         _tx = cls(*args, **kwargs)
-        if not _tx.txid or not _tx._permission:
+        if not _tx.txid or _tx._permission is EMPTY:
             await _tx.check_sign_weight()
         return _tx
 
@@ -142,7 +145,7 @@ class AsyncTransaction(object):
     def to_json(self) -> dict:
         return {
             "txID": self.txid, "raw_data": self._raw_data,
-            "signature": self._signature, "permission": self._permission
+            "signature": self._signature, "permission": self._permission if self._permission is not EMPTY else None
         }
 
     @classmethod

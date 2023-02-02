@@ -26,14 +26,27 @@ requests = "*"
 httpx = "*"
 
 [tool.poetry.dev-dependencies]
-pytest = "^7"
-pytest-cov = "^3"
-flake8 = "^4"
-black = ">=21"
-isort = "^5"
-mypy = "^0.931"
-sphinx = "^4"
-pytest-asyncio = "^0.16"
+pytest = "*"
+pytest-cov = "*"
+flake8 = "*"
+black = "*"
+isort = "*"
+mypy = "*"
+sphinx = "*"
+pytest-asyncio = "*"
+codecov = "*"
+pre-commit = "*"
+
+[tool.pytest.ini_options]
+addopts = [
+    "--cov=.",
+    "--cov-report",
+    "term-missing"
+]
+filterwarnings = [
+    "error::DeprecationWarning",
+    "error::PendingDeprecationWarning",
+]
 
 [tool.black]
 line-length = 100
