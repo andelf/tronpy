@@ -71,8 +71,7 @@ jobs:
       - run:
           name: run fast tests
           command: |
-            make lint
-            make test
+            make ci
 
       - upload-results
 
@@ -80,8 +79,12 @@ workflows:
   version: 2
   test_and_deploy:
     jobs:
+      - bitcartcc/lint:
+          name: lint
       - test:
           name: test-<< matrix.v >>
+          requires:
+            - lint
           matrix:
             parameters:
               v:
