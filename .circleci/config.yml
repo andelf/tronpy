@@ -71,7 +71,7 @@ jobs:
       - run:
           name: run fast tests
           command: |
-            pytest
+            make test
 
       - upload-results
 
