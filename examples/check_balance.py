@@ -1,6 +1,7 @@
+from pprint import pprint
+
 from tronpy import Tron
 from tronpy.exceptions import AddressNotFound
-from pprint import pprint
 
 client = Tron()
 
@@ -10,7 +11,7 @@ def check_balance(address):
         balance = client.get_account_balance(address)
         return balance
     except AddressNotFound:
-        return 'Adress not found..!'
+        return "Adress not found..!"
 
 
-pprint(check_balance('<address>'))
+pprint(check_balance("<address>"))

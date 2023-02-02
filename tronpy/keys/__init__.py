@@ -1,12 +1,14 @@
-from Crypto.Hash import keccak
 import hashlib
-import base58
-from collections.abc import ByteString, Hashable
 import random
-from typing import Any, Union, Iterator
-from coincurve import PrivateKey as CoincurvePrivateKey, PublicKey as CoincurvePublicKey
+from collections.abc import ByteString, Hashable
+from typing import Any, Iterator, Union
 
-from tronpy.exceptions import BadKey, BadSignature, BadAddress
+import base58
+from coincurve import PrivateKey as CoincurvePrivateKey
+from coincurve import PublicKey as CoincurvePublicKey
+from Crypto.Hash import keccak
+
+from tronpy.exceptions import BadAddress, BadKey, BadSignature
 
 SECPK1_N = 115792089237316195423570985008687907852837564279074904382605163141518161494337
 
@@ -356,7 +358,7 @@ class Signature(ByteString):
         return self._raw_signature.hex()
 
     @classmethod
-    def fromhex(cls, hex_str: str) -> 'Signature':
+    def fromhex(cls, hex_str: str) -> "Signature":
         """Construct a Signature from hex str."""
         return cls(bytes.fromhex(hex_str))
 

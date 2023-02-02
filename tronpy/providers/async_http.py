@@ -1,12 +1,12 @@
 import os
-from urllib.parse import urljoin
 from typing import Any, Union
+from urllib.parse import urljoin
 
 import httpx
 from httpx import Timeout
 
 DEFAULT_TIMEOUT = 10.0
-DEFAULT_API_KEY = 'f92221d5-7056-4366-b96f-65d3662ec2d9'
+DEFAULT_API_KEY = "f92221d5-7056-4366-b96f-65d3662ec2d9"
 
 
 class AsyncHTTPProvider(object):
