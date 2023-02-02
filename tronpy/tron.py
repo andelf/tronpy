@@ -442,6 +442,11 @@ class Trx(object):
         payload = {"owner_address": keys.to_hex_address(owner), "votes": votes}
         return self._build_transaction("VoteWitnessContract", payload)
 
+    def withdraw_rewards(self, owner: TAddress) -> "TransactionBuilder":
+        """Withdraw voting rewards."""
+        payload = {"owner_address": keys.to_hex_address(owner)}
+        return self._build_transaction("WithdrawBalanceContract", payload)
+
     # Contract
 
     def deploy_contract(self, owner: TAddress, contract: Contract) -> "TransactionBuilder":
