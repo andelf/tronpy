@@ -71,17 +71,43 @@ jobs:
       - run:
           name: run fast tests
           command: |
-            make lint
-            make test
+            make ci
 
       - upload-results
+
+  deploy:
+    executor: bitcartcc/docker-python
+    docker:
+      - image: cimg/python:3.8
+    steps:
+      - checkout
+
+      - run:
+          name: setup credentials
+          command: |
+            echo -e "[pypi]" >> ~/.pypirc
+            echo -e "username = $PYPI_USER" >> ~/.pypirc
+            echo -e "password = $PYPI_PASS" >> ~/.pypirc
+      - run:
+          name: create env, build dist and upload
+          command: |
+            virtualenv ~/venv
+            . ~/venv/bin/activate
+            pip install -U wheel twine
+            python setup.py sdist
+            python setup.py bdist_wheel
+            twine upload dist/*
 
 workflows:
   version: 2
   test_and_deploy:
     jobs:
+      - bitcartcc/lint:
+          name: lint
       - test:
           name: test-<< matrix.v >>
+          requires:
+            - lint
           matrix:
             parameters:
               v:
@@ -90,3 +116,10 @@ workflows:
                 - "3.9"
                 - "3.10"
                 - "3.11"
+      - deploy:
+          context: global
+          filters:
+            tags:
+              only: /[0-9]+(\.[0-9]+)*/
+            branches:
+              ignore: /.*/

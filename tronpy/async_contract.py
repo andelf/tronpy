@@ -1,13 +1,14 @@
-from typing import Union, Tuple
+from typing import Tuple, Union
 
 import tronpy
 from tronpy import keys
+from tronpy.contract import Contract, ContractFunctions, ContractMethod, ShieldedTRC20
 from tronpy.exceptions import DoubleSpending
-from tronpy.contract import Contract, ContractMethod, ContractFunctions, ShieldedTRC20
 
 
 class AsyncContract(Contract):
     """A smart contract object."""
+
     @property
     def functions(self) -> "ContractFunctions":
         """The :class:`~ContractFunctions` object, wraps all contract methods."""
@@ -28,7 +29,7 @@ class AsyncContractFunctions(ContractFunctions):
             if method_abi.get("type", "").lower() == "function" and method_abi["name"] == method:
                 return AsyncContractMethod(method_abi, self._contract)
 
-        raise KeyError("contract has no method named '{}'".format(method))
+        raise KeyError(f"contract has no method named '{method}'")
 
 
 # noinspection PyProtectedMember
@@ -46,7 +47,10 @@ class AsyncContractMethod(ContractMethod):
         if self._abi.get("stateMutability", None).lower() in ["view", "pure"]:
             # const call, contract ret
             ret = await self._client.trigger_const_smart_contract_function(
-                self._owner_address, self._contract.contract_address, self.function_signature, parameter,
+                self._owner_address,
+                self._contract.contract_address,
+                self.function_signature,
+                parameter,
             )
 
             return self.parse_output(ret)
@@ -69,6 +73,7 @@ class AsyncContractMethod(ContractMethod):
 # noinspection PyProtectedMember
 class AsyncShieldedTRC20(ShieldedTRC20):
     """Async Shielded TRC20 Wrapper."""
+
     @property
     async def trc20(self) -> AsyncContract:
         """The corresponding TRC20 contract."""
@@ -87,9 +92,7 @@ class AsyncShieldedTRC20(ShieldedTRC20):
     async def get_rcm(self) -> str:
         return (await self._client.provider.make_request("wallet/getrcm"))["value"]
 
-    async def mint(
-        self, taddr: str, zaddr: str, amount: int, memo: str = ""
-    ) -> "tronpy.async_tron.AsyncTransactionBuilder":
+    async def mint(self, taddr: str, zaddr: str, amount: int, memo: str = "") -> "tronpy.async_tron.AsyncTransactionBuilder":
         """Mint, transfer from T-address to z-address."""
         rcm = await self.get_rcm()
         payload = {
@@ -120,7 +123,10 @@ class AsyncShieldedTRC20(ShieldedTRC20):
         )
 
     async def transfer(
-        self, zkey: dict, notes: Union[list, dict], *to: Union[Tuple[str, int], Tuple[str, int, str]],
+        self,
+        zkey: dict,
+        notes: Union[list, dict],
+        *to: Union[Tuple[str, int], Tuple[str, int, str]],
     ) -> "tronpy.async_tron.AsyncTransactionBuilder":
         """Transfer from z-address to z-address."""
         if isinstance(notes, (dict,)):
@@ -135,9 +141,7 @@ class AsyncShieldedTRC20(ShieldedTRC20):
                 raise DoubleSpending
             alpha = await self.get_rcm()
             root, path = self.get_path(note.get("position", 0))
-            spends.append(
-                {"note": note["note"], "alpha": alpha, "root": root, "path": path, "pos": note.get("position", 0)}
-            )
+            spends.append({"note": note["note"], "alpha": alpha, "root": root, "path": path, "pos": note.get("position", 0)})
             spend_amount += note["note"]["value"]
 
         receives = []
@@ -153,9 +157,7 @@ class AsyncShieldedTRC20(ShieldedTRC20):
 
             rcm = await self.get_rcm()
 
-            receives.append(
-                {"note": {"value": amount, "payment_address": addr, "rcm": rcm, "memo": memo.encode().hex()}}
-            )
+            receives.append({"note": {"value": amount, "payment_address": addr, "rcm": rcm, "memo": memo.encode().hex()}})
 
         if spend_amount != receive_amount:
             raise ValueError("spend amount is not equal to receive amount")
@@ -191,16 +193,14 @@ class AsyncShieldedTRC20(ShieldedTRC20):
         root, path = self.get_path(note.get("position", 0))
         if note.get("is_spent", False):
             raise DoubleSpending
-        spends.append(
-            {"note": note["note"], "alpha": alpha, "root": root, "path": path, "pos": note.get("position", 0)}
-        )
+        spends.append({"note": note["note"], "alpha": alpha, "root": root, "path": path, "pos": note.get("position", 0)})
         change_amount = 0
         receives = []
         to_addr = None
         to_amount = 0
-        to_memo = ''
+        to_memo = ""
         if not to:
-            raise ValueError('burn must have a output')
+            raise ValueError("burn must have a output")
         for receive in to:
             addr = receive[0]
             amount = receive[1]
@@ -209,12 +209,10 @@ class AsyncShieldedTRC20(ShieldedTRC20):
             else:
                 memo = ""
 
-            if addr.startswith('ztron1'):
+            if addr.startswith("ztron1"):
                 change_amount += amount
                 rcm = await self.get_rcm()
-                receives = [
-                    {"note": {"value": amount, "payment_address": addr, "rcm": rcm, "memo": memo.encode().hex()}}
-                ]
+                receives = [{"note": {"value": amount, "payment_address": addr, "rcm": rcm, "memo": memo.encode().hex()}}]
             else:
                 # assume T-address
                 to_addr = addr
@@ -301,4 +299,4 @@ class AsyncShieldedTRC20(ShieldedTRC20):
 
         ret = await self._client.provider.make_request("wallet/isshieldedtrc20contractnotespent", payload)
 
-        return ret.get('is_spent', None)
+        return ret.get("is_spent", None)

@@ -33,9 +33,7 @@ async def test_async_query_account():
 
 def test_query_event_logs():
     client = Tron(network="nile")
-    txi = client.get_transaction_info(
-        "927c27150f70f0d5762486e3edd626775fe1edab1069ff2182d133807c37f705"
-    )
+    txi = client.get_transaction_info("927c27150f70f0d5762486e3edd626775fe1edab1069ff2182d133807c37f705")
     cnr = client.get_contract("TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf")
     events = list(cnr.events.Transfer.process_receipt(txi))
     assert events
@@ -51,9 +49,7 @@ def test_query_event_logs():
 @pytest.mark.asyncio
 async def test_async_query_event_logs():
     async with AsyncTron(network="nile") as client:
-        txi = await client.get_transaction_info(
-            "927c27150f70f0d5762486e3edd626775fe1edab1069ff2182d133807c37f705"
-        )
+        txi = await client.get_transaction_info("927c27150f70f0d5762486e3edd626775fe1edab1069ff2182d133807c37f705")
         cnr = await client.get_contract("TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf")
         events = list(cnr.events.Transfer.process_receipt(txi))
         assert events

@@ -1,8 +1,11 @@
 # tronpy
 
 [![PyPI version](https://badge.fury.io/py/tronpy.svg)](https://pypi.org/project/tronpy/)
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/andelf/tronpy/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/andelf/tronpy/tree/master)
 
 TRON Python Client Library. [Documentation](https://tronpy.readthedocs.io/en/latest/index.html)
+
+> Note: in case you want to use cryptocurrency functions in an universal way or e.g. reliably calculate transaction fees for BTC, ETH, Tron and many others, check out the [BitcartCC project](https://bitcartcc.com)
 
 ## How to use
 

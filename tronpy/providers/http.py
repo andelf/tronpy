@@ -1,23 +1,24 @@
 import os
-import requests
-from urllib.parse import urljoin
-from typing import Any, Union, List
 import random
-import time
 import sys
+import time
+from typing import Any, List, Union
+from urllib.parse import urljoin
+
+import requests
 
 DEFAULT_TIMEOUT = 10.0
 DEFAULT_API_KEYS = [
-    'f92221d5-7056-4366-b96f-65d3662ec2d9',
-    '1e0a625f-cfa5-43ee-ba41-a09db1aae55f',
-    'f399168e-2259-481c-90fc-6b3d984c5463',
-    'da63253b-aa9c-46e7-a4e8-22d259a8026d',
-    '88c10958-af7b-4d5a-8eef-6e84bf5fb809',
-    '169bb4b3-cbe8-449a-984e-80e9adacac55',
+    "f92221d5-7056-4366-b96f-65d3662ec2d9",
+    "1e0a625f-cfa5-43ee-ba41-a09db1aae55f",
+    "f399168e-2259-481c-90fc-6b3d984c5463",
+    "da63253b-aa9c-46e7-a4e8-22d259a8026d",
+    "88c10958-af7b-4d5a-8eef-6e84bf5fb809",
+    "169bb4b3-cbe8-449a-984e-80e9adacac55",
 ]
 
 
-class HTTPProvider(object):
+class HTTPProvider:
     """An HTTP Provider for API request.
 
     :param endpoint_uri: HTTP API URL base. Default value is ``"https://api.trongrid.io/"``. Can also be configured via
@@ -41,9 +42,9 @@ class HTTPProvider(object):
         elif isinstance(endpoint_uri, (str,)):
             self.endpoint_uri = endpoint_uri
         else:
-            raise TypeError("unknown endpoint uri {}".format(endpoint_uri))
+            raise TypeError(f"unknown endpoint uri {endpoint_uri}")
 
-        if 'trongrid' in self.endpoint_uri:
+        if "trongrid" in self.endpoint_uri:
             self.use_api_key = True
             if isinstance(api_key, (str,)):
                 self._api_keys = [api_key]
@@ -72,8 +73,8 @@ class HTTPProvider(object):
         resp = self.sess.post(url, json=params, timeout=self.timeout)
 
         if self.use_api_key:
-            if resp.status_code == 403 and b'Exceed the user daily usage' in resp.content:
-                print("W:", resp.json().get('Error', 'rate limit!'), file=sys.stderr)
+            if resp.status_code == 403 and b"Exceed the user daily usage" in resp.content:
+                print("W:", resp.json().get("Error", "rate limit!"), file=sys.stderr)
                 self._handle_rate_limit()
                 return self.make_request(method, params)
 

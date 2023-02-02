@@ -11,9 +11,7 @@ from tronpy.tron import Transaction
 # test_net address
 FROM_ADDR = "TBDCyrZ1hT1PDDFf2yRABwPrFica5qqPUX"
 # test_net private key
-FROM_PRIV_KEY = PrivateKey(
-    bytes.fromhex("fd605fb953fcdabb952be161265a75b8a3ce1c0def2c7db72265f9db9a471be4")
-)
+FROM_PRIV_KEY = PrivateKey(bytes.fromhex("fd605fb953fcdabb952be161265a75b8a3ce1c0def2c7db72265f9db9a471be4"))
 # test_net address
 TO_ADDR = "TFVfhkyJAULWQbHMgVfgbkmgeGBkHo5zru"
 CNR_ADDR = "THi2qJf6XmvTJSpZHc17HgQsmJop6kb3ia"
@@ -89,20 +87,11 @@ def test_client_sign_offline():
 @pytest.mark.asyncio
 async def test_async_client_sign_offline():
     async with AsyncTron(network="nile") as client:
-        tx = (
-            await client.trx.transfer(FROM_ADDR, TO_ADDR, 1)
-            .memo("test memo")
-            .fee_limit(100_000_000)
-            .build()
-        )
+        tx = await client.trx.transfer(FROM_ADDR, TO_ADDR, 1).memo("test memo").fee_limit(100_000_000).build()
         tx_j = tx.to_json()
-        check_transaction_structure(
-            tx_j, TRANSFER_EXPECTED_RESP, 100_000_000, expect_signature=False
-        )
+        check_transaction_structure(tx_j, TRANSFER_EXPECTED_RESP, 100_000_000, expect_signature=False)
         # offline
-        tx_offline = await AsyncTransaction.from_json(
-            tx_j
-        )  # tx_offline._client is None so it's offline
+        tx_offline = await AsyncTransaction.from_json(tx_j)  # tx_offline._client is None so it's offline
         tx_offline.sign(FROM_PRIV_KEY)
         tx_j2 = tx_offline.to_json()
         check_transaction_structure(tx_j2, TRANSFER_EXPECTED_RESP, 100_000_000)
@@ -113,9 +102,7 @@ async def test_async_client_sign_offline():
 
 def test_client_update_tx():
     client = Tron(network="nile")
-    tx: Transaction = (
-        client.trx.transfer(FROM_ADDR, TO_ADDR, 1).memo("test memo").fee_limit(100_000_000).build()
-    )
+    tx: Transaction = client.trx.transfer(FROM_ADDR, TO_ADDR, 1).memo("test memo").fee_limit(100_000_000).build()
     tx.sign(FROM_PRIV_KEY)
     tx_id = tx.txid
     # update and transfer again
@@ -128,12 +115,9 @@ def test_client_update_tx():
 @pytest.mark.asyncio
 async def test_async_client():
     async with AsyncTron(network="nile") as client:
-        tx = (
-            await client.trx.transfer(FROM_ADDR, TO_ADDR, 1)
-            .memo("test memo")
-            .fee_limit(100_000_000)
-            .build()
-        ).sign(FROM_PRIV_KEY)
+        tx = (await client.trx.transfer(FROM_ADDR, TO_ADDR, 1).memo("test memo").fee_limit(100_000_000).build()).sign(
+            FROM_PRIV_KEY
+        )
         check_transaction_structure(tx.to_json(), TRANSFER_EXPECTED_RESP, 100_000_000)
 
 
@@ -151,12 +135,9 @@ async def test_async_manual_client():
     provider = AsyncHTTPProvider(CONF_NILE, client=_http_client)
     client = AsyncTron(provider=provider)
 
-    tx = (
-        await client.trx.transfer(FROM_ADDR, TO_ADDR, 1)
-        .memo("test memo")
-        .fee_limit(100_000_000)
-        .build()
-    ).sign(FROM_PRIV_KEY)
+    tx = (await client.trx.transfer(FROM_ADDR, TO_ADDR, 1).memo("test memo").fee_limit(100_000_000).build()).sign(
+        FROM_PRIV_KEY
+    )
     check_transaction_structure(tx.to_json(), TRANSFER_EXPECTED_RESP, 100_000_000)
 
     # must call .close at end to release connections

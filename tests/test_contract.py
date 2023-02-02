@@ -7,9 +7,7 @@ from tronpy.keys import PrivateKey
 # test_net address
 FROM_ADDR = "TBDCyrZ1hT1PDDFf2yRABwPrFica5qqPUX"
 # test_net private key
-FROM_PRIV_KEY = PrivateKey(
-    bytes.fromhex("fd605fb953fcdabb952be161265a75b8a3ce1c0def2c7db72265f9db9a471be4")
-)
+FROM_PRIV_KEY = PrivateKey(bytes.fromhex("fd605fb953fcdabb952be161265a75b8a3ce1c0def2c7db72265f9db9a471be4"))
 # test_net address
 TO_ADDR = "TFVfhkyJAULWQbHMgVfgbkmgeGBkHo5zru"
 CNR_ADDR = "THi2qJf6XmvTJSpZHc17HgQsmJop6kb3ia"
@@ -50,9 +48,7 @@ CREATE_CONTRACT_EXPECTED_RESP = {
                         {
                             "inputs": [],
                             "name": "get",
-                            "outputs": [
-                                {"internalType": "uint256", "name": "retVal", "type": "uint256"}
-                            ],
+                            "outputs": [{"internalType": "uint256", "name": "retVal", "type": "uint256"}],
                             "stateMutability": "view",
                             "type": "function",
                         }
@@ -95,13 +91,7 @@ async def test_async_const_functions():
 def test_trc20_transfer():
     client = Tron(network="nile")
     contract = client.get_contract(CNR_ADDR)
-    tx = (
-        contract.functions.transfer(TO_ADDR, 1_000)
-        .with_owner(FROM_ADDR)
-        .fee_limit(5_000_000)
-        .build()
-        .sign(FROM_PRIV_KEY)
-    )
+    tx = contract.functions.transfer(TO_ADDR, 1_000).with_owner(FROM_ADDR).fee_limit(5_000_000).build().sign(FROM_PRIV_KEY)
     check_transaction_structure(tx.to_json(), TRC20_EXPECTED_RESP, 5_000_000, expect_memo=False)
 
 
@@ -110,10 +100,7 @@ async def test_async_trc20_transfer():
     async with AsyncTron(network="nile") as client:
         contract = await client.get_contract(CNR_ADDR)
         tx = (
-            await (await contract.functions.transfer(TO_ADDR, 1_000))
-            .with_owner(FROM_ADDR)
-            .fee_limit(5_000_000)
-            .build()
+            await (await contract.functions.transfer(TO_ADDR, 1_000)).with_owner(FROM_ADDR).fee_limit(5_000_000).build()
         ).sign(FROM_PRIV_KEY)
         check_transaction_structure(tx.to_json(), TRC20_EXPECTED_RESP, 5_000_000, expect_memo=False)
 
@@ -131,12 +118,8 @@ def test_contract_create():
         }
     ]
     cntr = Contract(name="SimpleStore", bytecode=BYTECODE, abi=abi)
-    tx = (
-        client.trx.deploy_contract(FROM_ADDR, cntr).fee_limit(5_000_000).build().sign(FROM_PRIV_KEY)
-    )
-    check_transaction_structure(
-        tx.to_json(), CREATE_CONTRACT_EXPECTED_RESP, 5_000_000, expect_memo=False
-    )
+    tx = client.trx.deploy_contract(FROM_ADDR, cntr).fee_limit(5_000_000).build().sign(FROM_PRIV_KEY)
+    check_transaction_structure(tx.to_json(), CREATE_CONTRACT_EXPECTED_RESP, 5_000_000, expect_memo=False)
 
 
 @pytest.mark.asyncio
@@ -152,9 +135,5 @@ async def test_async_contract_create():
             }
         ]
         cntr = AsyncContract(name="SimpleStore", bytecode=BYTECODE, abi=abi)
-        tx = (await client.trx.deploy_contract(FROM_ADDR, cntr).fee_limit(5_000_000).build()).sign(
-            FROM_PRIV_KEY
-        )
-        check_transaction_structure(
-            tx.to_json(), CREATE_CONTRACT_EXPECTED_RESP, 5_000_000, expect_memo=False
-        )
+        tx = (await client.trx.deploy_contract(FROM_ADDR, cntr).fee_limit(5_000_000).build()).sign(FROM_PRIV_KEY)
+        check_transaction_structure(tx.to_json(), CREATE_CONTRACT_EXPECTED_RESP, 5_000_000, expect_memo=False)

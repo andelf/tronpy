@@ -44,9 +44,7 @@ def address():
 
 def test_private_key():
     with pytest.raises(BadKey):
-        PrivateKey(
-            bytes.fromhex("0000000000000000000000000000000000000000000000000000000000000000")
-        )
+        PrivateKey(bytes.fromhex("0000000000000000000000000000000000000000000000000000000000000000"))
 
 
 def test_public_key():
@@ -55,9 +53,7 @@ def test_public_key():
 
 
 def test_key_convert():
-    priv_key = PrivateKey.fromhex(
-        "0000000000000000000000000000000000000000000000000000000000000001"
-    )
+    priv_key = PrivateKey.fromhex("0000000000000000000000000000000000000000000000000000000000000001")
     assert priv_key.hex() == "0000000000000000000000000000000000000000000000000000000000000001"
 
 
@@ -75,9 +71,7 @@ def test_signature_verify(signature, txid, raw_data, pub_key):
 
 
 def test_signature_sign(signature: Signature, raw_data: bytes, txid: bytes):
-    priv_key = PrivateKey.fromhex(
-        "0000000000000000000000000000000000000000000000000000000000000001"
-    )
+    priv_key = PrivateKey.fromhex("0000000000000000000000000000000000000000000000000000000000000001")
 
     sig = priv_key.sign_msg(raw_data)
     pub_key = sig.recover_public_key_from_msg(raw_data)
@@ -89,9 +83,7 @@ def test_signature_sign(signature: Signature, raw_data: bytes, txid: bytes):
 
 
 def test_key_derivation():
-    priv_key = PrivateKey.fromhex(
-        "fd605fb953fcdabb952be161265a75b8a3ce1c0def2c7db72265f9db9a471be4"
-    )
+    priv_key = PrivateKey.fromhex("fd605fb953fcdabb952be161265a75b8a3ce1c0def2c7db72265f9db9a471be4")
     assert priv_key.hex() == "fd605fb953fcdabb952be161265a75b8a3ce1c0def2c7db72265f9db9a471be4"
     public_key = priv_key.public_key
     assert (
