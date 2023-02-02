@@ -9,7 +9,7 @@ DEFAULT_TIMEOUT = 10.0
 DEFAULT_API_KEY = "f92221d5-7056-4366-b96f-65d3662ec2d9"
 
 
-class AsyncHTTPProvider(object):
+class AsyncHTTPProvider:
     """An Async HTTP Provider for API request.
 
     :params endpoint_uri: HTTP API URL base. Default value is ``"https://api.trongrid.io/"``. Can also be configured via
@@ -32,7 +32,7 @@ class AsyncHTTPProvider(object):
         elif isinstance(endpoint_uri, (str,)):
             self.endpoint_uri = endpoint_uri
         else:
-            raise TypeError("unknown endpoint uri {}".format(endpoint_uri))
+            raise TypeError(f"unknown endpoint uri {endpoint_uri}")
 
         headers = {"User-Agent": "Tronpy/0.2", "Tron-Pro-Api-Key": api_key}
         if client is None:

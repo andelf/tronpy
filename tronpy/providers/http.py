@@ -18,7 +18,7 @@ DEFAULT_API_KEYS = [
 ]
 
 
-class HTTPProvider(object):
+class HTTPProvider:
     """An HTTP Provider for API request.
 
     :param endpoint_uri: HTTP API URL base. Default value is ``"https://api.trongrid.io/"``. Can also be configured via
@@ -42,7 +42,7 @@ class HTTPProvider(object):
         elif isinstance(endpoint_uri, (str,)):
             self.endpoint_uri = endpoint_uri
         else:
-            raise TypeError("unknown endpoint uri {}".format(endpoint_uri))
+            raise TypeError(f"unknown endpoint uri {endpoint_uri}")
 
         if "trongrid" in self.endpoint_uri:
             self.use_api_key = True

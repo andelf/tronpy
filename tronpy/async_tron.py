@@ -91,7 +91,7 @@ class AsyncTransactionRet(dict):
                     result = receipt.get("contractResult", [])
                     if result and len(result[0]) > (4 + 32) * 2:
                         error_msg = tron_abi.decode_single("string", bytes.fromhex(result[0])[4 + 32 :])
-                        msg = "{}: {}".format(msg, error_msg)
+                        msg = f"{msg}: {error_msg}"
                 except Exception:
                     pass
             raise TvmError(msg)
@@ -103,7 +103,7 @@ EMPTY = object()
 
 
 # noinspection PyBroadException,PyProtectedMember
-class AsyncTransaction(object):
+class AsyncTransaction:
     """The Transaction object, signed or unsigned."""
 
     def __init__(
@@ -182,8 +182,8 @@ class AsyncTransaction(object):
             else:
                 raise BadKey(
                     "provided private key is not in the permission list",
-                    "provided {}".format(priv_key.public_key.to_base58check_address()),
-                    "required {}".format(self._permission),
+                    f"provided {priv_key.public_key.to_base58check_address()}",
+                    f"required {self._permission}",
                 )
         sig = priv_key.sign_msg_hash(bytes.fromhex(self.txid))
         self._signature.append(sig.hex())
@@ -231,7 +231,7 @@ class AsyncTransaction(object):
 
 
 # noinspection PyBroadException
-class AsyncTransactionBuilder(object):
+class AsyncTransactionBuilder:
     """TransactionBuilder, to build a :class:`~Transaction` object."""
 
     def __init__(self, inner: dict, client: "AsyncTron", method: AsyncContractMethod = None):
@@ -292,7 +292,7 @@ class AsyncTransactionBuilder(object):
 
 
 # noinspection PyBroadException
-class AsyncTrx(object):
+class AsyncTrx:
     """The Trx(transaction) API."""
 
     def __init__(self, tron):
@@ -304,7 +304,7 @@ class AsyncTrx(object):
 
     def _build_transaction(self, type_: str, obj: dict, *, method: AsyncContractMethod = None) -> AsyncTransactionBuilder:
         inner = {
-            "parameter": {"value": obj, "type_url": "type.googleapis.com/protocol.{}".format(type_)},
+            "parameter": {"value": obj, "type_url": f"type.googleapis.com/protocol.{type_}"},
             "type": type_,
         }
         if method:
@@ -481,7 +481,7 @@ class AsyncTrx(object):
 
 
 # noinspection PyBroadException
-class AsyncTron(object):
+class AsyncTron:
     """The Async TRON API Client.
 
     :param provider: An :class:`~tronpy.providers.HTTPProvider` object, can be configured to use private node
@@ -756,7 +756,7 @@ class AsyncTron(object):
         elif id_or_num is None:
             block = await self.provider.make_request("wallet/getnowblock", {"visible": visible})
         else:
-            raise TypeError("can not infer type of {}".format(id_or_num))
+            raise TypeError(f"can not infer type of {id_or_num}")
 
         if "Error" in (block or {}):
             raise BugInJavaTron(block)
@@ -938,7 +938,7 @@ class AsyncTron(object):
             try:
                 if result and len(result[0]) > (4 + 32) * 2:
                     error_msg = tron_abi.decode_single("string", bytes.fromhex(result[0])[4 + 32 :])
-                    msg = "{}: {}".format(msg, error_msg)
+                    msg = f"{msg}: {error_msg}"
             except Exception:
                 pass
             raise TvmError(msg)

@@ -89,7 +89,7 @@ class TransactionRet(dict):
                     result = receipt.get("contractResult", [])
                     if result and len(result[0]) > (4 + 32) * 2:
                         error_msg = tron_abi.decode_single("string", bytes.fromhex(result[0])[4 + 32 :])
-                        msg = "{}: {}".format(msg, error_msg)
+                        msg = f"{msg}: {error_msg}"
                 except Exception:
                     pass
             raise TvmError(msg)
@@ -100,7 +100,7 @@ class TransactionRet(dict):
 EMPTY = object()
 
 
-class Transaction(object):
+class Transaction:
     """The Transaction object, signed or unsigned."""
 
     def __init__(
@@ -171,8 +171,8 @@ class Transaction(object):
             else:
                 raise BadKey(
                     "provided private key is not in the permission list",
-                    "provided {}".format(priv_key.public_key.to_base58check_address()),
-                    "required {}".format(self._permission),
+                    f"provided {priv_key.public_key.to_base58check_address()}",
+                    f"required {self._permission}",
                 )
         sig = priv_key.sign_msg_hash(bytes.fromhex(self.txid))
         self._signature.append(sig.hex())
@@ -219,7 +219,7 @@ class Transaction(object):
         return json.dumps(self.to_json(), indent=2)
 
 
-class TransactionBuilder(object):
+class TransactionBuilder:
     """TransactionBuilder, to build a :class:`~Transaction` object."""
 
     def __init__(self, inner: dict, client: "Tron", method: ContractMethod = None):
@@ -279,7 +279,7 @@ class TransactionBuilder(object):
         return Transaction(self._raw_data, client=self._client)
 
 
-class Trx(object):
+class Trx:
     """The Trx(transaction) API."""
 
     def __init__(self, tron):
@@ -291,7 +291,7 @@ class Trx(object):
 
     def _build_transaction(self, type_: str, obj: dict, *, method: ContractMethod = None) -> TransactionBuilder:
         inner = {
-            "parameter": {"value": obj, "type_url": "type.googleapis.com/protocol.{}".format(type_)},
+            "parameter": {"value": obj, "type_url": f"type.googleapis.com/protocol.{type_}"},
             "type": type_,
         }
         if method:
@@ -470,7 +470,7 @@ class Trx(object):
         return contract.deploy()
 
 
-class Tron(object):
+class Tron:
     """The TRON API Client.
 
     :param provider: An :class:`~tronpy.providers.HTTPProvider` object, can be configured to use private node
@@ -741,7 +741,7 @@ class Tron(object):
         elif id_or_num is None:
             block = self.provider.make_request("wallet/getnowblock", {"visible": visible})
         else:
-            raise TypeError("can not infer type of {}".format(id_or_num))
+            raise TypeError(f"can not infer type of {id_or_num}")
 
         if "Error" in (block or {}):
             raise BugInJavaTron(block)
@@ -912,7 +912,7 @@ class Tron(object):
             try:
                 if result and len(result[0]) > (4 + 32) * 2:
                     error_msg = tron_abi.decode_single("string", bytes.fromhex(result[0])[4 + 32 :])
-                    msg = "{}: {}".format(msg, error_msg)
+                    msg = f"{msg}: {error_msg}"
             except Exception:
                 pass
             raise TvmError(msg)

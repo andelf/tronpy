@@ -24,7 +24,7 @@ class TronAddressDecoder(Fixed32ByteSizeDecoder):
         padding_size = self.data_byte_size - value_byte_size
 
         if padding_bytes != b"\x00" * padding_size and padding_bytes != b"\x00" * (padding_size - 2) + b"\x00A":
-            raise NonEmptyPaddingBytes("Padding bytes were not empty: {0}".format(repr(padding_bytes)))
+            raise NonEmptyPaddingBytes(f"Padding bytes were not empty: {repr(padding_bytes)}")
 
 
 class TronAddressEncoder(Fixed32ByteSizeEncoder):

@@ -24,7 +24,7 @@ def assure_bytes(value: Union[str, bytes]) -> bytes:
     raise ValueError("bad bytes format")
 
 
-class Contract(object):
+class Contract:
     """A smart contract object."""
 
     def __init__(
@@ -73,7 +73,7 @@ class Contract(object):
         self._client = client
 
     def __str__(self):
-        return "<Contract {} {}>".format(self.name, self.contract_address)
+        return f"<Contract {self.name} {self.contract_address}>"
 
     @property
     def bytecode(self):
@@ -86,7 +86,7 @@ class Contract(object):
 
     def deploy(self) -> Any:
         if self.contract_address:
-            raise RuntimeError("this contract has already deployed to {}".format(self.contract_address))
+            raise RuntimeError(f"this contract has already deployed to {self.contract_address}")
 
         if self.origin_address != self.owner_address:
             raise RuntimeError("origin address and owner address mismatch")
@@ -187,7 +187,7 @@ class Contract(object):
         return None
 
 
-class ContractEvents(object):
+class ContractEvents:
     def __init__(self, contract):
         self._contract = contract
 
@@ -196,14 +196,14 @@ class ContractEvents(object):
             if _abi.get("type", "").lower() == "event" and _abi["name"] == event_name:
                 return ContractEvent(_abi, self._contract, event_name)
 
-        raise KeyError("contract has no event named '{}'".format(event_name))
+        raise KeyError(f"contract has no event named '{event_name}'")
 
     def __getattr__(self, event: str):
         """Get the actual contract event object."""
         try:
             return self[event]
         except KeyError:
-            raise AttributeError("contract has no method named '{}'".format(event))
+            raise AttributeError(f"contract has no method named '{event}'")
 
     def __dir__(self):
         return [event["name"] for event in self._contract.abi if event.get("type", "").lower() == "event"]
@@ -212,7 +212,7 @@ class ContractEvents(object):
         yield from [self[event] for event in dir(self)]
 
 
-class ContractEvent(object):
+class ContractEvent:
     def __init__(self, abi: dict, contract: "Contract", event_name: str):
         self._abi = abi
         self._contract = contract
@@ -258,7 +258,7 @@ class ContractEvent(object):
         }
 
 
-class ContractFunctions(object):
+class ContractFunctions:
     def __init__(self, contract):
         self._contract = contract
 
@@ -267,14 +267,14 @@ class ContractFunctions(object):
             if method_abi.get("type", "").lower() == "function" and method_abi["name"] == method:
                 return ContractMethod(method_abi, self._contract)
 
-        raise KeyError("contract has no method named '{}'".format(method))
+        raise KeyError(f"contract has no method named '{method}'")
 
     def __getattr__(self, method: str):
         """Get the actual contract method object."""
         try:
             return self[method]
         except KeyError:
-            raise AttributeError("contract has no method named '{}'".format(method))
+            raise AttributeError(f"contract has no method named '{method}'")
 
     def __dir__(self):
         return [method["name"] for method in self._contract.abi if method.get("type", "").lower() == "function"]
@@ -283,7 +283,7 @@ class ContractFunctions(object):
         yield from [self[method] for method in dir(self)]
 
 
-class ContractConstructor(object):
+class ContractConstructor:
     """The constructor method of a contract."""
 
     def __init__(self, abi: dict, contract: Contract):
@@ -295,7 +295,7 @@ class ContractConstructor(object):
 
     def __str__(self):
         types = ", ".join(arg.get("type", "") + " " + arg.get("name", "") for arg in self.inputs)
-        ret = "construct({})".format(types)
+        ret = f"construct({types})"
         return ret
 
     @property
@@ -311,14 +311,14 @@ class ContractConstructor(object):
 
         if len(self.inputs) == 0:
             if args or kwargs:
-                raise TypeError("{} constructor requires {} arguments".format(self._contract.name, len(self.inputs)))
+                raise TypeError(f"{self._contract.name} constructor requires {len(self.inputs)} arguments")
         elif args:
             if len(args) != len(self.inputs):
-                raise TypeError("wrong number of arguments, require {} got {}".format(len(self.inputs), len(args)))
+                raise TypeError(f"wrong number of arguments, require {len(self.inputs)} got {len(args)}")
             parameter = trx_abi.encode_single(self.input_type, args).hex()
         elif kwargs:
             if len(kwargs) != len(self.inputs):
-                raise TypeError("wrong number of arguments, require {} got {}".format(len(self.inputs), len(args)))
+                raise TypeError(f"wrong number of arguments, require {len(self.inputs)} got {len(args)}")
             args = []
             for arg in self.inputs:
                 try:
@@ -330,7 +330,7 @@ class ContractConstructor(object):
         return parameter
 
 
-class ContractMethod(object):
+class ContractMethod:
     def __init__(self, abi: dict, contract: Contract):
         self._abi = abi
         self._contract = contract
@@ -393,14 +393,14 @@ class ContractMethod(object):
 
         if len(self.inputs) == 0:
             if args or kwargs:
-                raise TypeError("{} expected {} arguments".format(self.name, len(self.inputs)))
+                raise TypeError(f"{self.name} expected {len(self.inputs)} arguments")
         elif args:
             if len(args) != len(self.inputs):
-                raise TypeError("wrong number of arguments, require {} got {}".format(len(self.inputs), len(args)))
+                raise TypeError(f"wrong number of arguments, require {len(self.inputs)} got {len(args)}")
             parameter = trx_abi.encode_single(self.input_type, args).hex()
         elif kwargs:
             if len(kwargs) != len(self.inputs):
-                raise TypeError("wrong number of arguments, require {} got {}".format(len(self.inputs), len(args)))
+                raise TypeError(f"wrong number of arguments, require {len(self.inputs)} got {len(args)}")
             args = []
             for arg in self.inputs:
                 try:
@@ -409,7 +409,7 @@ class ContractMethod(object):
                     raise TypeError("missing argument '{}'".format(arg["name"]))
             parameter = trx_abi.encode_single(self.input_type, args).hex()
         else:
-            raise TypeError("wrong number of arguments, require {}".format(len(self.inputs)))
+            raise TypeError(f"wrong number of arguments, require {len(self.inputs)}")
         return parameter
 
     def _trigger_contract(self, parameter):
@@ -470,7 +470,7 @@ class ContractMethod(object):
     @property
     def function_type(self) -> str:
         types = ", ".join(arg.get("type", "") + " " + arg.get("name", "") for arg in self.inputs)
-        ret = "function {}({})".format(self.name, types)
+        ret = f"function {self.name}({types})"
         if self._abi.get("stateMutability", None).lower() == "view":
             ret += " view"
         elif self._abi.get("stateMutability", None).lower() == "pure":
@@ -483,7 +483,7 @@ class ContractMethod(object):
         return ShieldedTRC20(self, trc20_addr)
 
 
-class ShieldedTRC20(object):
+class ShieldedTRC20:
     """Shielded TRC20 Wrapper."""
 
     def __init__(self, contract: Contract):

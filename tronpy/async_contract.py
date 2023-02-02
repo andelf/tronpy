@@ -29,7 +29,7 @@ class AsyncContractFunctions(ContractFunctions):
             if method_abi.get("type", "").lower() == "function" and method_abi["name"] == method:
                 return AsyncContractMethod(method_abi, self._contract)
 
-        raise KeyError("contract has no method named '{}'".format(method))
+        raise KeyError(f"contract has no method named '{method}'")
 
 
 # noinspection PyProtectedMember
