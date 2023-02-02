@@ -88,6 +88,20 @@ def test_signature_sign(signature: Signature, raw_data: bytes, txid: bytes):
     assert priv_key.public_key == pub_key
 
 
+def test_key_derivation():
+    priv_key = PrivateKey.fromhex(
+        "fd605fb953fcdabb952be161265a75b8a3ce1c0def2c7db72265f9db9a471be4"
+    )
+    assert priv_key.hex() == "fd605fb953fcdabb952be161265a75b8a3ce1c0def2c7db72265f9db9a471be4"
+    public_key = priv_key.public_key
+    assert (
+        public_key.hex() == "ecab6eace957bdb5a50366f449965550b7c30137c77bd429122949eb4"
+        "a40be06376cce12d2342f9297a25aa186c8eb7b3da65c5923011c503064a3f87943ebfe"
+    )
+    assert public_key.to_base58check_address() == "TBDCyrZ1hT1PDDFf2yRABwPrFica5qqPUX"
+    assert public_key.to_hex_address() == "410d9dee927cc1ea6b6e67f4993fac317826ea0c26"
+
+
 def test_to_base58check_address():
     assert (
         to_base58check_address("410000000000000000000000000000000000000000")
