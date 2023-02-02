@@ -10,10 +10,6 @@ executors:
         type: string
         default: "3.8"
 
-
-
-
-
     docker:
       - image: cimg/python:<< parameters.v >>
 
@@ -25,7 +21,7 @@ commands:
     steps:
       - restore_cache:
           keys:
-            - v1-dependencies-{{ .Branch }}-{{ checksum "~/.pyenv/version" }}-{{ checksum "setup.py" }}
+            - v1-dependencies-{{ .Branch }}-{{ checksum "~/.pyenv/version" }}-{{ checksum "setup.py" }}-{{ checksum "test-requirements.txt" }}
 
       - run:
           name: install library
@@ -34,11 +30,12 @@ commands:
             echo ". ~/venv/bin/activate" >> $BASH_ENV
             source $BASH_ENV
             pip install -U .
+            pip install -U -r test-requirements.txt
 
       - save_cache:
           paths:
             - ~/venv
-          key: v1-dependencies-{{ .Branch }}-{{ checksum "~/.pyenv/version" }}-{{ checksum "setup.py" }}
+          key: v1-dependencies-{{ .Branch }}-{{ checksum "~/.pyenv/version" }}-{{ checksum "setup.py" }}-{{ checksum "test-requirements.txt" }}
 
   upload-results:
     steps:
