@@ -49,27 +49,32 @@ filterwarnings = [
 ]
 
 [tool.black]
-line-length = 100
-target-version = ['py36']
-include = '\.pyi?$'
-exclude = '''
-(
-  /(
-      \.eggs         # exclude a few common directories in the
-    | \.git          # root of the project
-    | \.hg
-    | \.mypy_cache
-    | \.tox
-    | \.venv
-    | _build
-    | buck-out
-    | build
-    | dist
-  )/
-  | foo.py           # also separately exclude a file named foo.py in
-                     # the root of the project
-)
-'''
+line-length = 127
+
+[tool.isort]
+profile = "black"
+line_length = 127
+
+[tool.mypy]
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+warn_return_any = true
+no_implicit_optional = true
+strict_optional = true
+ignore_missing_imports = true
+
+
+[tool.coverage.run]
+omit = [
+    "*__init__.py",
+    "tests/*",
+    "venv/*",
+    "env/*",
+    "setup.py",
+]
 
 [build-system]
 requires = ["poetry-core"]
