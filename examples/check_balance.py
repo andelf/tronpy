@@ -4,9 +4,10 @@ from pprint import pprint
 
 client = Tron()
 
+
 def check_balance(address):
     try:
-        balance=client.get_account_balance(address)
+        balance = client.get_account_balance(address)
         return balance
     except AddressNotFound:
         return 'Adress not found..!'

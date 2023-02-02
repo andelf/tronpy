@@ -726,7 +726,7 @@ class ShieldedTRC20(object):
         return ret.get("noteTxs", [])
 
     # (root, path)
-    def get_path(self, position: int = 0) -> (str, str):
+    def get_path(self, position: int = 0) -> Tuple[str, str]:
         root, path = self.shielded.functions.getPath(position)
         root = root.hex()
         path = "".join(p.hex() for p in path)

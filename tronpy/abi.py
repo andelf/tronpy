@@ -65,6 +65,7 @@ def do_patching(registry):
         label='trcToken',
     )
 
+
 class ABICodec(ETHABICodec):
     def encode_single(self, typ, arg):
         encoder = self._registry.get_encoder(typ)

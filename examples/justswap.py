@@ -17,8 +17,9 @@ priv_key = keys.PrivateKey.fromhex("975a98.....(omitted)..........86b98d97b")
 def timestamp():
     return int(time.time())
 
+
 swap_abi = []
-with  open(os.path.join(__dir__, "JustSwapExchange.abi")) as fp:
+with open(os.path.join(__dir__, "JustSwapExchange.abi")) as fp:
     swap_abi = json.load(fp)
 
 

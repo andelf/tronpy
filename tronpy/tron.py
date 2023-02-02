@@ -97,11 +97,14 @@ class TransactionRet(dict):
         return self._method.parse_output(receipt['contractResult'][0])
 
 
+EMPTY = object()
+
+
 class Transaction(object):
     """The Transaction object, signed or unsigned."""
 
     def __init__(self, raw_data: dict, client: "Tron" = None, method: ContractMethod = None,
-                 txid: str = "", permission: dict = None, signature: list = None):
+                 txid: str = "", permission: dict = EMPTY, signature: list = None):
         self._raw_data: dict = raw_data
         self._signature: list = signature or []
         self._client = client
@@ -113,7 +116,7 @@ class Transaction(object):
 
         self._permission: Optional[dict] = permission
 
-        if not self.txid or not self._permission:
+        if (not self.txid or self._permission is EMPTY) and self._client:
             sign_weight = self._client.get_sign_weight(self)
             if "transaction" not in sign_weight:
                 self._client._handle_api_error(sign_weight)
@@ -126,7 +129,7 @@ class Transaction(object):
     def to_json(self) -> dict:
         return {
             "txID": self.txid, "raw_data": self._raw_data,
-            "signature": self._signature, "permission": self._permission
+            "signature": self._signature, "permission": self._permission if self._permission is not EMPTY else None,
         }
 
     @classmethod
