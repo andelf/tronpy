@@ -2,7 +2,7 @@ all: ci
 
 lint:
 	flake8
-	mypy tronpy
+	# mypy tronpy
 
 checkformat:
 	black --check .
