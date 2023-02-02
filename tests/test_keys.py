@@ -1,8 +1,7 @@
 import pytest
 
-
-from tronpy.keys import PrivateKey, PublicKey, Signature, to_base58check_address
 from tronpy.exceptions import BadKey
+from tronpy.keys import PrivateKey, PublicKey, Signature, to_base58check_address
 
 # https://shasta.tronscan.org/#/transaction/17821228a79904c23bd35e566f320c2d43e6940c0d44bc8d70f257f3485459bb
 
@@ -59,6 +58,7 @@ def test_key_convert():
     priv_key = PrivateKey.fromhex(
         "0000000000000000000000000000000000000000000000000000000000000001"
     )
+    assert priv_key.hex() == "0000000000000000000000000000000000000000000000000000000000000001"
 
 
 def test_signature_recover(signature, txid, address, raw_data):

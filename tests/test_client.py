@@ -164,7 +164,7 @@ async def test_async_manual_client():
 
 
 def test_client_get_contract():
-    client = Tron()
+    client = Tron(network="nile")
     """
     txn = (
         client.trx.asset_issue(
@@ -181,7 +181,7 @@ def test_client_get_contract():
     print(txn)
     """
 
-    cntr = client.get_contract("TMDRdYAcXbQDajbGFy4rgXcNLYswuYsfk1")
+    cntr = client.get_contract("TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf")
     assert cntr
     assert cntr.abi
     assert cntr.functions.name()
@@ -189,8 +189,8 @@ def test_client_get_contract():
 
 @pytest.mark.asyncio
 async def test_async_client_get_contract():
-    async with AsyncTron() as client:
-        cntr = await client.get_contract("TMDRdYAcXbQDajbGFy4rgXcNLYswuYsfk1")
+    async with AsyncTron(network="nile") as client:
+        cntr = await client.get_contract("TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf")
         assert cntr
         assert cntr.abi
         assert await cntr.functions.name()

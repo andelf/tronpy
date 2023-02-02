@@ -71,6 +71,7 @@ jobs:
       - run:
           name: run fast tests
           command: |
+            make lint
             make test
 
       - upload-results
@@ -84,4 +85,8 @@ workflows:
           matrix:
             parameters:
               v:
+                - "3.7"
                 - "3.8"
+                - "3.9"
+                - "3.10"
+                - "3.11"
