@@ -19,11 +19,11 @@ classifiers = [
 [tool.poetry.dependencies]
 python = ">=3.7,<4.0"
 base58 = "*"
-ecdsa = ">=0.18,<0.19"
+coincurve = "*"
 eth_abi = ">=4.0.0a,<5.0.0"
+httpx = "*"
 pycryptodome = "<4"
 requests = "*"
-httpx = "*"
 
 [tool.poetry.dev-dependencies]
 pytest = "*"

@@ -7,11 +7,11 @@ package_data = {'': ['*']}
 
 install_requires = [
     'base58',
-    'ecdsa>=0.18,<0.19',
+    'coincurve',
     'eth_abi>=4.0.0a,<5.0.0',
+    'httpx',
     'pycryptodome<4',
     'requests',
-    'httpx',
 ]
 
 setup_kwargs = {
