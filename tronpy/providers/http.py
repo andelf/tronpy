@@ -59,7 +59,9 @@ class HTTPProvider:
         else:
             self.use_api_key = False
         
-        if jw_token is None or isinstance(jw_token, str):
+        if not jw_token:
+            self.jw_token = None
+        elif isinstance(jw_token, str):
             self.jw_token = f"Bearer {jw_token}"
         else:
             raise TypeError("unknown jwt type {}".format(jw_token))
