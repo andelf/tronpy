@@ -14,6 +14,7 @@ class AsyncHTTPProvider:
 
     :params endpoint_uri: HTTP API URL base. Default value is ``"https://api.trongrid.io/"``. Can also be configured via
         the ``TRONPY_HTTP_PROVIDER_URI`` environment variable.
+    :param jw_token: TronGRID JWT Credentials in str.
     """
 
     def __init__(
@@ -22,6 +23,7 @@ class AsyncHTTPProvider:
         timeout: float = DEFAULT_TIMEOUT,
         client: httpx.AsyncClient = None,
         api_key: str = DEFAULT_API_KEY,
+        jw_token: str = None,
     ):
         super().__init__()
 
@@ -35,6 +37,8 @@ class AsyncHTTPProvider:
             raise TypeError(f"unknown endpoint uri {endpoint_uri}")
 
         headers = {"User-Agent": "Tronpy/0.2", "Tron-Pro-Api-Key": api_key}
+        if jw_token:
+            headers["Authorization"] = f"Bearer {jw_token}"
         if client is None:
             self.client = httpx.AsyncClient(headers=headers, timeout=Timeout(timeout))
         else:

@@ -25,6 +25,7 @@ class HTTPProvider:
         the ``TRONPY_HTTP_PROVIDER_URI`` environment variable.
     :param timeout: HTTP timeout in seconds.
     :param api_key: TronGRID API Key in str, or list of str.
+    :param jw_token: TronGRID JWT Credentials in str.
     """
 
     def __init__(
@@ -32,6 +33,7 @@ class HTTPProvider:
         endpoint_uri: Union[str, dict] = None,
         timeout: float = DEFAULT_TIMEOUT,
         api_key: Union[str, List[str]] = None,
+        jw_token: str = None,
     ):
         super().__init__()
 
@@ -56,6 +58,11 @@ class HTTPProvider:
             self._default_api_keys = self._api_keys.copy()
         else:
             self.use_api_key = False
+        
+        if jw_token is None or isinstance(jw_token, str):
+            self.jw_token = f"Bearer {jw_token}"
+        else:
+            raise TypeError("unknown jwt type {}".format(jw_token))
 
         self.sess = requests.session()
         self.sess.headers["User-Agent"] = "Tronpy/0.2"
@@ -66,6 +73,9 @@ class HTTPProvider:
     def make_request(self, method: str, params: Any = None) -> dict:
         if self.use_api_key:
             self.sess.headers["Tron-Pro-Api-Key"] = self.random_api_key
+
+        if self.jw_token:
+            self.sess.headers["Authorization"] = self.jw_token
 
         if params is None:
             params = {}
