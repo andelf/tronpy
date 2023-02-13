@@ -58,13 +58,7 @@ class HTTPProvider:
             self._default_api_keys = self._api_keys.copy()
         else:
             self.use_api_key = False
-        
-        if not jw_token:
-            self.jw_token = None
-        elif isinstance(jw_token, str):
-            self.jw_token = f"Bearer {jw_token}"
-        else:
-            raise TypeError("unknown jwt type {}".format(jw_token))
+        self.jw_token = jw_token
 
         self.sess = requests.session()
         self.sess.headers["User-Agent"] = "Tronpy/0.2"
@@ -76,8 +70,8 @@ class HTTPProvider:
         if self.use_api_key:
             self.sess.headers["Tron-Pro-Api-Key"] = self.random_api_key
 
-        if self.jw_token:
-            self.sess.headers["Authorization"] = self.jw_token
+        if self.jw_token is not None:
+            self.sess.headers["Authorization"] = f"Bearer {self.jw_token}"
 
         if params is None:
             params = {}

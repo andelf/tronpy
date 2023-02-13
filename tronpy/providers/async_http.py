@@ -37,12 +37,8 @@ class AsyncHTTPProvider:
             raise TypeError(f"unknown endpoint uri {endpoint_uri}")
 
         headers = {"User-Agent": "Tronpy/0.2", "Tron-Pro-Api-Key": api_key}
-        if jw_token is None:
-            pass
-        elif isinstance(jw_token, str):
+        if jw_token is not None:
             headers["Authorization"] = f"Bearer {jw_token}"
-        else:
-            raise TypeError("unknown jwt type {}".format(jw_token))
         if client is None:
             self.client = httpx.AsyncClient(headers=headers, timeout=Timeout(timeout))
         else:
