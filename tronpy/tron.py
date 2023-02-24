@@ -405,28 +405,38 @@ class Trx:
             {"owner_address": keys.to_hex_address(owner), "account_name": name.encode().hex()},
         )
 
-    def freeze_balance(
-        self, owner: TAddress, amount: int, resource: str = "ENERGY", *, receiver: TAddress = None
-    ) -> "TransactionBuilder":
+    def freeze_balance(self, owner: TAddress, amount: int, resource: str = "ENERGY") -> "TransactionBuilder":
         """Freeze balance to get energy or bandwidth, for 3 days.
 
         :param owner:
         :param amount:
         :param resource: Resource type, can be ``"ENERGY"`` or ``"BANDWIDTH"``
-        :param receiver:
         """
         payload = {
             "owner_address": keys.to_hex_address(owner),
             "frozen_balance": amount,
-            "frozen_duration": 3,
             "resource": resource,
         }
-        if receiver is not None:
-            payload["receiver_address"] = keys.to_hex_address(receiver)
-        return self._build_transaction("FreezeBalanceContract", payload)
+        return self._build_transaction("FreezeBalanceV2Contract", payload)
 
-    def unfreeze_balance(self, owner: TAddress, resource: str = "ENERGY", receiver: TAddress = None) -> "TransactionBuilder":
+    def unfreeze_balance(self, owner: TAddress, resource: str = "ENERGY", *, unfreeze_balance: int) -> "TransactionBuilder":
         """Unfreeze balance to get TRX back.
+
+        :param owner:
+        :param resource: Resource type, can be ``"ENERGY"`` or ``"BANDWIDTH"``
+        :param unfreeze_balance:
+        """
+        payload = {
+            "owner_address": keys.to_hex_address(owner),
+            "unfreeze_balance": unfreeze_balance,
+            "resource": resource,
+        }
+        return self._build_transaction("UnfreezeBalanceV2Contract", payload)
+
+    def unfreeze_balance_legacy(
+        self, owner: TAddress, resource: str = "ENERGY", receiver: TAddress = None
+    ) -> "TransactionBuilder":
+        """Unfreeze Stake 1.0 balance to get TRX back.
 
         :param owner:
         :param resource: Resource type, can be ``"ENERGY"`` or ``"BANDWIDTH"``
