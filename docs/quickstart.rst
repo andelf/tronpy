@@ -6,7 +6,7 @@ Quickstart
 Installation
 ------------
 
-TronPy can be installed using pip as follows:
+TronPy can be installed using `pip <https://pypi.org/project/pip/>`_ as follows:
 
 .. code-block:: console
 
@@ -18,7 +18,7 @@ TronPy can be installed using pip as follows:
 Using TronPy
 ------------
 
-This library depends on a connection to an TRON node. We call these connections `Providers`. Currently,
+This library depends on a connection to a TRON node. We call these connections `Providers`. Currently,
 only HTTP Provider is available.
 
 There are preset networks along with client, use ``network=`` to choose from the mainnet or testnets.
@@ -56,6 +56,8 @@ With custom default fee limit
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The default fee limit is ``5_000_000`` for contract deploy or trigger, ``0`` otherwise.
+If you plan on using smart contracts, you should check `TRON PROPOSAL 83 <https://tronscan.io/#/proposal/83>`_ and tweak
+this fee limit according.
 
 .. code-block:: python
 
