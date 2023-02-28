@@ -1,7 +1,7 @@
 Smart Contract
 ==============
 
-Smart contract are the key feature of TRON network. Creating and interacting with smart contract are made easy by TronPy.
+Smart contracts are the key feature of TRON network. Creating and interacting with smart contracts are made easy by TronPy.
 
 Calling smart contract
 ----------------------
