@@ -1,12 +1,12 @@
 Smart Contract
 ==============
 
-Smart contract is the key feature of TRON network. Creating and interacting with smart contract are made easy by TronPy.
+Smart contract are the key feature of TRON network. Creating and interacting with smart contract are made easy by TronPy.
 
 Calling smart contract
 ----------------------
 
-There are two types of smart contract call, `const call` and `trigger call`. For a `const call`, the contract method
+There are two types of smart contract calls, `const call` and `trigger call`. For a `const call`, the contract method
 must be marked `pure` or `view`. And the calling result will be returned immediately.
 
 While the `trigger call` is just a type of system contract call, you sign the calling transaction, and broadcast it.
