@@ -916,7 +916,7 @@ class Tron:
             except Exception:
                 pass
             raise TvmError(msg)
-        return ret["constant_result"][0]
+        return ret
 
     # Transaction handling
 
