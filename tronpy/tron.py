@@ -898,13 +898,13 @@ class Tron:
         contract = self.get_contract(addr)
         return ShieldedTRC20(contract)
 
-    def trigger_const_smart_contract_function(
+    def trigger_constant_contract(
         self,
         owner_address: TAddress,
         contract_address: TAddress,
         function_selector: str,
         parameter: str,
-    ) -> str:
+    ) -> dict:
         ret = self.provider.make_request(
             "wallet/triggerconstantcontract",
             {
@@ -926,6 +926,16 @@ class Tron:
             except Exception:
                 pass
             raise TvmError(msg)
+        return ret
+    
+    def trigger_const_smart_contract_function(
+        self,
+        owner_address: TAddress,
+        contract_address: TAddress,
+        function_selector: str,
+        parameter: str,
+    ) -> str:
+        ret = self.trigger_constant_contract(owner_address, contract_address, function_selector, parameter)
         return ret["constant_result"][0]
 
     # Transaction handling
