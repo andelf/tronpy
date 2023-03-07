@@ -952,7 +952,7 @@ class AsyncTron:
                 pass
             raise TvmError(msg)
         return ret
-    
+
     async def trigger_const_smart_contract_function(
         self,
         owner_address: TAddress,

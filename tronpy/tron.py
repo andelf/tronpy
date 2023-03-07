@@ -927,7 +927,7 @@ class Tron:
                 pass
             raise TvmError(msg)
         return ret
-    
+
     def trigger_const_smart_contract_function(
         self,
         owner_address: TAddress,
