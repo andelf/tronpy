@@ -7,7 +7,7 @@ package_data = {"": ["*"]}
 install_requires = [
     "base58",
     "coincurve",
-    "eth_abi>=4.0.0a,<5.0.0",
+    "eth_abi>=3.0.0,<5.0.0",
     "httpx",
     "pycryptodome<4",
     "requests",
@@ -15,7 +15,7 @@ install_requires = [
 
 setup_kwargs = {
     "name": "tronpy",
-    "version": "0.3.0",
+    "version": "0.3.1",
     "description": "TRON Python client library",
     "long_description": open("README.md").read(),
     "long_description_content_type": "text/markdown",
