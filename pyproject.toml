@@ -20,7 +20,7 @@ classifiers = [
 python = ">=3.7,<4.0"
 base58 = "*"
 coincurve = "*"
-eth_abi = ">4.0.0a,<5"
+eth_abi = ">=3.0.0,<5"
 httpx = "*"
 pycryptodome = "<4"
 requests = "*"
