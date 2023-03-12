@@ -36,7 +36,7 @@ class AsyncHTTPProvider:
         else:
             raise TypeError(f"unknown endpoint uri {endpoint_uri}")
 
-        headers = {"User-Agent": "Tronpy/0.2", "Tron-Pro-Api-Key": api_key}
+        headers = {"User-Agent": "Tronpy/0.3.0", "Tron-Pro-Api-Key": api_key}
         if jw_token is not None:
             headers["Authorization"] = f"Bearer {jw_token}"
         if client is None:

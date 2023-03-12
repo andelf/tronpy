@@ -61,7 +61,7 @@ class HTTPProvider:
         self.jw_token = jw_token
 
         self.sess = requests.session()
-        self.sess.headers["User-Agent"] = "Tronpy/0.2"
+        self.sess.headers["User-Agent"] = "Tronpy/0.3.0"
 
         self.timeout = timeout
         """Request timeout in second."""
