@@ -16,8 +16,13 @@ TRON_DEFAULT_PATH = "m/44'/195'/0'/0/0"
 
 
 def generate_mnemonic(num_words: int, lang: str) -> str:
-    words2strength = {12:128, 15:160, 18:192, 21:224, 24:224}
-    return Mnemonic(lang).generate(words2strength[num_words])
+    words2strength = {12:128, 15:160, 18:192, 21:224, 24:256}
+    try:
+        return Mnemonic(lang).generate(words2strength[num_words])
+    except KeyError as e:
+        raise ValueError(f"{num_words} not a valid number of words! Choose from {tuple(words2strength.keys())}") from e
+    except Exception as e:
+        raise e
 
 
 def seed_from_mnemonic(words: str, passphrase: str) -> bytes:
