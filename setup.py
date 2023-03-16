@@ -6,7 +6,7 @@ spec = importlib.util.spec_from_file_location("version", "tronpy/version.py")
 version_module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(version_module)
 
-packages = ["tronpy", "tronpy.keys", "tronpy.providers"]
+packages = ["tronpy", "tronpy.keys", "tronpy.providers", "tronpy.hdwallet"]
 
 package_data = {"": ["*"]}
 
@@ -18,6 +18,8 @@ install_requires = [
     "pycryptodome<4",
     "requests",
 ]
+
+extras_hdwallet = {"mnemonic": ["mnemonic==0.20"]}
 
 setup_kwargs = {
     "name": "tronpy",
@@ -33,6 +35,7 @@ setup_kwargs = {
     "packages": packages,
     "package_data": package_data,
     "install_requires": install_requires,
+    "extras_require": extras_hdwallet,
     "python_requires": ">=3.7",
 }
 

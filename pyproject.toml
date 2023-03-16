@@ -25,6 +25,11 @@ httpx = "*"
 pycryptodome = "<4"
 requests = "*"
 
+mnemonic = { version = "0.20", optional = true }
+
+[tool.poetry.extras]
+mnemonic = ["mnemonic"]
+
 [tool.poetry.dev-dependencies]
 pytest = "*"
 pytest-cov = "*"
