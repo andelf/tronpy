@@ -1,13 +1,9 @@
 # Originally from: https://github.com/ethereum/web3.py
 #
 
-from eth_utils import (
-    ValidationError,
-)
+from eth_utils import ValidationError
 
-from .deterministic import (
-    HDPath,
-)
+from .deterministic import HDPath
 
 TRON_DEFAULT_PATH = "m/44'/195'/0'/0/0"
 
@@ -22,7 +18,7 @@ def _import_mnemonic():
 
 def generate_mnemonic(num_words: int, lang: str) -> str:
     Mnemonic = _import_mnemonic()
-    words2strength = {12:128, 15:160, 18:192, 21:224, 24:256}
+    words2strength = {12: 128, 15: 160, 18: 192, 21: 224, 24: 256}
     try:
         return Mnemonic(lang).generate(words2strength[num_words])
     except KeyError as e:
@@ -36,9 +32,7 @@ def seed_from_mnemonic(words: str, passphrase: str) -> bytes:
     lang = Mnemonic.detect_language(words)
     expanded_words = Mnemonic(lang).expand(words)
     if not Mnemonic(lang).check(expanded_words):
-        raise ValidationError(
-            f"Provided words: '{expanded_words}', are not a valid BIP39 mnemonic phrase!"
-        )
+        raise ValidationError(f"Provided words: '{expanded_words}', are not a valid BIP39 mnemonic phrase!")
     return Mnemonic.to_seed(expanded_words, passphrase)
 
 

@@ -24,4 +24,3 @@ def ec_point(pkey: bytes) -> bytes:
     Note: Result is ecdsa public key serialized to compressed form
     """
     return CoincurvePrivateKey(pkey).public_key.format(compressed=True)
-

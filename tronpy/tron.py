@@ -24,14 +24,9 @@ from tronpy.exceptions import (
     UnknownError,
     ValidationError,
 )
+from tronpy.hdwallet import TRON_DEFAULT_PATH, generate_mnemonic, key_from_seed, seed_from_mnemonic
 from tronpy.keys import PrivateKey
 from tronpy.providers import HTTPProvider
-from tronpy.hdwallet import (
-    TRON_DEFAULT_PATH,
-    seed_from_mnemonic,
-    generate_mnemonic,
-    key_from_seed,
-)
 
 TAddress = str
 
@@ -617,7 +612,7 @@ class Tron:
             "private_key": priv_key.hex(),
             "public_key": priv_key.public_key.hex(),
         }
-    
+
     def generate_address_from_mnemonic(self, mnemonic: str, passphrase: str = "", account_path: str = TRON_DEFAULT_PATH):
         """
         Generate address from a mnemonic.
@@ -636,8 +631,10 @@ class Tron:
             "private_key": priv_key.hex(),
             "public_key": priv_key.public_key.hex(),
         }
-    
-    def generate_address_with_mnemonic(self, passphrase: str = "", num_words: int = 12, language: str = "english", account_path: str = TRON_DEFAULT_PATH):
+
+    def generate_address_with_mnemonic(
+        self, passphrase: str = "", num_words: int = 12, language: str = "english", account_path: str = TRON_DEFAULT_PATH
+    ):
         r"""
         Create a new address and related mnemonic.
 
@@ -649,7 +646,7 @@ class Tron:
         :param str language: Language to use for BIP39 mnemonic seed phrase.
         :param str account_path: Specify an alternate HD path for deriving the seed using
             BIP32 HD wallet key derivation.
-        """
+        """  # noqa: E501
         mnemonic = generate_mnemonic(num_words, language)
         return self.generate_address_from_mnemonic(mnemonic, passphrase, account_path), mnemonic
 

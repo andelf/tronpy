@@ -42,22 +42,11 @@ Definitions
 # - Unlike other libraries, this library does not use Bitcoin key serialization, because it is
 #   not intended to be ultimately used for Bitcoin key derivations. This presents a simplified
 #   API, and no expectation is given for `xpub/xpriv` key derivation.
-from typing import (
-    Tuple,
-    Type,
-    Union,
-)
+from typing import Tuple, Type, Union
 
-from eth_utils import (
-    ValidationError,
-    to_int,
-)
+from eth_utils import ValidationError, to_int
 
-from ._utils import (
-    SECP256K1_N,
-    ec_point,
-    hmac_sha512,
-)
+from ._utils import SECP256K1_N, ec_point, hmac_sha512
 
 BASE_NODE_IDENTIFIERS = {"m", "M"}
 HARD_NODE_SUFFIXES = {"'", "H"}
@@ -217,9 +206,7 @@ class HDPath:
             try:
                 decoded_path.append(Node.decode(node))
             except ValidationError as err:
-                raise ValidationError(
-                    f'Path "{path}" is not valid. Issue with node "{node}": {err}'
-                ) from err
+                raise ValidationError(f'Path "{path}" is not valid. Issue with node "{node}": {err}') from err
 
         self._path = decoded_path
 
