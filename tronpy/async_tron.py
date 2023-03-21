@@ -481,7 +481,7 @@ class AsyncTrx:
 
         return self._build_transaction("DelegateResourceContract", payload)
 
-    def un_delegate_resource(
+    def undelegate_resource(
         self, owner: TAddress, receiver: TAddress, balance: int, resource: str = "BANDWIDTH"
     ) -> "AsyncTransactionBuilder":
         """Cancel the delegation of bandwidth or energy resources to other accounts in Stake2.0
