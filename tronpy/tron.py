@@ -746,6 +746,17 @@ class Tron:
             "witness": info.get("witness_permission", default_witness),
         }
 
+    def get_delegated_resource_v2(self, fromAddr: TAddress, toAddr: TAddress) -> dict:
+        """Query the amount of delegatable resources share of the specified resource type for an address"""
+        return self.provider.make_request(
+            "wallet/getdelegatedresourcev2",
+            {
+                "fromAddress": keys.to_base58check_address(fromAddr),
+                "toAddress": keys.to_base58check_address(toAddr),
+                "visible": True,
+            },
+        )
+
     # Block query
 
     def get_latest_solid_block(self) -> dict:
