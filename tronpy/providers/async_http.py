@@ -5,7 +5,7 @@ from urllib.parse import urljoin
 import httpx
 from httpx import Timeout
 
-from tronpy import VERSION
+from tronpy.version import VERSION
 
 DEFAULT_TIMEOUT = 10.0
 DEFAULT_API_KEY = "f92221d5-7056-4366-b96f-65d3662ec2d9"

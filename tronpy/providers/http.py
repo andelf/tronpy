@@ -7,7 +7,7 @@ from urllib.parse import urljoin
 
 import requests
 
-from tronpy import VERSION
+from tronpy.version import VERSION
 
 DEFAULT_TIMEOUT = 10.0
 DEFAULT_API_KEYS = [
