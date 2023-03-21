@@ -7,6 +7,8 @@ from urllib.parse import urljoin
 
 import requests
 
+from tronpy import VERSION
+
 DEFAULT_TIMEOUT = 10.0
 DEFAULT_API_KEYS = [
     "f92221d5-7056-4366-b96f-65d3662ec2d9",
@@ -61,7 +63,7 @@ class HTTPProvider:
         self.jw_token = jw_token
 
         self.sess = requests.session()
-        self.sess.headers["User-Agent"] = "Tronpy/0.2"
+        self.sess.headers["User-Agent"] = f"Tronpy/{VERSION}"
 
         self.timeout = timeout
         """Request timeout in second."""

@@ -5,6 +5,8 @@ from urllib.parse import urljoin
 import httpx
 from httpx import Timeout
 
+from tronpy import VERSION
+
 DEFAULT_TIMEOUT = 10.0
 DEFAULT_API_KEY = "f92221d5-7056-4366-b96f-65d3662ec2d9"
 
@@ -36,7 +38,7 @@ class AsyncHTTPProvider:
         else:
             raise TypeError(f"unknown endpoint uri {endpoint_uri}")
 
-        headers = {"User-Agent": "Tronpy/0.2", "Tron-Pro-Api-Key": api_key}
+        headers = {"User-Agent": f"Tronpy/{VERSION}", "Tron-Pro-Api-Key": api_key}
         if jw_token is not None:
             headers["Authorization"] = f"Bearer {jw_token}"
         if client is None:

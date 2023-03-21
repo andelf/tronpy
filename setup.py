@@ -1,4 +1,10 @@
+import importlib
+
 from setuptools import setup
+
+spec = importlib.util.spec_from_file_location("init", "tronpy/__init__.py")
+init_module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(init_module)
 
 packages = ["tronpy", "tronpy.keys", "tronpy.providers"]
 
@@ -15,7 +21,7 @@ install_requires = [
 
 setup_kwargs = {
     "name": "tronpy",
-    "version": "0.3.0",
+    "version": init_module.VERSION,
     "description": "TRON Python client library",
     "long_description": open("README.md").read(),
     "long_description_content_type": "text/markdown",
