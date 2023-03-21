@@ -459,6 +459,48 @@ class AsyncTrx:
             payload["receiver_address"] = keys.to_hex_address(receiver)
         return self._build_transaction("UnfreezeBalanceContract", payload)
 
+    def delegate_resource(
+        self, owner: TAddress, receiver: TAddress, balance: int, resource: str = "BANDWIDTH", lock: bool = False
+    ) -> "AsyncTransactionBuilder":
+        """Delegate bandwidth or energy resources to other accounts in Stake2.0.
+
+        :param owner:
+        :param receiver:
+        :param balance:
+        :param resource: Resource type, can be ``"ENERGY"`` or ``"BANDWIDTH"``
+        :param lock: Optionally lock delegated resources for 3 days.
+        """
+
+        payload = {
+            "owner_address": keys.to_hex_address(owner),
+            "receiver_address": keys.to_hex_address(receiver),
+            "balance": balance,
+            "resource": resource,
+            "lock": lock,
+        }
+
+        return self._build_transaction("DelegateResourceContract", payload)
+
+    def undelegate_resource(
+        self, owner: TAddress, receiver: TAddress, balance: int, resource: str = "BANDWIDTH"
+    ) -> "AsyncTransactionBuilder":
+        """Cancel the delegation of bandwidth or energy resources to other accounts in Stake2.0
+
+        :param owner:
+        :param receiver:
+        :param balance:
+        :param resource: Resource type, can be ``"ENERGY"`` or ``"BANDWIDTH"``
+        """
+
+        payload = {
+            "owner_address": keys.to_hex_address(owner),
+            "receiver_address": keys.to_hex_address(receiver),
+            "balance": balance,
+            "resource": resource,
+        }
+
+        return self._build_transaction("UnDelegateResourceContract", payload)
+
     # Witness
 
     def create_witness(self, owner: TAddress, url: str) -> "AsyncTransactionBuilder":
@@ -713,6 +755,17 @@ class AsyncTron:
             ),
             "witness": info.get("witness_permission", default_witness),
         }
+
+    async def get_delegated_resource_v2(self, fromAddr: TAddress, toAddr: TAddress) -> dict:
+        """Query the amount of delegatable resources share of the specified resource type for an address"""
+        return self.provider.make_request(
+            "wallet/getdelegatedresourcev2",
+            {
+                "fromAddress": keys.to_base58check_address(fromAddr),
+                "toAddress": keys.to_base58check_address(toAddr),
+                "visible": True,
+            },
+        )
 
     # Block query
 
