@@ -459,6 +459,48 @@ class AsyncTrx:
             payload["receiver_address"] = keys.to_hex_address(receiver)
         return self._build_transaction("UnfreezeBalanceContract", payload)
 
+    def delegate_resource(
+        self, owner: TAddress, receiver: TAddress, balance: int, resource: str = "BANDWIDTH", lock: bool = False
+    ) -> "AsyncTransactionBuilder":
+        """Delegate bandwidth or energy resources to other accounts in Stake2.0.
+
+        :param owner:
+        :param receiver:
+        :param balance:
+        :param resource: Resource type, can be ``"ENERGY"`` or ``"BANDWIDTH"``
+        :param lock: Optionally lock delegated resources for 3 days.
+        """
+
+        payload = {
+            "owner_address": keys.to_hex_address(owner),
+            "receiver_address": keys.to_hex_address(receiver),
+            "balance": balance,
+            "resource": resource,
+            "lock": lock,
+        }
+
+        return self._build_transaction("DelegateResourceContract", payload)
+
+    def un_delegate_resource(
+        self, owner: TAddress, receiver: TAddress, balance: int, resource: str = "BANDWIDTH"
+    ) -> "AsyncTransactionBuilder":
+        """Cancel the delegation of bandwidth or energy resources to other accounts in Stake2.0
+
+        :param owner:
+        :param receiver:
+        :param balance:
+        :param resource: Resource type, can be ``"ENERGY"`` or ``"BANDWIDTH"``
+        """
+
+        payload = {
+            "owner_address": keys.to_hex_address(owner),
+            "receiver_address": keys.to_hex_address(receiver),
+            "balance": balance,
+            "resource": resource,
+        }
+
+        return self._build_transaction("UnDelegateResourceContract", payload)
+
     # Witness
 
     def create_witness(self, owner: TAddress, url: str) -> "AsyncTransactionBuilder":
