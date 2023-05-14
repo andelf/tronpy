@@ -1040,3 +1040,22 @@ class Tron:
 
     def get_sign_weight(self, txn: Transaction) -> dict:
         return self.provider.make_request("wallet/getsignweight", txn.to_json())
+
+    def get_estimated_energy(
+        self,
+        owner_address: TAddress,
+        contract_address: TAddress,
+        function_selector: str,
+        parameter: str,
+    ) -> int:
+        """Returns an estimated energy of calling a contract from the chain."""
+        params = {
+            "owner_address": keys.to_base58check_address(owner_address),
+            "contract_address": keys.to_base58check_address(contract_address),
+            "function_selector": function_selector,
+            "parameter": parameter,
+            "visible": True,
+        }
+        ret = self.provider.make_request("wallet/estimateenergy", params)
+        self._handle_api_error(ret)
+        return ret["energy_required"]
