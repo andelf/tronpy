@@ -726,7 +726,9 @@ class Tron:
 
     def get_bandwidth(self, addr: TAddress) -> int:
         """Query the bandwidth of the account"""
-        ret = self.provider.make_request("wallet/getaccountnet", {"address": keys.to_base58check_address(addr)})
+        ret = self.provider.make_request(
+            "wallet/getaccountnet", {"address": keys.to_base58check_address(addr), "visible": True}
+        )
         if ret:
             # (freeNetLimit - freeNetUsed) + (NetLimit - NetUsed)
             return ret["freeNetLimit"] - ret.get("freeNetUsed", 0) + ret.get("NetLimit", 0) - ret.get("NetUsed", 0)
