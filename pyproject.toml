@@ -51,6 +51,7 @@ addopts = [
 filterwarnings = [
     "error::DeprecationWarning",
     "error::PendingDeprecationWarning",
+    "ignore:pkg_resources is deprecated as an API:DeprecationWarning"
 ]
 
 [tool.black]
