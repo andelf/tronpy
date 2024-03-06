@@ -13,7 +13,7 @@ package_data = {"": ["*"]}
 install_requires = [
     "base58",
     "coincurve",
-    "eth_abi>=4.0.0a,<5.0.0",
+    "eth-abi>=5.0.0,<6.0.0",
     "httpx",
     "pycryptodome<4",
     "requests",
@@ -36,7 +36,7 @@ setup_kwargs = {
     "package_data": package_data,
     "install_requires": install_requires,
     "extras_require": extras_hdwallet,
-    "python_requires": ">=3.7",
+    "python_requires": ">=3.8",
 }
 
 
