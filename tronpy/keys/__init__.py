@@ -1,5 +1,5 @@
 import hashlib
-import random
+import os
 from collections.abc import ByteString, Hashable
 from typing import Any, Iterator, Union
 
@@ -274,7 +274,7 @@ class PrivateKey(BaseKey):
     @classmethod
     def random(cls) -> "PrivateKey":
         """Generate a random private key."""
-        return cls(bytes([random.randint(0, 255) for _ in range(32)]))
+        return cls(os.urandom(32))
 
     @classmethod
     def from_passphrase(cls, passphrase: bytes) -> "PrivateKey":
