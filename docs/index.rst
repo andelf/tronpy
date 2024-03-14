@@ -13,6 +13,7 @@ Welcome to TronPy's documentation!
    quickstart.rst
    keys.rst
    client.rst
+   hdwallet.rst
    trx.rst
    contract.rst
    shielded.rst
