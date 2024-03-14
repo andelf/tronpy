@@ -1,4 +1,5 @@
 import hashlib
+import os
 from collections.abc import ByteString, Hashable
 from typing import Any, Iterator, Union
 
@@ -6,7 +7,6 @@ import base58
 from coincurve import PrivateKey as CoincurvePrivateKey
 from coincurve import PublicKey as CoincurvePublicKey
 from Crypto.Hash import keccak
-from Crypto.Random import get_random_bytes
 
 from tronpy.exceptions import BadAddress, BadKey, BadSignature
 
@@ -274,7 +274,7 @@ class PrivateKey(BaseKey):
     @classmethod
     def random(cls) -> "PrivateKey":
         """Generate a random private key."""
-        return cls(get_random_bytes(32))
+        return cls(os.urandom(32))
 
     @classmethod
     def from_passphrase(cls, passphrase: bytes) -> "PrivateKey":
