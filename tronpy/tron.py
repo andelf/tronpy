@@ -452,7 +452,13 @@ class Trx:
         return self._build_transaction("UnfreezeBalanceContract", payload)
 
     def delegate_resource(
-        self, owner: TAddress, receiver: TAddress, balance: int, resource: str = "BANDWIDTH", lock: bool = False
+        self,
+        owner: TAddress,
+        receiver: TAddress,
+        balance: int,
+        resource: str = "BANDWIDTH",
+        lock: bool = False,
+        lock_period: int = None,
     ) -> "TransactionBuilder":
         """Delegate bandwidth or energy resources to other accounts in Stake2.0.
 
@@ -461,6 +467,7 @@ class Trx:
         :param balance:
         :param resource: Resource type, can be ``"ENERGY"`` or ``"BANDWIDTH"``
         :param lock: Optionally lock delegated resources for 3 days.
+        :param lock_period: Optionally lock delegated resources for a specific period. Default: 3 days.
         """
 
         payload = {
@@ -470,6 +477,8 @@ class Trx:
             "resource": resource,
             "lock": lock,
         }
+        if lock_period is not None:
+            payload["lock_period"] = lock_period
 
         return self._build_transaction("DelegateResourceContract", payload)
 
