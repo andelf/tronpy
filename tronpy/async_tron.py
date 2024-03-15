@@ -431,6 +431,16 @@ class AsyncTrx:
         }
         return self._build_transaction("FreezeBalanceV2Contract", payload)
 
+    def withdraw_stake_balance(self, owner: TAddress) -> "AsyncTransactionBuilder":
+        """Withdraw all stake v2 balance after waiting for 14 days since unfreeze_balance call.
+
+        :param owner:
+        """
+        payload = {
+            "owner_address": keys.to_hex_address(owner),
+        }
+        return self._build_transaction("WithdrawExpireUnfreezeContract", payload)
+
     def unfreeze_balance(
         self, owner: TAddress, resource: str = "ENERGY", *, unfreeze_balance: int
     ) -> "AsyncTransactionBuilder":
