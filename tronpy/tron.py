@@ -986,7 +986,7 @@ class Tron:
         )
         return cntr
 
-     def get_contract_info(self, addr: TAddress) -> dict:
+    def get_contract_info(self, addr: TAddress) -> dict:
         """Queries a contract's information from the blockchain"""
         addr = keys.to_base58check_address(addr)
         info = self.provider.make_request("wallet/getcontractinfo", {"value": addr, "visible": True})
