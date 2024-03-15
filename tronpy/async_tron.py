@@ -826,6 +826,16 @@ class AsyncTron:
             },
         )
 
+    async def get_delegated_resource_account_index_v2(self, addr: TAddress) -> dict:
+        """Query the resource delegation index by an account"""
+        return await self.provider.make_request(
+            "wallet/getdelegatedresourceaccountindexv2",
+            {
+                "value": keys.to_base58check_address(addr),
+                "visible": True,
+            },
+        )
+
     # Block query
 
     async def get_latest_solid_block(self) -> dict:

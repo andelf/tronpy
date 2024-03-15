@@ -816,6 +816,16 @@ class Tron:
             },
         )
 
+    def get_delegated_resource_account_index_v2(self, addr: TAddress) -> dict:
+        """Query the resource delegation index by an account"""
+        return self.provider.make_request(
+            "wallet/getdelegatedresourceaccountindexv2",
+            {
+                "value": keys.to_base58check_address(addr),
+                "visible": True,
+            },
+        )
+
     # Block query
 
     def get_latest_solid_block(self) -> dict:
