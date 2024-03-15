@@ -1,6 +1,6 @@
 import hashlib
 import os
-from collections.abc import ByteString, Hashable
+from collections.abc import Hashable, Sequence
 from typing import Any, Iterator, Union
 
 import base58
@@ -127,7 +127,7 @@ def is_address(value: str) -> bool:
     return is_base58check_address(value) or is_hex_address(value)
 
 
-class BaseKey(ByteString, Hashable):
+class BaseKey(Sequence, Hashable):
     _raw_key = None  # type: bytes
 
     # compatible with bytes.hex()
@@ -282,7 +282,7 @@ class PrivateKey(BaseKey):
         return cls(sha256(passphrase))
 
 
-class Signature(ByteString):
+class Signature(Sequence):
     """The signature object."""
 
     _raw_signature = None
