@@ -986,6 +986,18 @@ class Tron:
         )
         return cntr
 
+    def get_contract_info(self, addr: TAddress) -> dict:
+        """Queries a contract's information from the blockchain"""
+        addr = keys.to_base58check_address(addr)
+        info = self.provider.make_request("wallet/getcontractinfo", {"value": addr, "visible": True})
+
+        try:
+            self._handle_api_error(info)
+        except ApiError:
+            raise AddressNotFound("contract address not found")
+
+        return info
+
     def get_contract_as_shielded_trc20(self, addr: TAddress) -> ShieldedTRC20:
         """Get a Shielded TRC20 Contract object."""
         contract = self.get_contract(addr)
