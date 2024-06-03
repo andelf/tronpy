@@ -734,7 +734,7 @@ class AsyncTron:
             raise AddressNotFound("account not found on-chain")
 
     # Bandwidth query
-    async def get_bandwidth(self, addr: TAddress) -> dict:
+    async def get_bandwidth(self, addr: TAddress) -> int:
         """Query the bandwidth of the account"""
 
         ret = await self.provider.make_request(
