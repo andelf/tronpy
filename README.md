@@ -5,7 +5,7 @@
 
 TRON Python Client Library. [Documentation](https://tronpy.readthedocs.io/en/latest/index.html)
 
-> Note: in case you want to use cryptocurrency functions in an universal way or e.g. reliably calculate transaction fees for BTC, ETH, Tron and many others, check out the [BitcartCC project](https://bitcartcc.com)
+> Note: in case you want to use cryptocurrency functions in an universal way or e.g. reliably calculate transaction fees for BTC, ETH, Tron and many others, check out the [Bitcart project](https://bitcart.ai)
 
 ## How to use
 

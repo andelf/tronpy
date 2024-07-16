@@ -1,6 +1,6 @@
 import hashlib
-import random
-from collections.abc import ByteString, Hashable
+import os
+from collections.abc import Hashable, Sequence
 from typing import Any, Iterator, Union
 
 import base58
@@ -127,7 +127,7 @@ def is_address(value: str) -> bool:
     return is_base58check_address(value) or is_hex_address(value)
 
 
-class BaseKey(ByteString, Hashable):
+class BaseKey(Sequence, Hashable):
     _raw_key = None  # type: bytes
 
     # compatible with bytes.hex()
@@ -274,7 +274,7 @@ class PrivateKey(BaseKey):
     @classmethod
     def random(cls) -> "PrivateKey":
         """Generate a random private key."""
-        return cls(bytes([random.randint(0, 255) for _ in range(32)]))
+        return cls(os.urandom(32))
 
     @classmethod
     def from_passphrase(cls, passphrase: bytes) -> "PrivateKey":
@@ -282,7 +282,7 @@ class PrivateKey(BaseKey):
         return cls(sha256(passphrase))
 
 
-class Signature(ByteString):
+class Signature(Sequence):
     """The signature object."""
 
     _raw_signature = None

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tronpy"
-version = "0.3.0"
+version = "0.4.0"
 description = "TRON Python client library"
 authors = ["andelf <andelf@gmail.com>"]
 license = "MIT"
@@ -9,18 +9,18 @@ homepage = "https://github.com/andelf/tronpy"
 repository = "https://github.com/andelf/tronpy"
 keywords = ["tron", "api", "blockchain"]
 classifiers = [
-  "Topic :: Software Development :: Libraries :: Python Modules",
-  "Development Status :: 2 - Pre-Alpha",
-  "Intended Audience :: Developers",
-  "Intended Audience :: System Administrators",
-  'Natural Language :: English',
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    'Natural Language :: English',
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.7,<4.0"
+python = ">=3.8,<4.0"
 base58 = "*"
 coincurve = "*"
-eth_abi = ">=4.0.0a,<5.0.0"
+eth-abi = ">=5.0.0,<6.0.0"
 httpx = "*"
 pycryptodome = "<4"
 requests = "*"
@@ -43,15 +43,10 @@ codecov = "*"
 pre-commit = "*"
 
 [tool.pytest.ini_options]
-addopts = [
-    "--cov=.",
-    "--cov-report",
-    "term-missing"
-]
+addopts = ["--cov=.", "--cov-report", "term-missing"]
 filterwarnings = [
     "error::DeprecationWarning",
     "error::PendingDeprecationWarning",
-    "ignore:pkg_resources is deprecated as an API:DeprecationWarning"
 ]
 
 [tool.black]
@@ -74,13 +69,7 @@ ignore_missing_imports = true
 
 
 [tool.coverage.run]
-omit = [
-    "*__init__.py",
-    "tests/*",
-    "venv/*",
-    "env/*",
-    "setup.py",
-]
+omit = ["*__init__.py", "tests/*", "venv/*", "env/*", "setup.py"]
 
 [build-system]
 requires = ["poetry-core"]

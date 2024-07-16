@@ -431,6 +431,16 @@ class AsyncTrx:
         }
         return self._build_transaction("FreezeBalanceV2Contract", payload)
 
+    def withdraw_stake_balance(self, owner: TAddress) -> "AsyncTransactionBuilder":
+        """Withdraw all stake v2 balance after waiting for 14 days since unfreeze_balance call.
+
+        :param owner:
+        """
+        payload = {
+            "owner_address": keys.to_hex_address(owner),
+        }
+        return self._build_transaction("WithdrawExpireUnfreezeContract", payload)
+
     def unfreeze_balance(
         self, owner: TAddress, resource: str = "ENERGY", *, unfreeze_balance: int
     ) -> "AsyncTransactionBuilder":
@@ -461,7 +471,13 @@ class AsyncTrx:
         return self._build_transaction("UnfreezeBalanceContract", payload)
 
     def delegate_resource(
-        self, owner: TAddress, receiver: TAddress, balance: int, resource: str = "BANDWIDTH", lock: bool = False
+        self,
+        owner: TAddress,
+        receiver: TAddress,
+        balance: int,
+        resource: str = "BANDWIDTH",
+        lock: bool = False,
+        lock_period: int = None,
     ) -> "AsyncTransactionBuilder":
         """Delegate bandwidth or energy resources to other accounts in Stake2.0.
 
@@ -470,6 +486,7 @@ class AsyncTrx:
         :param balance:
         :param resource: Resource type, can be ``"ENERGY"`` or ``"BANDWIDTH"``
         :param lock: Optionally lock delegated resources for 3 days.
+        :param lock_period: Optionally lock delegated resources for a specific period. Default: 3 days.
         """
 
         payload = {
@@ -479,6 +496,8 @@ class AsyncTrx:
             "resource": resource,
             "lock": lock,
         }
+        if lock_period is not None:
+            payload["lock_period"] = lock_period
 
         return self._build_transaction("DelegateResourceContract", payload)
 
@@ -806,11 +825,21 @@ class AsyncTron:
 
     async def get_delegated_resource_v2(self, fromAddr: TAddress, toAddr: TAddress) -> dict:
         """Query the amount of delegatable resources share of the specified resource type for an address"""
-        return self.provider.make_request(
+        return await self.provider.make_request(
             "wallet/getdelegatedresourcev2",
             {
                 "fromAddress": keys.to_base58check_address(fromAddr),
                 "toAddress": keys.to_base58check_address(toAddr),
+                "visible": True,
+            },
+        )
+
+    async def get_delegated_resource_account_index_v2(self, addr: TAddress) -> dict:
+        """Query the resource delegation index by an account"""
+        return await self.provider.make_request(
+            "wallet/getdelegatedresourceaccountindexv2",
+            {
+                "value": keys.to_base58check_address(addr),
                 "visible": True,
             },
         )
@@ -1018,6 +1047,18 @@ class AsyncTron:
             client=self,
         )
         return cntr
+
+    async def get_contract_info(self, addr: TAddress) -> dict:
+        """Queries a contract's information from the blockchain"""
+        addr = keys.to_base58check_address(addr)
+        info = await self.provider.make_request("wallet/getcontractinfo", {"value": addr, "visible": True})
+
+        try:
+            self._handle_api_error(info)
+        except ApiError:
+            raise AddressNotFound("contract address not found")
+
+        return info
 
     async def get_contract_as_shielded_trc20(self, addr: TAddress) -> ShieldedTRC20:
         """Get a Shielded TRC20 Contract object."""
