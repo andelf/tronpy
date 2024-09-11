@@ -754,6 +754,13 @@ class Tron:
         else:
             raise AddressNotFound("account not found on-chain")
 
+    def get_energy(self, address: str) -> int:
+        """Query the energy of the account"""
+        account_info = self.get_account_resource(address)
+        energy_limit = account_info.get("EnergyLimit", 0)
+        energy_used = account_info.get("EnergyUsed", 0)
+        return energy_limit - energy_used
+
     def get_account_asset_balances(self, addr: TAddress) -> dict:
         """Get all TRC10 token balances of an account."""
         info = self.get_account(addr)

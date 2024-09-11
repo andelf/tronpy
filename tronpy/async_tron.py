@@ -746,6 +746,13 @@ class AsyncTron:
         else:
             raise AddressNotFound("account not found on-chain")
 
+    async def get_energy(self, address: str) -> int:
+        """Query the energy of the account"""
+        account_info = await self.get_account_resource(address)
+        energy_limit = account_info.get("EnergyLimit", 0)
+        energy_used = account_info.get("EnergyUsed", 0)
+        return energy_limit - energy_used
+
     async def get_account_resource(self, addr: TAddress) -> dict:
         """Get resource info of an account."""
 
