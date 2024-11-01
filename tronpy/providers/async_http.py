@@ -1,12 +1,13 @@
+import asyncio
 import os
+import random
+import sys
 from typing import Any, List, Union
 from urllib.parse import urljoin
-import sys
-import asyncio
+
 import httpx
 from httpx import Timeout
 
-import random
 from tronpy.version import VERSION
 
 DEFAULT_TIMEOUT = 10.0
