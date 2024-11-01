@@ -8,6 +8,7 @@ from urllib.parse import urljoin
 import requests
 
 from tronpy.version import VERSION
+from tronpy.exceptions import ApiError
 
 DEFAULT_TIMEOUT = 10.0
 DEFAULT_API_KEYS = [
@@ -91,10 +92,13 @@ class HTTPProvider:
 
     @property
     def random_api_key(self):
-        return random.choice(self._api_keys)
+        try:
+            return random.choice(self._api_keys)
+        except IndexError:
+            raise ApiError("The provided API-key(s) is(are) expired!")
 
     def _handle_rate_limit(self):
-        if len(self._api_keys) > 1:
+        if len(self._api_keys) > 0:
             self._api_keys.remove(self.sess.headers["Tron-Pro-Api-Key"])
         else:
             print("W: Please add as-many API-Keys in HTTPProvider", file=sys.stderr)
