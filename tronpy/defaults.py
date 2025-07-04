@@ -34,3 +34,8 @@ ALL = {
 
 def conf_for_name(name: str) -> dict:
     return ALL.get(name, None)
+
+
+PROTOBUF_NOT_INSTALLED_ERROR_MESSAGE = (
+    "protobuf is not installed. Please run `pip install tronpy[offline]` to use offline transaction features."
+)

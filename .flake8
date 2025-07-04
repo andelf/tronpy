@@ -2,3 +2,4 @@
 max-complexity=11
 max-line-length=127
 ignore=E266, E203, W503
+exclude=tronpy/proto/tron_pb2.py
