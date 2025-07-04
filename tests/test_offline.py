@@ -1,18 +1,22 @@
 import datetime
+import typing
 
 import freezegun
+import pytest
 
+from tronpy.async_tron import AsyncTransaction
 from tronpy.tron import Transaction
 
 
+@pytest.mark.parametrize("transaction", [Transaction, AsyncTransaction])
 @freezegun.freeze_time(datetime.datetime(2025, 7, 2, 14, 27, 12, 131000, tzinfo=datetime.timezone.utc))
-def test_create_transaction_offline() -> None:
+def test_create_transaction_offline(transaction: typing.Union[Transaction, AsyncTransaction]) -> None:
     owner_address = "TSJAbe7YTH6xfFiZHkv5bzXTQ5uDqz9eW8"
     to_address = "TQGjrFjwuXuQu7ZhxcVeqpDVxFZt9RgzUs"
     amount = 1_000_000
     ref_block_id = "0000000003546431212a13dbe72ac5c09a684deb83257258a6fcdc1115835077"
 
-    transaction = Transaction.build_offline(
+    transaction = transaction.build_offline(
         owner_address=owner_address,
         to_address=to_address,
         amount=amount,
@@ -45,8 +49,9 @@ def test_create_transaction_offline() -> None:
     }
 
 
+@pytest.mark.parametrize("transaction", [Transaction, AsyncTransaction])
 @freezegun.freeze_time(datetime.datetime(2025, 7, 3, 14, 50, 32, 807000, tzinfo=datetime.timezone.utc))
-def test_create_smart_contract_transaction_offline() -> None:
+def test_create_smart_contract_transaction_offline(transaction: typing.Union[Transaction, AsyncTransaction]) -> None:
     contract_address = "TGaVEQQABuvKMbmThCsS9w27J4K5MuMJCF"
     owner_address = "TSJAbe7YTH6xfFiZHkv5bzXTQ5uDqz9eW8"
     address_to = "TQGjrFjwuXuQu7ZhxcVeqpDVxFZt9RgzUs"
@@ -54,7 +59,7 @@ def test_create_smart_contract_transaction_offline() -> None:
     amount = 1_000_000
     fee_limit = 50000000
 
-    transaction = Transaction.build_trc20_transfer_offline(
+    transaction = transaction.build_trc20_transfer_offline(
         from_address=owner_address,
         to_address=address_to,
         amount=amount,
