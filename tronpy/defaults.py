@@ -1,3 +1,5 @@
+import typing
+
 CONF_MAINNET = {
     "fullnode": "https://api.trongrid.io",
     "event": "https://api.trongrid.io",
@@ -30,6 +32,9 @@ ALL = {
     "shasta": CONF_SHASTA,
     "tronex": CONF_TRONEX,
 }
+
+SIXTY_SECONDS: typing.Final[int] = 60_000
+"""Milliseconds in 60 seconds"""
 
 
 def conf_for_name(name: str) -> dict:

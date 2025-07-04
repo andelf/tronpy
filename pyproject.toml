@@ -41,6 +41,8 @@ sphinx = "*"
 pytest-asyncio = "*"
 codecov = "*"
 pre-commit = "*"
+grpcio-tools = "1.62.*"
+freezegun = "0.3.4"
 
 [tool.pytest.ini_options]
 addopts = ["--cov=.", "--cov-report", "term-missing"]

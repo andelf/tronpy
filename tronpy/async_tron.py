@@ -8,7 +8,7 @@ from typing import Optional, Tuple, Union
 from tronpy import keys
 from tronpy.abi import tron_abi
 from tronpy.async_contract import AsyncContract, AsyncContractMethod, ShieldedTRC20
-from tronpy.defaults import conf_for_name
+from tronpy.defaults import SIXTY_SECONDS, conf_for_name
 from tronpy.exceptions import (
     AddressNotFound,
     ApiError,
@@ -28,6 +28,7 @@ from tronpy.exceptions import (
 from tronpy.hdwallet import TRON_DEFAULT_PATH, generate_mnemonic, key_from_seed, seed_from_mnemonic
 from tronpy.keys import PrivateKey
 from tronpy.providers.async_http import AsyncHTTPProvider
+from tronpy.utils import current_timestamp, get_ref_block_bytes, get_ref_block_hash
 
 TAddress = str
 
@@ -35,10 +36,6 @@ DEFAULT_CONF = {
     "fee_limit": 10_000_000,
     "timeout": 10.0,  # in second
 }
-
-
-def current_timestamp() -> int:
-    return int(time.time() * 1000)
 
 
 # noinspection PyBroadException
@@ -206,12 +203,12 @@ class AsyncTransaction:
     async def update(self):
         """update Transaction, change ref_block and txID, remove all signature"""
         self._raw_data["timestamp"] = current_timestamp()
-        self._raw_data["expiration"] = self._raw_data["timestamp"] + 60_000
+        self._raw_data["expiration"] = self._raw_data["timestamp"] + SIXTY_SECONDS
         ref_block_id = await self._client.get_latest_solid_block_id()
         # last 2 byte of block number part
-        self._raw_data["ref_block_bytes"] = ref_block_id[12:16]
+        self._raw_data["ref_block_bytes"] = get_ref_block_bytes(ref_block_id)
         # last half part of block hash
-        self._raw_data["ref_block_hash"] = ref_block_id[16:32]
+        self._raw_data["ref_block_hash"] = get_ref_block_hash(ref_block_id)
 
         self.txid = ""
         self._permission = None
@@ -240,7 +237,7 @@ class AsyncTransactionBuilder:
         self._raw_data = {
             "contract": [inner],
             "timestamp": current_timestamp(),
-            "expiration": current_timestamp() + 60_000,
+            "expiration": current_timestamp() + SIXTY_SECONDS,
             "ref_block_bytes": None,
             "ref_block_hash": None,
         }
@@ -282,9 +279,9 @@ class AsyncTransactionBuilder:
         """Build the transaction."""
         ref_block_id = await self._client.get_latest_solid_block_id()
         # last 2 byte of block number part
-        self._raw_data["ref_block_bytes"] = ref_block_id[12:16]
+        self._raw_data["ref_block_bytes"] = get_ref_block_bytes(ref_block_id)
         # last half part of block hash
-        self._raw_data["ref_block_hash"] = ref_block_id[16:32]
+        self._raw_data["ref_block_hash"] = get_ref_block_hash(ref_block_id)
 
         if self._method:
             return await AsyncTransaction.create(self._raw_data, client=self._client, method=self._method)
@@ -358,11 +355,11 @@ class AsyncTrx:
 
         if start_time is None:
             # use default expiration
-            start_time = current_timestamp() + 60_000
+            start_time = current_timestamp() + SIXTY_SECONDS
 
         if end_time is None:
             # use default expiration
-            end_time = current_timestamp() + 60_000 + 1
+            end_time = current_timestamp() + SIXTY_SECONDS + 1
 
         if frozen_supply is None:
             frozen_supply = []
