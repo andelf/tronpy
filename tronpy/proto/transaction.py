@@ -17,6 +17,15 @@ class Transaction(typing.TypedDict):
 
 
 def calculate_txid(transaction: tron_pb2.Transaction) -> str:
+    """
+    Compute the transaction ID by hashing the serialized raw data of a Tron transaction.
+
+    Parameters:
+        transaction (tron_pb2.Transaction): The Tron transaction whose ID is to be calculated.
+
+    Returns:
+        str: The SHA-256 hash of the transaction's raw data, represented as a hexadecimal string.
+    """
     raw_bytes = transaction.raw_data.SerializeToString()
     return hashlib.sha256(raw_bytes).hexdigest()
 
@@ -27,16 +36,18 @@ def calculate_txid(transaction: tron_pb2.Transaction) -> str:
 
 
 def _get_tapos_meta(ref_block_id: str) -> typing.Tuple[str, str, int, int]:
-    """Extract TAPoS metadata from a block id.
+    """
+    Extracts TAPoS (Transaction as Proof of Stake) metadata from a given block ID.
 
-    Parameters
-    ----------
-    ref_block_id: Hex string of the latest block id
+    Parameters:
+        ref_block_id (str): The block ID to extract TAPoS metadata from.
 
-    Returns
-    -------
-    typing.Tuple[str, str, int, int]
-        (ref_block_bytes_hex, ref_block_hash_hex, timestamp_ms, expiration_ms)
+    Returns:
+        tuple: A tuple containing:
+            - Reference block bytes as a hex string
+            - Reference block hash as a hex string
+            - Current timestamp in milliseconds
+            - Expiration timestamp in milliseconds (current time plus 60 seconds)
     """
     ref_block_bytes_hex = get_ref_block_bytes(ref_block_id)
     ref_block_hash_hex = get_ref_block_hash(ref_block_id)
@@ -51,6 +62,23 @@ def create_transaction_offline(
     amount: int,
     ref_block_id: str,
 ) -> Transaction:
+    """
+    Construct an unsigned TRX transfer transaction offline.
+
+    Builds a Tron transaction dictionary for transferring TRX from one address
+    to another using the provided reference block ID for TAPoS metadata.
+    The transaction is not signed and includes all necessary raw data fields
+    for later signing and broadcasting.
+
+    Parameters:
+        owner_address (str): Base58 or hex-encoded address of the sender.
+        to_address (str): Base58 or hex-encoded address of the recipient.
+        amount (int): Amount of TRX to transfer, in SUN (1 TRX = 1_000_000 SUN).
+        ref_block_id (str): Hex string of the reference block ID for TAPoS.
+
+    Returns:
+        Transaction: Dictionary containing the transaction ID, raw data, empty signature list, and no permission.
+    """
     to_address_raw = to_raw_address(to_address)
     from_address_raw = to_raw_address(owner_address)
 
@@ -113,17 +141,22 @@ def create_smart_contract_transaction_offline(
     fee_limit: int,
     contract_address: str,
 ) -> Transaction:
-    """Create and sign a TRC-20 `transfer` transaction.
+    """
+    Construct an unsigned TRC-20 token transfer transaction offline,
+    encoding the smart contract call and TAPoS metadata.
 
-    Parameters
-    ----------
-    from_address: Base58Check address of the sender
-    to_address:   Recipient address (Base58Check or hex)
-    amount:       Token amount in the token's smallest unit
-    ref_block_id: Hex string of the latest block id (for TAPoS)
-    private_key:  32-byte private key of the sender
-    fee_limit:    Maximum energy fee to spend (in SUN)
-    contract_address: Address of the token (smart-contract) to invoke
+    Parameters:
+        from_address (str): Base58Check address of the sender.
+        to_address (str): Recipient address in Base58Check or hex format.
+        amount (int): Token amount in the token's smallest unit.
+        ref_block_id (str): Hex string of the latest block ID for TAPoS.
+        fee_limit (int): Maximum energy fee to spend (in SUN).
+        contract_address (str): Address of the TRC-20 token smart contract.
+
+    Returns:
+        Transaction: A dictionary representing the unsigned transaction,
+        including transaction ID, raw data with encoded contract call,
+        empty signature list, and no permission.
     """
 
     # ------------------------------------------------------------------ #

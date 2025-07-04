@@ -17,10 +17,9 @@ test:
 
 ci: checkformat lint test
 
-
 generate-proto: ## Generate proto files
 	cd tronpy/proto/src && \
-	$(py) python -m grpc_tools.protoc -I=. \
+	python -m grpc_tools.protoc -I=. \
 		--python_out=. \
 		--pyi_out=. \
 		tron.proto
