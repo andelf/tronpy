@@ -7,3 +7,5 @@ pre-commit
 pytest
 pytest-asyncio
 pytest-cov
+grpcio-tools
+freezegun
