@@ -9,9 +9,9 @@ from tronpy.keys import PrivateKey
 from tronpy.tron import Transaction
 
 # test_net address
-FROM_ADDR = "TBDCyrZ1hT1PDDFf2yRABwPrFica5qqPUX"
+FROM_ADDR = "TPX6HK2NRN4XKRX1JAhbC827bm7gMmy5w1"
 # test_net private key
-FROM_PRIV_KEY = PrivateKey(bytes.fromhex("fd605fb953fcdabb952be161265a75b8a3ce1c0def2c7db72265f9db9a471be4"))
+FROM_PRIV_KEY = PrivateKey(bytes.fromhex("279ff36d9bf9f305af3280034bb4187c6dd299bac6b26a3c20b999c7c0d50e6e"))
 # test_net address
 TO_ADDR = "TFVfhkyJAULWQbHMgVfgbkmgeGBkHo5zru"
 CNR_ADDR = "THi2qJf6XmvTJSpZHc17HgQsmJop6kb3ia"
@@ -19,7 +19,7 @@ CNR_ADDR = "THi2qJf6XmvTJSpZHc17HgQsmJop6kb3ia"
 TRANSFER_EXPECTED_RESP = {
     "parameter": {
         "value": {
-            "owner_address": "410d9dee927cc1ea6b6e67f4993fac317826ea0c26",
+            "owner_address": "4194a15629b2b2bbd3a5453e6d6696b2875278633b",
             "to_address": "413c9b65b212316904572826240224750eccce29a2",
             "amount": 1,
         },
@@ -31,7 +31,7 @@ TRANSFER_EXPECTED_RESP = {
 TRANSFER_TRC10_EXPECTED_RESP = {
     "parameter": {
         "value": {
-            "owner_address": "410d9dee927cc1ea6b6e67f4993fac317826ea0c26",
+            "owner_address": "4194a15629b2b2bbd3a5453e6d6696b2875278633b",
             "to_address": "413c9b65b212316904572826240224750eccce29a2",
             "amount": 1000000,
             "asset_name": "31303030303437",

@@ -83,15 +83,15 @@ def test_signature_sign(signature: Signature, raw_data: bytes, txid: bytes):
 
 
 def test_key_derivation():
-    priv_key = PrivateKey.fromhex("fd605fb953fcdabb952be161265a75b8a3ce1c0def2c7db72265f9db9a471be4")
-    assert priv_key.hex() == "fd605fb953fcdabb952be161265a75b8a3ce1c0def2c7db72265f9db9a471be4"
+    priv_key = PrivateKey.fromhex("279ff36d9bf9f305af3280034bb4187c6dd299bac6b26a3c20b999c7c0d50e6e")
+    assert priv_key.hex() == "279ff36d9bf9f305af3280034bb4187c6dd299bac6b26a3c20b999c7c0d50e6e"
     public_key = priv_key.public_key
     assert (
-        public_key.hex() == "ecab6eace957bdb5a50366f449965550b7c30137c77bd429122949eb4"
-        "a40be06376cce12d2342f9297a25aa186c8eb7b3da65c5923011c503064a3f87943ebfe"
+        public_key.hex() == "cc0402d331f2bb4482e43825d66f2963e6de9bac0033933cdccef20d9a0d737e8f4e2c97"
+        "e14d6ef7d50ca0d8ee94094d3fa0ef08ae45d1b5409a0c92dd0f8c44"
     )
-    assert public_key.to_base58check_address() == "TBDCyrZ1hT1PDDFf2yRABwPrFica5qqPUX"
-    assert public_key.to_hex_address() == "410d9dee927cc1ea6b6e67f4993fac317826ea0c26"
+    assert public_key.to_base58check_address() == "TPX6HK2NRN4XKRX1JAhbC827bm7gMmy5w1"
+    assert public_key.to_hex_address() == "4194a15629b2b2bbd3a5453e6d6696b2875278633b"
 
 
 def test_to_base58check_address():
