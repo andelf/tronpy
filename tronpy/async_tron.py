@@ -859,9 +859,9 @@ class AsyncTron:
             return info["blockID"]
 
     async def get_latest_solid_block_number(self) -> int:
-        """Get latest solid block number. Implemented via `wallet/getnodeinfo`,
+        """Get latest solid block number. Implemented via `walletsolidity/getnodeinfo`,
         which is faster than `walletsolidity/getnowblock`."""
-        info = await self.provider.make_request("wallet/getnodeinfo")
+        info = await self.provider.make_request("walletsolidity/getnodeinfo")
         return int(info["solidityBlock"].split(",ID:", 1)[0].replace("Num:", "", 1))
 
     async def get_latest_block(self) -> dict:
