@@ -1,16 +1,73 @@
 import datetime
+import importlib
 import typing
 
 import freezegun
 import pytest
 
 from tronpy.async_tron import AsyncTransaction
-from tronpy.tron import Transaction
+from tronpy.defaults import PROTOBUF_NOT_INSTALLED_ERROR_MESSAGE
+from tronpy.exceptions import ProtobufImportError
+from tronpy.tron import Transaction, Tron
+
+try:
+    from tronpy import proto
+except ProtobufImportError:
+    proto = None
+    protobuf_installed = False
+else:
+    protobuf_installed = True
+
+# TODO: Use fixtures and constants
+FROM_ADDR = "TBDCyrZ1hT1PDDFf2yRABwPrFica5qqPUX"
+TO_ADDR = "TFVfhkyJAULWQbHMgVfgbkmgeGBkHo5zru"
+TRC20_CONTRACT = "THi2qJf6XmvTJSpZHc17HgQsmJop6kb3ia"
 
 
+@pytest.fixture()
+def set_protobuf_unavailable() -> typing.Generator[None, None, None]:
+    importlib.import_module("tronpy.tron").proto = None
+    importlib.import_module("tronpy.async_tron").proto = None
+    yield
+    importlib.import_module("tronpy.tron").proto = proto
+    importlib.import_module("tronpy.async_tron").proto = proto
+
+
+@pytest.mark.usefixtures("set_protobuf_unavailable")
+@pytest.mark.parametrize("transaction", [Transaction, AsyncTransaction])
+def test_offline_builders_raise_import_error(
+    transaction: typing.Union[Transaction, AsyncTransaction],
+) -> None:
+    """Ensure offline builders fail with ImportError when protobuf is unavailable."""
+
+    with pytest.raises(ImportError) as exc_info:
+        transaction.build_offline(
+            owner_address="owner_address",
+            to_address="to_address",
+            amount=1,
+            ref_block_id="ref_block_id",
+        )
+
+    assert exc_info.value.args[0] == PROTOBUF_NOT_INSTALLED_ERROR_MESSAGE
+
+    with pytest.raises(ImportError) as exc_info:
+        transaction.build_trc20_transfer_offline(
+            from_address="from_address",
+            to_address="to_address",
+            amount=1,
+            contract_address="contract_address",
+            ref_block_id="ref_block_id",
+        )
+
+    assert exc_info.value.args[0] == PROTOBUF_NOT_INSTALLED_ERROR_MESSAGE
+
+
+@pytest.mark.skipif(not protobuf_installed, reason="Protobuf not installed")
 @pytest.mark.parametrize("transaction", [Transaction, AsyncTransaction])
 @freezegun.freeze_time(datetime.datetime(2025, 7, 2, 14, 27, 12, 131000, tzinfo=datetime.timezone.utc))
-def test_create_transaction_offline(transaction: typing.Union[Transaction, AsyncTransaction]) -> None:
+def test_create_transaction_offline(
+    transaction: typing.Union[Transaction, AsyncTransaction],
+) -> None:
     owner_address = "TSJAbe7YTH6xfFiZHkv5bzXTQ5uDqz9eW8"
     to_address = "TQGjrFjwuXuQu7ZhxcVeqpDVxFZt9RgzUs"
     amount = 1_000_000
@@ -49,9 +106,12 @@ def test_create_transaction_offline(transaction: typing.Union[Transaction, Async
     }
 
 
+@pytest.mark.skipif(not protobuf_installed, reason="Protobuf not installed")
 @pytest.mark.parametrize("transaction", [Transaction, AsyncTransaction])
 @freezegun.freeze_time(datetime.datetime(2025, 7, 3, 14, 50, 32, 807000, tzinfo=datetime.timezone.utc))
-def test_create_smart_contract_transaction_offline(transaction: typing.Union[Transaction, AsyncTransaction]) -> None:
+def test_create_smart_contract_transaction_offline(
+    transaction: typing.Union[Transaction, AsyncTransaction],
+) -> None:
     contract_address = "TGaVEQQABuvKMbmThCsS9w27J4K5MuMJCF"
     owner_address = "TSJAbe7YTH6xfFiZHkv5bzXTQ5uDqz9eW8"
     address_to = "TQGjrFjwuXuQu7ZhxcVeqpDVxFZt9RgzUs"
@@ -96,3 +156,49 @@ def test_create_smart_contract_transaction_offline(transaction: typing.Union[Tra
         "signature": [],
         "permission": None,
     }
+
+
+def test_offline_transaction_fields_vs_online() -> None:
+    client = Tron(network="nile")
+    online_json = client.trx.transfer(FROM_ADDR, TO_ADDR, 1).build().to_json()
+
+    offline_json = Transaction.build_offline(
+        owner_address=FROM_ADDR,
+        to_address=TO_ADDR,
+        amount=1,
+        ref_block_id="ref_block_id",
+    ).to_json()
+
+    assert online_json.keys() == offline_json.keys()
+
+    assert online_json["raw_data"].keys() == offline_json["raw_data"].keys()
+    assert online_json["raw_data"]["contract"] == offline_json["raw_data"]["contract"]
+
+    assert online_json["signature"] == offline_json["signature"]
+
+    # NOTE: permission is not included in offline transaction
+    assert online_json["permission"] != offline_json["permission"]
+
+
+def test_offline_smart_contract_transaction_fields_vs_online() -> None:
+    client = Tron(network="nile")
+    contract = client.get_contract(TRC20_CONTRACT)
+    online_json = (contract.functions.transfer(TO_ADDR, 1_000).with_owner(FROM_ADDR).fee_limit(5_000_000).build()).to_json()
+
+    offline_json = Transaction.build_trc20_transfer_offline(
+        from_address=FROM_ADDR,
+        to_address=TO_ADDR,
+        amount=1_000,
+        contract_address=TRC20_CONTRACT,
+        ref_block_id="ref_block_id",
+    ).to_json()
+
+    assert online_json.keys() == offline_json.keys()
+
+    assert online_json["raw_data"].keys() == offline_json["raw_data"].keys()
+    assert online_json["raw_data"]["contract"] == offline_json["raw_data"]["contract"]
+
+    assert online_json["signature"] == offline_json["signature"]
+
+    # NOTE: permission is not included in offline transaction
+    assert online_json["permission"] != offline_json["permission"]

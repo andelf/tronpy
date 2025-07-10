@@ -7,7 +7,7 @@ from typing import Optional, Tuple, Union
 from tronpy import keys
 from tronpy.abi import tron_abi
 from tronpy.contract import Contract, ContractMethod, ShieldedTRC20
-from tronpy.defaults import SIXTY_SECONDS, conf_for_name
+from tronpy.defaults import PROTOBUF_NOT_INSTALLED_ERROR_MESSAGE, SIXTY_SECONDS, conf_for_name
 from tronpy.exceptions import (
     AddressNotFound,
     ApiError,
@@ -17,6 +17,7 @@ from tronpy.exceptions import (
     BadSignature,
     BlockNotFound,
     BugInJavaTron,
+    ProtobufImportError,
     TaposError,
     TransactionError,
     TransactionNotFound,
@@ -26,9 +27,13 @@ from tronpy.exceptions import (
 )
 from tronpy.hdwallet import TRON_DEFAULT_PATH, generate_mnemonic, key_from_seed, seed_from_mnemonic
 from tronpy.keys import PrivateKey
-from tronpy.proto.transaction import create_smart_contract_transaction_offline, create_transaction_offline
 from tronpy.providers import HTTPProvider
 from tronpy.utils import current_timestamp, get_ref_block_bytes, get_ref_block_hash
+
+try:
+    from tronpy import proto
+except ProtobufImportError:
+    proto = None
 
 TAddress = str
 
@@ -290,8 +295,11 @@ class Transaction:
         * TAPoS (Transaction And Proof-of-Stake) explanation:
           https://developers.tron.network/docs/tron-protocol-transaction#tapos
         """
+        if proto is None:
+            raise ImportError(PROTOBUF_NOT_INSTALLED_ERROR_MESSAGE)
+
         return cls.from_json(
-            create_transaction_offline(
+            proto.create_transaction_offline(
                 owner_address=owner_address,
                 to_address=to_address,
                 amount=amount,
@@ -355,8 +363,11 @@ class Transaction:
         >>> tx.sign(priv_key)
         >>> client.broadcast(tx)
         """
+        if proto is None:
+            raise ImportError(PROTOBUF_NOT_INSTALLED_ERROR_MESSAGE)
+
         return cls.from_json(
-            create_smart_contract_transaction_offline(
+            proto.create_smart_contract_transaction_offline(
                 from_address=from_address,
                 to_address=to_address,
                 amount=amount,

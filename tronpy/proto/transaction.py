@@ -1,11 +1,17 @@
 import hashlib
 import typing
 
-import google.protobuf.any_pb2
+from tronpy.exceptions import ProtobufImportError
+
+try:
+    import google.protobuf.any_pb2
+
+    from tronpy.proto.src import tron_pb2
+except ImportError as exc:
+    raise ProtobufImportError from exc
 
 from tronpy.defaults import SIXTY_SECONDS
 from tronpy.keys import to_hex_address, to_raw_address
-from tronpy.proto.src import tron_pb2
 from tronpy.utils import current_timestamp, get_ref_block_bytes, get_ref_block_hash
 
 
