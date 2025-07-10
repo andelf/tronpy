@@ -2,3 +2,15 @@
 max-complexity=11
 max-line-length=127
 ignore=E266, E203, W503
+exclude=
+    .circleci,
+    .venv,
+    .eggs,
+    .git,
+    .tox,
+    .venv,
+    build,
+    dist,
+    docs,
+    .env
+    

@@ -1,0 +1,153 @@
+syntax = "proto3";
+
+import "google/protobuf/any.proto";
+
+message TransferContract {
+  bytes owner_address = 1;
+  bytes to_address = 2;
+  int64 amount = 3;
+}
+
+message TriggerSmartContract {
+  bytes owner_address = 1;
+  bytes contract_address = 2;
+  int64 call_value = 3;
+  bytes data = 4;
+  int64 call_token_value = 5;
+  int64 token_id = 6;
+}
+
+// AccountId, (name, address) use name, (null, address) use address, (name, null) use name,
+message AccountId {
+  bytes name = 1;
+  bytes address = 2;
+}
+
+message authority {
+  AccountId account = 1;
+  bytes permission_name = 2;
+}
+
+message MarketOrderDetail {
+  bytes makerOrderId = 1;
+  bytes takerOrderId = 2;
+  int64 fillSellQuantity = 3;
+  int64 fillBuyQuantity = 4;
+}
+
+message Transaction {
+  message Contract {
+    enum ContractType {
+      AccountCreateContract = 0;
+      TransferContract = 1;
+      TransferAssetContract = 2;
+      VoteAssetContract = 3;
+      VoteWitnessContract = 4;
+      WitnessCreateContract = 5;
+      AssetIssueContract = 6;
+      WitnessUpdateContract = 8;
+      ParticipateAssetIssueContract = 9;
+      AccountUpdateContract = 10;
+      FreezeBalanceContract = 11;
+      UnfreezeBalanceContract = 12;
+      WithdrawBalanceContract = 13;
+      UnfreezeAssetContract = 14;
+      UpdateAssetContract = 15;
+      ProposalCreateContract = 16;
+      ProposalApproveContract = 17;
+      ProposalDeleteContract = 18;
+      SetAccountIdContract = 19;
+      CustomContract = 20;
+      CreateSmartContract = 30;
+      TriggerSmartContract = 31;
+      GetContract = 32;
+      UpdateSettingContract = 33;
+      ExchangeCreateContract = 41;
+      ExchangeInjectContract = 42;
+      ExchangeWithdrawContract = 43;
+      ExchangeTransactionContract = 44;
+      UpdateEnergyLimitContract = 45;
+      AccountPermissionUpdateContract = 46;
+      ClearABIContract = 48;
+      UpdateBrokerageContract = 49;
+      ShieldedTransferContract = 51;
+      MarketSellAssetContract = 52;
+      MarketCancelOrderContract = 53;
+      FreezeBalanceV2Contract = 54;
+      UnfreezeBalanceV2Contract = 55;
+      WithdrawExpireUnfreezeContract = 56;
+      DelegateResourceContract = 57;
+      UnDelegateResourceContract = 58;
+      CancelAllUnfreezeV2Contract = 59;
+    }
+    ContractType type = 1;
+    google.protobuf.Any parameter = 2;
+    bytes provider = 3;
+    bytes ContractName = 4;
+    int32 Permission_id = 5;
+  }
+
+  message Result {
+    enum code {
+      SUCESS = 0;
+      FAILED = 1;
+    }
+    enum contractResult {
+      DEFAULT = 0;
+      SUCCESS = 1;
+      REVERT = 2;
+      BAD_JUMP_DESTINATION = 3;
+      OUT_OF_MEMORY = 4;
+      PRECOMPILED_CONTRACT = 5;
+      STACK_TOO_SMALL = 6;
+      STACK_TOO_LARGE = 7;
+      ILLEGAL_OPERATION = 8;
+      STACK_OVERFLOW = 9;
+      OUT_OF_ENERGY = 10;
+      OUT_OF_TIME = 11;
+      JVM_STACK_OVER_FLOW = 12;
+      UNKNOWN = 13;
+      TRANSFER_FAILED = 14;
+      INVALID_CODE = 15;
+    }
+    int64 fee = 1;
+    code ret = 2;
+    contractResult contractRet = 3;
+
+    string assetIssueID = 14;
+    int64 withdraw_amount = 15;
+    int64 unfreeze_amount = 16;
+    int64 exchange_received_amount = 18;
+    int64 exchange_inject_another_amount = 19;
+    int64 exchange_withdraw_another_amount = 20;
+    int64 exchange_id = 21;
+    int64 shielded_transaction_fee = 22;
+
+
+    bytes orderId = 25;
+    repeated MarketOrderDetail orderDetails = 26;
+    int64 withdraw_expire_amount = 27;
+    map<string, int64> cancel_unfreezeV2_amount = 28;
+  }
+
+  message raw {
+    bytes ref_block_bytes = 1;
+    int64 ref_block_num = 3;
+    bytes ref_block_hash = 4;
+    int64 expiration = 8;
+    repeated authority auths = 9;
+    // data not used
+    bytes data = 10;
+    //only support size = 1,  repeated list here for extension
+    repeated Contract contract = 11;
+    // scripts not used
+    bytes scripts = 12;
+    int64 timestamp = 14;
+    int64 fee_limit = 18;
+  }
+
+  raw raw_data = 1;
+  // only support size = 1,  repeated list here for muti-sig extension
+  repeated bytes signature = 2;
+  repeated Result ret = 5;
+}

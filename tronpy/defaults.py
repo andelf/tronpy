@@ -1,3 +1,5 @@
+import typing
+
 CONF_MAINNET = {
     "fullnode": "https://api.trongrid.io",
     "event": "https://api.trongrid.io",
@@ -31,6 +33,14 @@ ALL = {
     "tronex": CONF_TRONEX,
 }
 
+SIXTY_SECONDS: typing.Final[int] = 60_000
+"""Milliseconds in 60 seconds"""
+
 
 def conf_for_name(name: str) -> dict:
     return ALL.get(name, None)
+
+
+PROTOBUF_NOT_INSTALLED_ERROR_MESSAGE = (
+    "protobuf is not installed. Please run `pip install tronpy[offline]` to use offline transaction features."
+)

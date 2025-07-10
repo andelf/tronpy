@@ -64,3 +64,11 @@ class DoubleSpending(TransactionError):
 
 class BugInJavaTron(Exception):
     pass
+
+
+class ProtobufImportError(ImportError):
+    """
+    The exception is used as a marker to indicate that the `protobuf`
+    module is not installed. This way other ImportError exceptions
+    are not silenced.
+    """
