@@ -18,7 +18,7 @@
 # -- Project information -----------------------------------------------------
 
 project = "TronPy"
-copyright = "2020, Andelf"
+copyright = "2020, Andelf"  # noqa: A001
 author = "Andelf"
 
 
