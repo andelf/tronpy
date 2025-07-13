@@ -48,13 +48,11 @@ dev = [
     "pytest",
     "pytest-cov",
     "pytest-asyncio",
-    "flake8",
-    "black",
-    "isort",
     "mypy",
     "codecov",
     "pre-commit",
     "freezegun",
+    "ruff>=0.12.3",
 ]
 docs = ["sphinx"]
 
@@ -64,19 +62,41 @@ path = "tronpy/version.py"
 [tool.hatch.build.targets.wheel]
 packages = ["tronpy"]
 
+[tool.ruff]
+target-version = "py38"
+line-length = 127
+
+[tool.ruff.lint]
+select = [
+    "F",
+    "E",
+    "I",
+    "UP",
+    "YTT",
+    "B",
+    "T10",
+    "C",
+    "SIM",
+    "RUF100",
+    "RET",
+    "A",
+    "S",
+    "ASYNC",
+    "TID",
+]
+unfixable = ["F401"]
+ignore = ["RET502", "RET503", "S104", "S507", "ASYNC110"]
+mccabe = { max-complexity = 12 }
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S"]
+
 [tool.pytest.ini_options]
 addopts = ["--cov=.", "--cov-report", "term-missing"]
 filterwarnings = [
     "error::DeprecationWarning",
     "error::PendingDeprecationWarning",
 ]
-
-[tool.black]
-line-length = 127
-
-[tool.isort]
-profile = "black"
-line_length = 127
 
 [tool.mypy]
 warn_redundant_casts = true

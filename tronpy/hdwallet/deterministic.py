@@ -34,6 +34,7 @@ Definitions
 * parse_256(p): interprets a 32-byte sequence as a 256-bit number, most significant byte first.
 
 """
+
 # Additional notes:
 # - This module currently only implements private parent key => private child key CKD function,
 #   as it is not necessary to the HD key derivation functions used in this library to implement

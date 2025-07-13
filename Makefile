@@ -1,16 +1,14 @@
 all: ci
 
 lint:
-	flake8
+	# ruff check
 	# mypy tronpy
 
 checkformat:
-	black --check .
-	isort --check .
+	ruff format --check
 
 format:
-	black .
-	isort .
+	ruff format
 
 test:
 	pytest tests/ ${TEST_ARGS}
