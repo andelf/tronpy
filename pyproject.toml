@@ -1,48 +1,68 @@
-[tool.poetry]
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
 name = "tronpy"
-version = "0.4.0"
+dynamic = ["version"]
 description = "TRON Python client library"
-authors = ["andelf <andelf@gmail.com>"]
+authors = [{ name = "andelf", email = "andelf@gmail.com" }]
 license = "MIT"
 readme = "README.md"
-homepage = "https://github.com/andelf/tronpy"
-repository = "https://github.com/andelf/tronpy"
+requires-python = ">=3.8"
 keywords = ["tron", "api", "blockchain"]
 classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Development Status :: 2 - Pre-Alpha",
     "Intended Audience :: Developers",
     "Intended Audience :: System Administrators",
-    'Natural Language :: English',
+    "Natural Language :: English",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "base58",
+    "coincurve",
+    "eth-abi>=5.0.0,<6.0.0",
+    "httpx",
+    "pycryptodome<4",
+    "requests",
 ]
 
-[tool.poetry.dependencies]
-python = ">=3.8,<4.0"
-base58 = "*"
-coincurve = "*"
-eth-abi = ">=5.0.0,<6.0.0"
-httpx = "*"
-pycryptodome = "<4"
-requests = "*"
-
-mnemonic = { version = "0.20", optional = true }
-protobuf = { version = "*", optional = true }
-
-[tool.poetry.extras]
-mnemonic = ["mnemonic"]
+[project.optional-dependencies]
+mnemonic = ["mnemonic==0.20"]
 offline = ["protobuf"]
 
-[tool.poetry.dev-dependencies]
-pytest = "*"
-pytest-cov = "*"
-flake8 = "*"
-black = "*"
-isort = "*"
-mypy = "*"
-sphinx = "*"
-pytest-asyncio = "*"
-codecov = "*"
-pre-commit = "*"
+[project.urls]
+Homepage = "https://github.com/andelf/tronpy"
+Repository = "https://github.com/andelf/tronpy"
+Documentation = "https://tronpy.readthedocs.io"
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "pytest-asyncio",
+    "flake8",
+    "black",
+    "isort",
+    "mypy",
+    "codecov",
+    "pre-commit",
+    "freezegun",
+]
+docs = ["sphinx"]
+
+[tool.hatch.version]
+path = "tronpy/version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["tronpy"]
 
 [tool.pytest.ini_options]
 addopts = ["--cov=.", "--cov-report", "term-missing"]
@@ -69,10 +89,5 @@ no_implicit_optional = true
 strict_optional = true
 ignore_missing_imports = true
 
-
 [tool.coverage.run]
 omit = ["*__init__.py", "tests/*", "venv/*", "env/*", "setup.py"]
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
