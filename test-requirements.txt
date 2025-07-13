@@ -1,6 +1,7 @@
 black
 codecov
 flake8
+freezegun
 isort
 mypy
 pre-commit

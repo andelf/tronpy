@@ -19,7 +19,7 @@ install_requires = [
     "requests",
 ]
 
-extras_hdwallet = {"mnemonic": ["mnemonic==0.20"]}
+extras_hdwallet = {"mnemonic": ["mnemonic==0.20"], "offline": ["protobuf"]}
 
 setup_kwargs = {
     "name": "tronpy",

@@ -64,3 +64,7 @@ class DoubleSpending(TransactionError):
 
 class BugInJavaTron(Exception):
     pass
+
+
+class ProtobufImportError(ImportError):
+    pass

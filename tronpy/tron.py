@@ -7,7 +7,7 @@ from typing import Optional, Tuple, Union
 from tronpy import keys
 from tronpy.abi import tron_abi
 from tronpy.contract import Contract, ContractMethod, ShieldedTRC20
-from tronpy.defaults import conf_for_name
+from tronpy.defaults import PROTOBUF_NOT_INSTALLED_ERROR_MESSAGE, conf_for_name
 from tronpy.exceptions import (
     AddressNotFound,
     ApiError,
@@ -17,6 +17,7 @@ from tronpy.exceptions import (
     BadSignature,
     BlockNotFound,
     BugInJavaTron,
+    ProtobufImportError,
     TaposError,
     TransactionError,
     TransactionNotFound,
@@ -27,6 +28,11 @@ from tronpy.exceptions import (
 from tronpy.hdwallet import TRON_DEFAULT_PATH, generate_mnemonic, key_from_seed, seed_from_mnemonic
 from tronpy.keys import PrivateKey
 from tronpy.providers import HTTPProvider
+
+try:
+    from tronpy import proto
+except ProtobufImportError:
+    proto = None
 
 TAddress = str
 
@@ -266,18 +272,28 @@ class TransactionBuilder:
         self._raw_data["fee_limit"] = value
         return self
 
-    def build(self, options=None, **kwargs) -> Transaction:
+    def build(self, *, offline: bool = False, ref_block_id: str = None, **kwargs) -> Transaction:
         """Build the transaction."""
-        ref_block_id = self._client.get_latest_solid_block_id()
-        # last 2 byte of block number part
+        if offline:
+            if not ref_block_id:
+                raise ValueError("ref_block_id is required when building offline transactions")
+            if proto is None:
+                raise ImportError(PROTOBUF_NOT_INSTALLED_ERROR_MESSAGE)
+        else:
+            ref_block_id = self._client.get_latest_solid_block_id()
         self._raw_data["ref_block_bytes"] = ref_block_id[12:16]
-        # last half part of block hash
         self._raw_data["ref_block_hash"] = ref_block_id[16:32]
-
-        if self._method:
+        if offline:
+            txid = proto.calculate_txid_from_raw_data(self._raw_data)
+            return Transaction(
+                self._raw_data,
+                client=None,
+                method=self._method,
+                txid=txid,
+                permission=None,
+            )
+        else:
             return Transaction(self._raw_data, client=self._client, method=self._method)
-
-        return Transaction(self._raw_data, client=self._client)
 
 
 class Trx:
