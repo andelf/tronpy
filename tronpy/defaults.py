@@ -33,7 +33,7 @@ ALL = {
 
 
 def conf_for_name(name: str) -> dict:
-    return ALL.get(name, None)
+    return ALL.get(name)
 
 
 PROTOBUF_NOT_INSTALLED_ERROR_MESSAGE = (

@@ -63,7 +63,7 @@ class Node(int):
     index: int
 
     def __new__(cls, index):
-        if 0 > index or index > 2**31:
+        if index < 0 or index > 2**31:
             raise ValidationError(f"{cls} cannot be initialized with value {index}")
 
         obj = int.__new__(cls, index + cls.OFFSET)
@@ -87,7 +87,7 @@ class Node(int):
         if len(node) < 1:
             raise ValidationError("Cannot use empty string")
 
-        node_class: Union[Type["SoftNode"], Type["HardNode"]]
+        node_class: Union[Type[SoftNode], Type[HardNode]]
         if node[-1] in HARD_NODE_SUFFIXES:
             node_class = HardNode
             node_index = node[:-1]
@@ -203,7 +203,7 @@ class HDPath:
             raise ValidationError(f'Path is not valid: "{path}". Must start with "m"')
 
         decoded_path = []
-        for idx, node in enumerate(nodes[1:]):  # We don't need the root node 'm'
+        for _, node in enumerate(nodes[1:]):  # We don't need the root node 'm'
             try:
                 decoded_path.append(Node.decode(node))
             except ValidationError as err:

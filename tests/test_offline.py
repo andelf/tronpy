@@ -95,8 +95,7 @@ def test_create_transaction_offline(
     if client_class == AsyncTron:
 
         async def run_test():
-            transaction = await client.trx.transfer(FROM_ADDR, TO_ADDR, 1).build(offline=True, ref_block_id=REF_BLOCK_ID)
-            return transaction
+            return await client.trx.transfer(FROM_ADDR, TO_ADDR, 1).build(offline=True, ref_block_id=REF_BLOCK_ID)
 
         transaction = asyncio.run(run_test())
     else:
@@ -139,10 +138,9 @@ def test_create_smart_contract_transaction_offline(
         async def run_test():
             contract = await client.get_contract(TRC20_CONTRACT)
             builder = await contract.functions.transfer(TO_ADDR, 1)
-            transaction = (
+            return (
                 await builder.with_owner(FROM_ADDR).fee_limit(FEE_LIMIT).build(offline=True, ref_block_id=REF_BLOCK_ID)
             )
-            return transaction
 
         transaction = asyncio.run(run_test())
     else:

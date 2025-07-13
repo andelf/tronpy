@@ -8,8 +8,7 @@ client = Tron()
 
 def check_balance(address):
     try:
-        balance = client.get_account_balance(address)
-        return balance
+        return client.get_account_balance(address)
     except AddressNotFound:
         return "Adress not found..!"
 

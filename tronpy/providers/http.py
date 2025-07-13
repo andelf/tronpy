@@ -80,11 +80,10 @@ class HTTPProvider:
         url = urljoin(self.endpoint_uri, method)
         resp = self.sess.post(url, json=params, timeout=self.timeout)
 
-        if self.use_api_key:
-            if resp.status_code == 403 and b"Exceed the user daily usage" in resp.content:
-                print("W:", resp.json().get("Error", "rate limit!"), file=sys.stderr)
-                self._handle_rate_limit()
-                return self.make_request(method, params)
+        if self.use_api_key and resp.status_code == 403 and b"Exceed the user daily usage" in resp.content:
+            print("W:", resp.json().get("Error", "rate limit!"), file=sys.stderr)
+            self._handle_rate_limit()
+            return self.make_request(method, params)
 
         resp.raise_for_status()
         return resp.json()

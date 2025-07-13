@@ -85,12 +85,11 @@ def to_base58check_address(raw_addr: Union[str, bytes]) -> str:
             except ValueError:
                 raise BadAddress("bad base58check format")
             return raw_addr
-        elif len(raw_addr) == 42:
+        if len(raw_addr) == 42:
             if raw_addr.startswith("0x"):  # eth address format
                 return base58.b58encode_check(b"\x41" + bytes.fromhex(raw_addr[2:])).decode()
-            else:
-                return base58.b58encode_check(bytes.fromhex(raw_addr)).decode()
-        elif raw_addr.startswith("0x") and len(raw_addr) == 44:
+            return base58.b58encode_check(bytes.fromhex(raw_addr)).decode()
+        if raw_addr.startswith("0x") and len(raw_addr) == 44:
             return base58.b58encode_check(bytes.fromhex(raw_addr[2:])).decode()
     elif isinstance(raw_addr, (bytes, bytearray)):
         if len(raw_addr) == 21 and int(raw_addr[0]) == 0x41:
@@ -171,10 +170,9 @@ class BaseKey(Sequence, Hashable):
     def __eq__(self, other: Any) -> bool:
         if hasattr(other, "to_bytes"):
             return self.to_bytes() == other.to_bytes()
-        elif isinstance(other, (bytes, bytearray)):
+        if isinstance(other, (bytes, bytearray)):
             return self.to_bytes() == other
-        else:
-            return False
+        return False
 
     def __repr__(self) -> str:
         return repr(self.hex())
@@ -317,8 +315,7 @@ class Signature(Sequence):
             # `coincurve` can raise `ValueError` or `Exception` dependending on
             # how the signature is invalid.
             raise BadSignature(str(err))
-        public_key = PublicKey(public_key_bytes)
-        return public_key
+        return PublicKey(public_key_bytes)
 
     def verify_msg(self, message: bytes, public_key: PublicKey) -> bool:
         """Verify message and signature."""
@@ -383,10 +380,9 @@ class Signature(Sequence):
     def __eq__(self, other: Any) -> bool:
         if hasattr(other, "to_bytes"):
             return self.to_bytes() == other.to_bytes()
-        elif isinstance(other, (bytes, bytearray)):
+        if isinstance(other, (bytes, bytearray)):
             return self.to_bytes() == other
-        else:
-            return False
+        return False
 
     def __repr__(self) -> str:
         return repr(self.hex())

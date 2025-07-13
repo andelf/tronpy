@@ -239,7 +239,7 @@ class TransactionBuilder:
             "ref_block_hash": None,
         }
 
-        if inner.get("type", None) in ["TriggerSmartContract", "CreateSmartContract"]:
+        if inner.get("type") in ["TriggerSmartContract", "CreateSmartContract"]:
             self._raw_data["fee_limit"] = self._client.conf["fee_limit"]
 
         self._method = method
@@ -292,8 +292,7 @@ class TransactionBuilder:
                 txid=txid,
                 permission=None,
             )
-        else:
-            return Transaction(self._raw_data, client=self._client, method=self._method)
+        return Transaction(self._raw_data, client=self._client, method=self._method)
 
 
 class Trx:
@@ -406,7 +405,7 @@ class Trx:
             for act in perm["actives"]:
                 for key in act["keys"]:
                     key["address"] = keys.to_hex_address(key["address"])
-        if perm.get("witness", None):
+        if perm.get("witness"):
             for key in perm["witness"]["keys"]:
                 key["address"] = keys.to_hex_address(key["address"])
 
@@ -537,7 +536,7 @@ class Trx:
 
     def vote_witness(self, owner: TAddress, *votes: Tuple[TAddress, int]) -> "TransactionBuilder":
         """Vote for witnesses. Empty ``votes`` to clean voted."""
-        votes = [dict(vote_address=keys.to_hex_address(addr), vote_count=count) for addr, count in votes]
+        votes = [{"vote_address": keys.to_hex_address(addr), "vote_count": count} for addr, count in votes]
         payload = {"owner_address": keys.to_hex_address(owner), "votes": votes}
         return self._build_transaction("VoteWitnessContract", payload)
 
@@ -611,7 +610,7 @@ class Tron:
         return self._trx
 
     def _handle_api_error(self, payload: dict):
-        if payload.get("result", None) is True:
+        if payload.get("result") is True:
             return
         if "Error" in payload:
             # class java.lang.NullPointerException : null
@@ -624,11 +623,11 @@ class Tron:
 
             if payload["code"] == "SIGERROR":
                 raise BadSignature(msg)
-            elif payload["code"] == "TAPOS_ERROR":
+            if payload["code"] == "TAPOS_ERROR":
                 raise TaposError(msg)
-            elif payload["code"] in ["TRANSACTION_EXPIRATION_ERROR", "TOO_BIG_TRANSACTION_ERROR"]:
+            if payload["code"] in ["TRANSACTION_EXPIRATION_ERROR", "TOO_BIG_TRANSACTION_ERROR"]:
                 raise TransactionError(msg)
-            elif payload["code"] == "CONTRACT_VALIDATE_ERROR":
+            if payload["code"] == "CONTRACT_VALIDATE_ERROR":
                 raise ValidationError(msg)
 
             raise UnknownError(msg, payload["code"])
@@ -717,18 +716,18 @@ class Tron:
         pkD = ret["pkD"]
         payment_address = ret["payment_address"]
 
-        return dict(
-            sk=sk,
-            ask=ask,
-            nsk=nsk,
-            ovk=ovk,
-            ak=ak,
-            nk=nk,
-            ivk=ivk,
-            d=d,
-            pkD=pkD,
-            payment_address=payment_address,
-        )
+        return {
+            "sk": sk,
+            "ask": ask,
+            "nsk": nsk,
+            "ovk": ovk,
+            "ak": ak,
+            "nk": nk,
+            "ivk": ivk,
+            "d": d,
+            "pkD": pkD,
+            "payment_address": payment_address,
+        }
 
     # Account query
 
@@ -738,8 +737,7 @@ class Tron:
         ret = self.provider.make_request("wallet/getaccount", {"address": keys.to_base58check_address(addr), "visible": True})
         if ret:
             return ret
-        else:
-            raise AddressNotFound("account not found on-chain")
+        raise AddressNotFound("account not found on-chain")
 
     def get_account_resource(self, addr: TAddress) -> dict:
         """Get resource info of an account."""
@@ -750,8 +748,7 @@ class Tron:
         )
         if ret:
             return ret
-        else:
-            raise AddressNotFound("account not found on-chain")
+        raise AddressNotFound("account not found on-chain")
 
     def get_account_balance(self, addr: TAddress) -> Decimal:
         """Get TRX balance of an account. Result in `TRX`."""
@@ -767,8 +764,7 @@ class Tron:
         if ret:
             # (freeNetLimit - freeNetUsed) + (NetLimit - NetUsed)
             return ret["freeNetLimit"] - ret.get("freeNetUsed", 0) + ret.get("NetLimit", 0) - ret.get("NetUsed", 0)
-        else:
-            raise AddressNotFound("account not found on-chain")
+        raise AddressNotFound("account not found on-chain")
 
     def get_energy(self, address: str) -> int:
         """Query the energy of the account"""
@@ -900,10 +896,9 @@ class Tron:
 
         if "Error" in (block or {}):
             raise BugInJavaTron(block)
-        elif block:
+        if block:
             return block
-        else:
-            raise BlockNotFound
+        raise BlockNotFound
 
     def get_transaction(self, txn_id: str) -> dict:
         """Get transaction from a transaction id."""
@@ -978,11 +973,10 @@ class Tron:
             return ValueError("either query by id or issuer")
         if id:
             return self.provider.make_request("wallet/getassetissuebyid", {"value": id, "visible": True})
-        else:
-            return self.provider.make_request(
-                "wallet/getassetissuebyaccount",
-                {"address": keys.to_base58check_address(issuer), "visible": True},
-            )
+        return self.provider.make_request(
+            "wallet/getassetissuebyaccount",
+            {"address": keys.to_base58check_address(issuer), "visible": True},
+        )
 
     def get_asset_from_name(self, name: str) -> dict:
         """Get asset info from its abbr name, might fail if there're duplicates."""
@@ -1025,7 +1019,7 @@ class Tron:
             # your java's null pointer exception sucks
             raise AddressNotFound("contract address not found")
 
-        cntr = Contract(
+        return Contract(
             addr=addr,
             bytecode=info.get("bytecode", ""),
             name=info.get("name", ""),
@@ -1036,7 +1030,6 @@ class Tron:
             code_hash=info.get("code_hash", ""),
             client=self,
         )
-        return cntr
 
     def get_contract_info(self, addr: TAddress) -> dict:
         """Queries a contract's information from the blockchain"""

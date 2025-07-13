@@ -295,8 +295,7 @@ class ContractConstructor:
 
     def __str__(self):
         types = ", ".join(arg.get("type", "") + " " + arg.get("name", "") for arg in self.inputs)
-        ret = f"construct({types})"
-        return ret
+        return f"construct({types})"
 
     @property
     def input_type(self) -> str:
@@ -424,19 +423,18 @@ class ContractMethod:
 
             return self.parse_output(ret)
 
-        else:
-            return self._client.trx._build_transaction(
-                "TriggerSmartContract",
-                {
-                    "owner_address": to_hex_address(self._owner_address),
-                    "contract_address": to_hex_address(self._contract.contract_address),
-                    "data": self.function_signature_hash + parameter,
-                    "call_token_value": self.call_token_value,
-                    "call_value": self.call_value,
-                    "token_id": self.call_token_id,
-                },
-                method=self,
-            )
+        return self._client.trx._build_transaction(
+            "TriggerSmartContract",
+            {
+                "owner_address": to_hex_address(self._owner_address),
+                "contract_address": to_hex_address(self._contract.contract_address),
+                "data": self.function_signature_hash + parameter,
+                "call_token_value": self.call_token_value,
+                "call_value": self.call_value,
+                "token_id": self.call_token_id,
+            },
+            method=self,
+        )
 
     @property
     def name(self) -> str:
@@ -456,8 +454,7 @@ class ContractMethod:
             if "components" not in entry:
                 raise ValueError("ABIEncoderV2 used, ABI should be set by hand")
             return "({}){}".format(",".join(self.__format_json_abi_type_entry(arg) for arg in entry["components"]), surfix)
-        else:
-            return entry.get("type", "")
+        return entry.get("type", "")
 
     @property
     def function_signature(self) -> str:
@@ -572,10 +569,7 @@ class ShieldedTRC20:
             addr = recv[0]
             amount = recv[1]
             receive_amount += amount
-            if len(recv) == 3:
-                memo = recv[2]
-            else:
-                memo = ""
+            memo = recv[2] if len(recv) == 3 else ""
 
             rcm = self.get_rcm()
 
@@ -626,10 +620,7 @@ class ShieldedTRC20:
         for receive in to:
             addr = receive[0]
             amount = receive[1]
-            if len(receive) == 3:
-                memo = receive[2]
-            else:
-                memo = ""
+            memo = receive[2] if len(receive) == 3 else ""
 
             if addr.startswith("ztron1"):
                 change_amount += amount
