@@ -1,5 +1,6 @@
 import itertools
-from typing import Any, Generator, List, Optional, Tuple, Union
+from collections.abc import Generator
+from typing import Any, Optional, Union
 
 from Crypto.Hash import keccak
 from eth_utils import decode_hex
@@ -33,7 +34,7 @@ class Contract:
         *,
         bytecode: Union[str, bytes] = "",
         name: str = None,
-        abi: Optional[Union[dict, List[dict]]] = None,
+        abi: Optional[Union[dict, list[dict]]] = None,
         user_resource_percent: int = 100,
         origin_energy_limit: int = 1,
         origin_address: str = None,
@@ -221,7 +222,7 @@ class ContractEvent:
     def process_receipt(self, txn_receipt: dict) -> Generator:
         return self.parse_logs(txn_receipt["log"])
 
-    def parse_logs(self, logs: List[dict]):
+    def parse_logs(self, logs: list[dict]):
         for log in logs:
             if log["address"] != self._contract.contract_address:
                 continue
@@ -545,7 +546,7 @@ class ShieldedTRC20:
         self,
         zkey: dict,
         notes: Union[list, dict],
-        *to: Union[Tuple[str, int], Tuple[str, int, str]],
+        *to: Union[tuple[str, int], tuple[str, int, str]],
     ) -> "tronpy.tron.TransactionBuilder":
         """Transfer from z-address to z-address."""
         if isinstance(notes, (dict,)):
@@ -602,7 +603,7 @@ class ShieldedTRC20:
         )
 
     def burn(
-        self, zkey: dict, note: dict, *to: Union[Tuple[str, int], Tuple[str, int, str]]
+        self, zkey: dict, note: dict, *to: Union[tuple[str, int], tuple[str, int, str]]
     ) -> "tronpy.tron.TransactionBuilder":
         """Burn, transfer from z-address to T-address."""
         spends = []
@@ -713,7 +714,7 @@ class ShieldedTRC20:
         return ret.get("noteTxs", [])
 
     # (root, path)
-    def get_path(self, position: int = 0) -> Tuple[str, str]:
+    def get_path(self, position: int = 0) -> tuple[str, str]:
         root, path = self.shielded.functions.getPath(position)
         root = root.hex()
         path = "".join(p.hex() for p in path)

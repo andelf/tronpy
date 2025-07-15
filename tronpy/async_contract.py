@@ -1,4 +1,4 @@
-from typing import Tuple, Union
+from typing import Union
 
 import tronpy
 from tronpy import keys
@@ -125,7 +125,7 @@ class AsyncShieldedTRC20(ShieldedTRC20):
         self,
         zkey: dict,
         notes: Union[list, dict],
-        *to: Union[Tuple[str, int], Tuple[str, int, str]],
+        *to: Union[tuple[str, int], tuple[str, int, str]],
     ) -> "tronpy.async_tron.AsyncTransactionBuilder":
         """Transfer from z-address to z-address."""
         if isinstance(notes, (dict,)):
@@ -182,7 +182,7 @@ class AsyncShieldedTRC20(ShieldedTRC20):
         )
 
     async def burn(
-        self, zkey: dict, note: dict, *to: Union[Tuple[str, int], Tuple[str, int, str]]
+        self, zkey: dict, note: dict, *to: Union[tuple[str, int], tuple[str, int, str]]
     ) -> "tronpy.async_tron.AsyncTransactionBuilder":
         """Burn, transfer from z-address to T-address."""
         spends = []

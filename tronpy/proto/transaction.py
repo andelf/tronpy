@@ -1,5 +1,5 @@
 import hashlib
-from typing import Any, Dict
+from typing import Any
 
 from tronpy.exceptions import ProtobufImportError
 from tronpy.keys import to_raw_address
@@ -12,7 +12,7 @@ except ImportError as exc:
     raise ProtobufImportError from exc
 
 
-def calculate_txid_from_raw_data(raw_data: Dict[str, Any]) -> str:
+def calculate_txid_from_raw_data(raw_data: dict[str, Any]) -> str:
     """Calculate txid using protobuf serialization"""
     transaction_raw = _raw_data_to_protobuf(raw_data)
     transaction = tron_pb2.Transaction(raw_data=transaction_raw)
@@ -20,7 +20,7 @@ def calculate_txid_from_raw_data(raw_data: Dict[str, Any]) -> str:
     return hashlib.sha256(raw_bytes).hexdigest()
 
 
-def _raw_data_to_protobuf(raw_data: Dict[str, Any]):
+def _raw_data_to_protobuf(raw_data: dict[str, Any]):
     """Convert raw_data dictionary to protobuf Transaction.raw format."""
     contracts = []
     for contract_data in raw_data["contract"]:

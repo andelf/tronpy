@@ -2,7 +2,7 @@ import os
 import secrets
 import sys
 import time
-from typing import Any, List, Union
+from typing import Any, Union
 from urllib.parse import urljoin
 
 import requests
@@ -34,7 +34,7 @@ class HTTPProvider:
         self,
         endpoint_uri: Union[str, dict] = None,
         timeout: float = DEFAULT_TIMEOUT,
-        api_key: Union[str, List[str]] = None,
+        api_key: Union[str, list[str]] = None,
         jw_token: str = None,
     ):
         super().__init__()

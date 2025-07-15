@@ -8,7 +8,7 @@ executors:
     parameters:
       v:
         type: string
-        default: "3.8"
+        default: "3.9"
 
     docker:
       - image: cimg/python:<< parameters.v >>
@@ -83,7 +83,7 @@ jobs:
   deploy:
     executor: bitcart/docker-python
     docker:
-      - image: cimg/python:3.8
+      - image: cimg/python:3.9
     steps:
       - checkout
 
@@ -107,11 +107,11 @@ workflows:
           matrix:
             parameters:
               v:
-                - "3.8"
                 - "3.9"
                 - "3.10"
                 - "3.11"
                 - "3.12"
+                - "3.13"
       - deploy:
           context: global
           filters:

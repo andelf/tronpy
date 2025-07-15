@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "tronpy"
 dynamic = ["version"]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 description = "TRON Python client library"
 license = "MIT"
 authors = [
@@ -22,11 +22,11 @@ classifiers = [
     "Natural Language :: English",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
     "base58",
@@ -73,7 +73,7 @@ path = "tronpy/version.py"
 packages = ["tronpy"]
 
 [tool.ruff]
-target-version = "py38"
+target-version = "py39"
 line-length = 127
 exclude = ["tronpy/proto/tron_pb2.*"]
 
@@ -102,23 +102,24 @@ mccabe = { max-complexity = 12 }
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S"]
 
+[tool.mypy]
+ignore_missing_imports = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_any_generics = true
+check_untyped_defs = true
+no_implicit_reexport = true
+strict_equality = true
+disallow_untyped_defs = true
+skip_cache_mtime_checks = true
+exclude = ["tests"]
+
 [tool.pytest.ini_options]
 addopts = ["--cov=.", "--cov-report", "term-missing"]
 filterwarnings = [
     "error::DeprecationWarning",
     "error::PendingDeprecationWarning",
 ]
-
-[tool.mypy]
-warn_redundant_casts = true
-warn_unused_ignores = true
-disallow_untyped_calls = true
-disallow_untyped_defs = true
-check_untyped_defs = true
-warn_return_any = true
-no_implicit_optional = true
-strict_optional = true
-ignore_missing_imports = true
 
 [tool.coverage.run]
 omit = ["*__init__.py", "tests/*", "venv/*", "env/*", "setup.py"]

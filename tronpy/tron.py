@@ -3,7 +3,7 @@ import json
 import time
 from decimal import Decimal
 from pprint import pprint
-from typing import Optional, Tuple, Union
+from typing import Optional, Union
 
 from tronpy import keys
 from tronpy.abi import tron_abi
@@ -535,7 +535,7 @@ class Trx:
         payload = {"owner_address": keys.to_hex_address(owner), "url": url.encode().hex()}
         return self._build_transaction("WitnessCreateContract", payload)
 
-    def vote_witness(self, owner: TAddress, *votes: Tuple[TAddress, int]) -> "TransactionBuilder":
+    def vote_witness(self, owner: TAddress, *votes: tuple[TAddress, int]) -> "TransactionBuilder":
         """Vote for witnesses. Empty ``votes`` to clean voted."""
         votes = [{"vote_address": keys.to_hex_address(addr), "vote_count": count} for addr, count in votes]
         payload = {"owner_address": keys.to_hex_address(owner), "votes": votes}

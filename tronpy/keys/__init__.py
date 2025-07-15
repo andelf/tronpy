@@ -1,7 +1,7 @@
 import hashlib
 import os
-from collections.abc import Hashable, Sequence
-from typing import Any, Iterator, Union
+from collections.abc import Hashable, Iterator, Sequence
+from typing import Any, Union
 
 import base58
 from coincurve import PrivateKey as CoincurvePrivateKey
