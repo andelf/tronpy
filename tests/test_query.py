@@ -7,7 +7,7 @@ def test_query_account():
     client = Tron(network="nile")
 
     # There are many TRC10 token named `BTT`
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         client.get_asset_from_name("BTT")
 
     bals = client.get_account_asset_balances("TUyk7E8VqitrD1iFLVMcYg9jbjtD7sMhvF")
@@ -21,7 +21,7 @@ def test_query_account():
 async def test_async_query_account():
     async with AsyncTron(network="nile") as client:
         # There are many TRC10 token named `BTT`
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
             await client.get_asset_from_name("BTT")
 
         bals = await client.get_account_asset_balances("TUyk7E8VqitrD1iFLVMcYg9jbjtD7sMhvF")

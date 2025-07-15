@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import json
 import time
 from decimal import Decimal
@@ -94,13 +95,11 @@ class AsyncTransactionRet(dict):
             msg = receipt.get("resMessage", receipt["result"])
 
             if receipt["receipt"]["result"] == "REVERT":
-                try:
+                with contextlib.suppress(Exception):
                     result = receipt.get("contractResult", [])
                     if result and len(result[0]) > (4 + 32) * 2:
                         error_msg = tron_abi.decode_single("string", bytes.fromhex(result[0])[4 + 32 :])
                         msg = f"{msg}: {error_msg}"
-                except Exception:
-                    pass
             raise TvmError(msg)
 
         return self._method.parse_output(receipt["contractResult"][0])
@@ -178,8 +177,10 @@ class AsyncTransaction:
     def sign(self, priv_key: PrivateKey) -> "AsyncTransaction":
         """Sign the transaction with a private key."""
 
-        assert self.txid, "txID not calculated"
-        assert self.is_expired is False, "expired"
+        if not self.txid:
+            raise ValueError("txID not calculated")
+        if self.is_expired:
+            raise ValueError("expired")
 
         if self._permission is not None:
             addr_of_key = priv_key.public_key.to_hex_address()
@@ -995,12 +996,12 @@ class AsyncTron:
 
     # Asset (TRC10)
 
-    async def get_asset(self, id: int = None, issuer: TAddress = None) -> dict:
+    async def get_asset(self, asset_id: int = None, issuer: TAddress = None) -> dict:
         """Get TRC10(asset) info by asset's id or issuer."""
-        if id and issuer:
+        if asset_id and issuer:
             raise ValueError("either query by id or issuer")
-        if id:
-            return await self.provider.make_request("wallet/getassetissuebyid", {"value": id, "visible": True})
+        if asset_id:
+            return await self.provider.make_request("wallet/getassetissuebyid", {"value": asset_id, "visible": True})
         return await self.provider.make_request(
             "wallet/getassetissuebyaccount",
             {"address": keys.to_base58check_address(issuer), "visible": True},
@@ -1027,7 +1028,10 @@ class AsyncTron:
                 asset["abbr"] = bytes.fromhex(asset["abbr"]).decode()
             else:
                 asset["abbr"] = ""
-            asset["description"] = bytes.fromhex(asset["description"]).decode("utf8", "replace")
+            if "description" in asset:
+                asset["description"] = bytes.fromhex(asset["description"]).decode("utf8", "replace")
+            else:
+                asset["description"] = ""
             asset["url"] = bytes.fromhex(asset["url"]).decode()
         return assets
 
@@ -1040,9 +1044,9 @@ class AsyncTron:
 
         try:
             self._handle_api_error(info)
-        except ApiError:
+        except ApiError as e:
             # your java's null pointer exception sucks
-            raise AddressNotFound("contract address not found")
+            raise AddressNotFound("contract address not found") from e
 
         return AsyncContract(
             addr=addr,
@@ -1063,8 +1067,8 @@ class AsyncTron:
 
         try:
             self._handle_api_error(info)
-        except ApiError:
-            raise AddressNotFound("contract address not found")
+        except ApiError as e:
+            raise AddressNotFound("contract address not found") from e
 
         return info
 
@@ -1094,12 +1098,10 @@ class AsyncTron:
         if "message" in ret.get("result", {}):
             msg = ret["result"]["message"]
             result = ret.get("constant_result", [])
-            try:
+            with contextlib.suppress(Exception):
                 if result and len(result[0]) > (4 + 32) * 2:
                     error_msg = tron_abi.decode_single("string", bytes.fromhex(result[0])[4 + 32 :])
                     msg = f"{msg}: {error_msg}"
-            except Exception:
-                pass
             raise TvmError(msg)
         return ret
 

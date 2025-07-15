@@ -147,20 +147,25 @@ def derive_child_key(
        (Note: this has probability lower than 1 in 2**127.)
 
     """
-    assert len(parent_chain_code) == 32
+    if len(parent_chain_code) != 32:
+        raise ValidationError(f"Parent chain code must be 32 bytes, got {len(parent_chain_code)}")
     if isinstance(node, HardNode):
         # NOTE Empty byte is added to align to SoftNode case
-        assert len(parent_key) == 32  # Should be guaranteed here in return statment
+        if len(parent_key) != 32:
+            raise ValidationError(f"Parent key must be 32 bytes, got {len(parent_key)}")
         child = hmac_sha512(parent_chain_code, b"\x00" + parent_key + node.serialize())
 
     elif isinstance(node, SoftNode):
-        assert len(ec_point(parent_key)) == 33  # Should be guaranteed by Account class
-        child = hmac_sha512(parent_chain_code, ec_point(parent_key) + node.serialize())
+        ec_point_key = ec_point(parent_key)
+        if len(ec_point_key) != 33:
+            raise ValidationError(f"EC point key must be 33 bytes, got {len(ec_point_key)}")
+        child = hmac_sha512(parent_chain_code, ec_point_key + node.serialize())
 
     else:
         raise ValidationError(f"Cannot process: {node}")
 
-    assert len(child) == 64
+    if len(child) != 64:
+        raise ValidationError(f"Child key must be 64 bytes, got {len(child)}")
 
     if to_int(child[:32]) >= SECP256K1_N:
         # Invalid key, compute using next node (< 2**-127 probability)

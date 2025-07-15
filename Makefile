@@ -1,7 +1,7 @@
 all: ci
 
 lint:
-	# ruff check
+	ruff check
 	# mypy tronpy
 
 checkformat:

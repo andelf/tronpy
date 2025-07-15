@@ -203,7 +203,7 @@ class ContractEvents:
         try:
             return self[event]
         except KeyError:
-            raise AttributeError(f"contract has no method named '{event}'")
+            raise AttributeError(f"contract has no method named '{event}'") from None
 
     def __dir__(self):
         return [event["name"] for event in self._contract.abi if event.get("type", "").lower() == "event"]
@@ -274,7 +274,7 @@ class ContractFunctions:
         try:
             return self[method]
         except KeyError:
-            raise AttributeError(f"contract has no method named '{method}'")
+            raise AttributeError(f"contract has no method named '{method}'") from None
 
     def __dir__(self):
         return [method["name"] for method in self._contract.abi if method.get("type", "").lower() == "function"]
@@ -323,7 +323,7 @@ class ContractConstructor:
                 try:
                     args.append(kwargs[arg["name"]])
                 except KeyError:
-                    raise TypeError("missing argument '{}'".format(arg["name"]))
+                    raise TypeError("missing argument '{}'".format(arg["name"])) from None
             parameter = trx_abi.encode_single(self.input_type, args).hex()
 
         return parameter
@@ -405,7 +405,7 @@ class ContractMethod:
                 try:
                     args.append(kwargs[arg["name"]])
                 except KeyError:
-                    raise TypeError("missing argument '{}'".format(arg["name"]))
+                    raise TypeError("missing argument '{}'".format(arg["name"])) from None
             parameter = trx_abi.encode_single(self.input_type, args).hex()
         else:
             raise TypeError(f"wrong number of arguments, require {len(self.inputs)}")
@@ -551,7 +551,8 @@ class ShieldedTRC20:
         if isinstance(notes, (dict,)):
             notes = [notes]
 
-        assert 1 <= len(notes) <= 2
+        if not 1 <= len(notes) <= 2:
+            raise ValueError("transfer must have 1 or 2 notes")
 
         spends = []
         spend_amount = 0

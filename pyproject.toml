@@ -5,15 +5,18 @@ build-backend = "hatchling.build"
 [project]
 name = "tronpy"
 dynamic = ["version"]
-description = "TRON Python client library"
-authors = [{ name = "andelf", email = "andelf@gmail.com" }]
-license = "MIT"
-readme = "README.md"
 requires-python = ">=3.8"
+description = "TRON Python client library"
+license = "MIT"
+authors = [
+    { name = "andelf", email = "andelf@gmail.com" },
+    { name = "MrNaif2018", email = "chuff184@gmail.com" },
+]
+readme = "README.md"
 keywords = ["tron", "api", "blockchain"]
 classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: System Administrators",
     "Natural Language :: English",
@@ -53,8 +56,15 @@ dev = [
     "pre-commit",
     "freezegun",
     "ruff>=0.12.3",
+    "taskipy>=1.14.1",
 ]
 docs = ["sphinx"]
+
+[tool.taskipy.tasks]
+lint = { cmd = "ruff format . && ruff check --fix .", help = "run linters with autofix" }
+lint_check = { cmd = "ruff format --check . && ruff check .", help = "run ruff linter" }
+test = { cmd = "pytest tests/ ${TEST_ARGS}", help = "run tests" }
+ci = { cmd = "task lint_check && task test", help = "run ci checks" }
 
 [tool.hatch.version]
 path = "tronpy/version.py"

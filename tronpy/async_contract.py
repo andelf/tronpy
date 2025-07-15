@@ -131,7 +131,8 @@ class AsyncShieldedTRC20(ShieldedTRC20):
         if isinstance(notes, (dict,)):
             notes = [notes]
 
-        assert 1 <= len(notes) <= 2
+        if not 1 <= len(notes) <= 2:
+            raise ValueError("transfer must have 1 or 2 notes")
 
         spends = []
         spend_amount = 0

@@ -82,8 +82,8 @@ def to_base58check_address(raw_addr: Union[str, bytes]) -> str:
             try:
                 # assert checked
                 base58.b58decode_check(raw_addr)
-            except ValueError:
-                raise BadAddress("bad base58check format")
+            except ValueError as e:
+                raise BadAddress("bad base58check format") from e
             return raw_addr
         if len(raw_addr) == 42:
             if raw_addr.startswith("0x"):  # eth address format
@@ -188,11 +188,10 @@ class PublicKey(BaseKey):
     """The public key."""
 
     def __init__(self, public_key_bytes: bytes):
-        try:
-            assert isinstance(public_key_bytes, (bytes,))
-            assert len(public_key_bytes) == 64
-        except AssertionError:
-            raise BadKey
+        if not isinstance(public_key_bytes, (bytes,)):
+            raise BadKey("public_key_bytes must be bytes")
+        if len(public_key_bytes) != 64:
+            raise BadKey(f"public_key_bytes must be 64 bytes long, got {len(public_key_bytes)}")
 
         self._raw_key = public_key_bytes
 
@@ -237,16 +236,16 @@ class PrivateKey(BaseKey):
     public_key = None
 
     def __init__(self, private_key_bytes: bytes):
-        try:
-            assert isinstance(private_key_bytes, (bytes,))
-            assert len(private_key_bytes) == 32
-            assert (
-                0
-                < int.from_bytes(private_key_bytes, "big")
-                < 115792089237316195423570985008687907852837564279074904382605163141518161494337
-            )
-        except AssertionError:
-            raise BadKey
+        if not isinstance(private_key_bytes, (bytes,)):
+            raise BadKey("private_key_bytes must be bytes")
+        if len(private_key_bytes) != 32:
+            raise BadKey(f"private_key_bytes must be 32 bytes long, got {len(private_key_bytes)}")
+        if not (
+            0
+            < int.from_bytes(private_key_bytes, "big")
+            < 115792089237316195423570985008687907852837564279074904382605163141518161494337
+        ):
+            raise BadKey("private key is not in the valid range")
 
         self._raw_key = private_key_bytes
 
@@ -286,12 +285,14 @@ class Signature(Sequence):
     _raw_signature = None
 
     def __init__(self, signature_bytes: bytes):
-        try:
-            assert isinstance(signature_bytes, (bytes,))
-            assert len(signature_bytes) == 65
-            assert signature_bytes[-1] in [0, 1]
-        except AssertionError:
-            raise BadSignature
+        if not isinstance(signature_bytes, (bytes,)):
+            raise BadSignature("signature_bytes must be bytes")
+
+        if len(signature_bytes) != 65:
+            raise BadSignature(f"signature_bytes must be 65 bytes long, got {len(signature_bytes)}")
+
+        if signature_bytes[-1] not in [0, 1]:
+            raise BadSignature(f"signature last byte must be 0 or 1, got {signature_bytes[-1]}")
 
         self._raw_signature = signature_bytes
 
@@ -314,7 +315,7 @@ class Signature(Sequence):
         except (ValueError, Exception) as err:
             # `coincurve` can raise `ValueError` or `Exception` dependending on
             # how the signature is invalid.
-            raise BadSignature(str(err))
+            raise BadSignature(str(err)) from err
         return PublicKey(public_key_bytes)
 
     def verify_msg(self, message: bytes, public_key: PublicKey) -> bool:

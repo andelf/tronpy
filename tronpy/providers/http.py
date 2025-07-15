@@ -1,5 +1,5 @@
 import os
-import random
+import secrets
 import sys
 import time
 from typing import Any, List, Union
@@ -90,7 +90,7 @@ class HTTPProvider:
 
     @property
     def random_api_key(self):
-        return random.choice(self._api_keys)
+        return secrets.choice(self._api_keys)
 
     def _handle_rate_limit(self):
         if len(self._api_keys) > 1:
