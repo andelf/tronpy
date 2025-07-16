@@ -836,6 +836,21 @@ class Tron:
             },
         )
 
+    def get_can_delegated_max_size(self, address: TAddress, resource: str = "ENERGY") -> dict:
+        """Query the amount of delegatable resources share of the specified resource type for an address
+
+        Args:
+            address (TAddress):
+            resource (str, optional): Resource type, can be ``"ENERGY"`` or ``"BANDWIDTH"``. Defaults to "ENERGY".
+
+        Returns:
+            dict: Response data
+        """
+        return self.provider.make_request(
+            "wallet/getcandelegatedmaxsize",
+            {"owner_address": keys.to_base58check_address(address), "type": 1 if resource == "ENERGY" else 0, "visible": True},
+        )
+
     def get_delegated_resource_account_index_v2(self, addr: TAddress) -> dict:
         """Query the resource delegation index by an account"""
         return self.provider.make_request(
