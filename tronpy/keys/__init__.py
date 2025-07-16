@@ -11,6 +11,7 @@ from Crypto.Hash import keccak
 from tronpy.exceptions import BadAddress, BadKey, BadSignature
 
 SECPK1_N = 115792089237316195423570985008687907852837564279074904382605163141518161494337
+TRON_MESSAGE_PREFIX = "\x19TRON Signed Message:\n"
 
 
 def coerce_low_s(value: int) -> int:
@@ -124,6 +125,13 @@ def is_hex_address(value: str) -> bool:
 
 def is_address(value: str) -> bool:
     return is_base58check_address(value) or is_hex_address(value)
+
+
+def hash_message(message):
+    if isinstance(message, str):
+        message = message.encode()
+    message_length = str(len(message)).encode()
+    return keccak256(TRON_MESSAGE_PREFIX.encode() + message_length + message)
 
 
 class BaseKey(Sequence, Hashable):
@@ -256,11 +264,11 @@ class PrivateKey(BaseKey):
 
     def sign_msg(self, message: bytes) -> "Signature":
         """Sign a raw message."""
-        message_hash = sha256(message)
+        message_hash = hash_message(message)
         return self.sign_msg_hash(message_hash)
 
     def sign_msg_hash(self, message_hash: bytes) -> "Signature":
-        """Sign a message hash(sha256)."""
+        """Sign a message hash."""
         private_key_bytes = self.to_bytes()
         signature_bytes = CoincurvePrivateKey(private_key_bytes).sign_recoverable(
             message_hash,
@@ -291,16 +299,24 @@ class Signature(Sequence):
         if len(signature_bytes) != 65:
             raise BadSignature(f"signature_bytes must be 65 bytes long, got {len(signature_bytes)}")
 
-        if signature_bytes[-1] not in [0, 1]:
-            raise BadSignature(f"signature last byte must be 0 or 1, got {signature_bytes[-1]}")
+        signature_bytes = signature_bytes[:64] + bytes([self.normalize_v(signature_bytes[-1])])
 
         self._raw_signature = signature_bytes
 
         super().__init__()
 
+    def normalize_v(self, v: int) -> int:
+        if v in (0, 27):
+            return 0
+        if v in (1, 28):
+            return 1
+        if v < 35:
+            raise BadSignature(f"invalid v {v}")
+        return int(v % 2 != 1)
+
     def recover_public_key_from_msg(self, message: bytes) -> PublicKey:
         """Recover public key(address) from message and signature."""
-        message_hash = sha256(message)
+        message_hash = hash_message(message)
         return self.recover_public_key_from_msg_hash(message_hash)
 
     def recover_public_key_from_msg_hash(self, message_hash: bytes) -> PublicKey:
@@ -320,7 +336,7 @@ class Signature(Sequence):
 
     def verify_msg(self, message: bytes, public_key: PublicKey) -> bool:
         """Verify message and signature."""
-        message_hash = sha256(message)
+        message_hash = hash_message(message)
         return self.verify_msg_hash(message_hash, public_key)
 
     def verify_msg_hash(self, message_hash: bytes, public_key: PublicKey) -> bool:
@@ -354,6 +370,13 @@ class Signature(Sequence):
         :returns: A hex str.
         """
         return self._raw_signature.hex()
+
+    def tronweb_hex(self) -> str:
+        """Return signature as a hex str in TronWeb format (v+27)."""
+        r = hex(self.r)[2:].zfill(64)
+        s = hex(self.s)[2:].zfill(64)
+        v = self.v + 27
+        return r + s + f"{v:02x}"
 
     @classmethod
     def fromhex(cls, hex_str: str) -> "Signature":
@@ -405,4 +428,7 @@ __all__ = [
     "is_address",
     "is_base58check_address",
     "is_hex_address",
+    "hash_message",
+    "sha256",
+    "keccak256",
 ]
