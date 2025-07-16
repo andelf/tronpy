@@ -12,7 +12,6 @@ from tronpy.exceptions import ApiError
 from tronpy.version import VERSION
 
 DEFAULT_TIMEOUT = 10.0
-DEFAULT_API_KEY = "f92221d5-7056-4366-b96f-65d3662ec2d9"
 DEFAULT_API_KEYS = [
     "f92221d5-7056-4366-b96f-65d3662ec2d9",
     "1e0a625f-cfa5-43ee-ba41-a09db1aae55f",
@@ -36,7 +35,7 @@ class AsyncHTTPProvider:
         endpoint_uri: Union[str, dict] = None,
         timeout: float = DEFAULT_TIMEOUT,
         client: httpx.AsyncClient = None,
-        api_key: Union[str, list[str]] = DEFAULT_API_KEY,
+        api_key: Union[str, list[str]] = None,
         jw_token: str = None,
     ):
         super().__init__()
