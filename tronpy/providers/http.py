@@ -7,6 +7,7 @@ from urllib.parse import urljoin
 
 import requests
 
+from tronpy.exceptions import ApiError
 from tronpy.version import VERSION
 
 DEFAULT_TIMEOUT = 10.0
@@ -90,10 +91,13 @@ class HTTPProvider:
 
     @property
     def random_api_key(self):
-        return secrets.choice(self._api_keys)
+        try:
+            return secrets.choice(self._api_keys)
+        except IndexError as e:
+            raise ApiError("rate limit! please add more API keys") from e
 
     def _handle_rate_limit(self):
-        if len(self._api_keys) > 1:
+        if len(self._api_keys) > 0:
             self._api_keys.remove(self.sess.headers["Tron-Pro-Api-Key"])
         else:
             print("W: Please add as-many API-Keys in HTTPProvider", file=sys.stderr)
