@@ -72,10 +72,9 @@ class AsyncHTTPProvider:
         """Request timeout in second."""
 
     async def make_request(self, method: str, params: Any = None) -> dict:
-        headers = {}
+        headers = {"User-Agent": f"Tronpy/{VERSION}"}
         if self.use_api_key:
             headers["Tron-Pro-Api-Key"] = self.random_api_key
-            headers["User-Agent"] = f"Tronpy/{VERSION}"
 
         if self.jw_token is not None:
             headers["Authorization"] = f"Bearer {self.jw_token}"
