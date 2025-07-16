@@ -1,3 +1,5 @@
+import functools
+
 import eth_abi
 from eth_abi.base import parse_type_str
 from eth_abi.codec import ABICodec as ETHABICodec
@@ -23,7 +25,11 @@ class TronAddressDecoder(Fixed32ByteSizeDecoder):
         value_byte_size = self._get_value_byte_size()
         padding_size = self.data_byte_size - value_byte_size
 
-        if padding_bytes != b"\x00" * padding_size and padding_bytes != b"\x00" * (padding_size - 2) + b"\x00A":
+        if (
+            padding_bytes != b"\x00" * padding_size
+            and padding_bytes != b"\x00" * (padding_size - 2) + b"\x00A"
+            and self.strict
+        ):
             raise NonEmptyPaddingBytes(f"Padding bytes were not empty: {repr(padding_bytes)}")
 
 
@@ -65,6 +71,14 @@ def do_patching(registry):
         label="trcToken",
     )
 
+    def _get_decoder_uncached_new(self, type_str, strict=True):  # https://github.com/ethereum/eth-abi/pull/240
+        decoder = self._get_registration(self._decoders, type_str)
+        decoder.strict = strict
+        return decoder
+
+    registry._get_decoder_uncached = _get_decoder_uncached_new.__get__(registry, registry.__class__)
+    registry.get_decoder = functools.lru_cache(maxsize=None)(registry._get_decoder_uncached)
+
 
 class ABICodec(ETHABICodec):
     def encode_single(self, typ, arg):
@@ -79,8 +93,8 @@ class ABICodec(ETHABICodec):
     def encode_abi(self, types, args):
         return super().encode(types, args)
 
-    def decode_abi(self, types, data):
-        return super().decode(types, data)
+    def decode_abi(self, types, data, strict=True):
+        return super().decode(types, data, strict)
 
 
 registry = default_registry.copy()
