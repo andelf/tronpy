@@ -112,6 +112,7 @@ class Transaction:
     def __init__(
         self,
         raw_data: dict,
+        raw_data_hex: str = "",
         client: "Tron" = None,
         method: ContractMethod = None,
         txid: str = "",
@@ -119,6 +120,7 @@ class Transaction:
         signature: list = None,
     ):
         self._raw_data: dict = raw_data
+        self._raw_data_hex: str = raw_data_hex
         self._signature: list = signature or []
         self._client = client
 
@@ -135,6 +137,7 @@ class Transaction:
                 self._client._handle_api_error(sign_weight)
                 return  # unreachable
             self.txid = sign_weight["transaction"]["transaction"]["txID"]
+            self._raw_data_hex = sign_weight["transaction"]["transaction"]["raw_data_hex"]
 
             # when account not exist on-chain
             self._permission = sign_weight.get("permission", None)
@@ -143,6 +146,7 @@ class Transaction:
         return {
             "txID": self.txid,
             "raw_data": self._raw_data,
+            "raw_data_hex": self._raw_data_hex,
             "signature": self._signature,
             "permission": self._permission if self._permission is not EMPTY else None,
         }
@@ -156,6 +160,7 @@ class Transaction:
             txid=data["txID"],
             permission=data["permission"],
             raw_data=data["raw_data"],
+            raw_data_hex=data.get("raw_data_hex", ""),
             signature=data["signature"],
         )
 
@@ -210,6 +215,7 @@ class Transaction:
         self._raw_data["ref_block_hash"] = ref_block_id[16:32]
 
         self.txid = ""
+        self._raw_data_hex = ""
         self._permission = None
         self._signature = []
         sign_weight = self._client.get_sign_weight(self)
@@ -217,6 +223,7 @@ class Transaction:
             self._client._handle_api_error(sign_weight)
             return  # unreachable
         self.txid = sign_weight["transaction"]["transaction"]["txID"]
+        self._raw_data_hex = sign_weight["transaction"]["transaction"]["raw_data_hex"]
 
         # when account not exist on-chain
         self._permission = sign_weight.get("permission", None)
