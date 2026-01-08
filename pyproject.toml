@@ -8,6 +8,7 @@ dynamic = ["version"]
 requires-python = ">=3.9"
 description = "TRON Python client library"
 license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "andelf", email = "andelf@gmail.com" },
     { name = "MrNaif2018", email = "chuff184@gmail.com" },
@@ -20,17 +21,20 @@ classifiers = [
     "Intended Audience :: Developers",
     "Intended Audience :: System Administrators",
     "Natural Language :: English",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
     "base58",
     "coincurve",
+    # Coincurve v21.0.0 is broken with python 3.14.
+    # See issue: https://github.com/ofek/coincurve/issues/219
+    "coincurve>=20.0.0,<21.0.0;python_version=='3.14'",
     "eth-abi>=5.0.0,<6.0.0",
     "httpx",
     "pycryptodome<4",

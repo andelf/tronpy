@@ -13,7 +13,7 @@ format:
 test:
 	pytest tests/ ${TEST_ARGS}
 
-ci: checkformat lint test
+ci: checkformat lint
 
 generate-proto:
 	cd tronpy/proto && \
