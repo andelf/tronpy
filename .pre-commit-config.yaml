@@ -1,38 +1,45 @@
 repos:
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+  - repo: builtin
     hooks:
       - id: check-merge-conflict
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.3
-    hooks:
-      - id: ruff
-      - id: ruff-format
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
-    hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
       - id: mixed-line-ending
-      - id: requirements-txt-fixer
       - id: check-case-conflict
       - id: check-shebang-scripts-are-executable
       - id: check-json
       - id: check-toml
       - id: check-yaml
       - id: check-symlinks
-      - id: debug-statements
       - id: fix-byte-order-marker
       - id: detect-private-key
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.3
+    hooks:
+      - id: ruff-check
+      - id: ruff-format
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.13.6
+    hooks:
+      - id: uv-lock
+      - id: uv-audit
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: v1.31.1
+    hooks:
+      - id: zizmor
+        args: [--no-progress, --offline, --persona=auditor]
   - repo: local
     hooks:
-      - id: prettier
-        name: prettier
+      - id: deptry
+        name: deptry
+        entry: uv run --no-sync deptry .
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: oxfmt
+        name: oxfmt
         types: [text]
         language: node
         require_serial: true
-        entry: npx prettier --write --ignore-unknown
-  - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.7.20
-    hooks:
-      - id: uv-lock
+        entry: oxfmt --no-error-on-unmatched-pattern
+        additional_dependencies: [oxfmt@0.75.0]

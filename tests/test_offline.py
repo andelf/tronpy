@@ -44,7 +44,7 @@ def set_protobuf_unavailable() -> typing.Generator[None, None, None]:
 @pytest.mark.usefixtures("set_protobuf_unavailable")
 @pytest.mark.parametrize("client_class", [Tron, AsyncTron])
 def test_offline_transfer_raises_import_error(
-    client_class: typing.Union[Tron, AsyncTron],
+    client_class: Tron | AsyncTron,
 ) -> None:
     client = client_class(network="nile")
     if client_class == AsyncTron:
@@ -63,7 +63,7 @@ def test_offline_transfer_raises_import_error(
 @pytest.mark.usefixtures("set_protobuf_unavailable")
 @pytest.mark.parametrize("client_class", [Tron, AsyncTron])
 def test_offline_contract_transfer_raises_import_error(
-    client_class: typing.Union[Tron, AsyncTron],
+    client_class: Tron | AsyncTron,
 ) -> None:
     client = client_class(network="nile")
     if client_class == AsyncTron:
@@ -87,9 +87,9 @@ def test_offline_contract_transfer_raises_import_error(
 
 @pytest.mark.skipif(not protobuf_installed, reason="Protobuf not installed")
 @pytest.mark.parametrize("client_class", [Tron, AsyncTron])
-@freezegun.freeze_time(datetime.datetime(2025, 7, 2, 14, 27, 12, 131000, tzinfo=datetime.timezone.utc))
+@freezegun.freeze_time(datetime.datetime(2025, 7, 2, 14, 27, 12, 131000, tzinfo=datetime.UTC))
 def test_create_transaction_offline(
-    client_class: typing.Union[Tron, AsyncTron],
+    client_class: Tron | AsyncTron,
 ) -> None:
     client = client_class(network="nile")
     if client_class == AsyncTron:
@@ -128,9 +128,9 @@ def test_create_transaction_offline(
 
 @pytest.mark.skipif(not protobuf_installed, reason="Protobuf not installed")
 @pytest.mark.parametrize("client_class", [Tron, AsyncTron])
-@freezegun.freeze_time(datetime.datetime(2025, 7, 3, 14, 50, 32, 807000, tzinfo=datetime.timezone.utc))
+@freezegun.freeze_time(datetime.datetime(2025, 7, 3, 14, 50, 32, 807000, tzinfo=datetime.UTC))
 def test_create_smart_contract_transaction_offline(
-    client_class: typing.Union[Tron, AsyncTron],
+    client_class: Tron | AsyncTron,
 ) -> None:
     client = client_class(network="nile")
     if client_class == AsyncTron:
@@ -180,20 +180,21 @@ def test_create_smart_contract_transaction_offline(
 
 
 @pytest.mark.skipif(not protobuf_installed, reason="Protobuf not installed")
-@freezegun.freeze_time(datetime.datetime(2025, 7, 13, 10, 30, 0, 0, tzinfo=datetime.timezone.utc))
+@freezegun.freeze_time(datetime.datetime(2025, 7, 13, 10, 30, 0, 0, tzinfo=datetime.UTC))
 def test_offline_transaction_fields_vs_online() -> None:
     client = Tron(network="nile")
     with patch.object(client, "get_latest_solid_block_id", return_value=REF_BLOCK_ID):
         online_json = client.trx.transfer(FROM_ADDR, TO_ADDR, 1).build().to_json()
     offline_json = client.trx.transfer(FROM_ADDR, TO_ADDR, 1).build(offline=True, ref_block_id=REF_BLOCK_ID).to_json()
-    assert offline_json["permission"] is None
+    assert offline_json.pop("permission") is None
+    online_json.pop("permission")
     assert online_json == offline_json
     with pytest.raises(ValueError, match="ref_block_id is required"):
         client.trx.transfer(FROM_ADDR, TO_ADDR, 1).build(offline=True)
 
 
 @pytest.mark.skipif(not protobuf_installed, reason="Protobuf not installed")
-@freezegun.freeze_time(datetime.datetime(2025, 7, 13, 10, 30, 0, 0, tzinfo=datetime.timezone.utc))
+@freezegun.freeze_time(datetime.datetime(2025, 7, 13, 10, 30, 0, 0, tzinfo=datetime.UTC))
 def test_offline_smart_contract_transaction_fields_vs_online() -> None:
     client = Tron(network="nile")
     contract = client.get_contract(TRC20_CONTRACT)
@@ -208,5 +209,6 @@ def test_offline_smart_contract_transaction_fields_vs_online() -> None:
         .build(offline=True, ref_block_id=REF_BLOCK_ID)
         .to_json()
     )
-    assert offline_json["permission"] is None
+    assert offline_json.pop("permission") is None
+    online_json.pop("permission")
     assert online_json == offline_json

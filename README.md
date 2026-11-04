@@ -1,9 +1,11 @@
 # tronpy
 
-[![PyPI version](https://badge.fury.io/py/tronpy.svg)](https://pypi.org/project/tronpy/)
-[![CircleCI](https://dl.circleci.com/status-badge/img/gh/andelf/tronpy/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/andelf/tronpy/tree/master)
+[![CI](https://github.com/bitcart/tronpy/actions/workflows/ci.yml/badge.svg)](https://github.com/bitcart/tronpy/actions/workflows/ci.yml)
+[![Codecov](https://img.shields.io/codecov/c/github/bitcart/tronpy?style=flat-square)](https://codecov.io/gh/bitcart/tronpy)
+[![PyPI version](https://img.shields.io/pypi/v/tronpy.svg?style=flat-square)](https://pypi.python.org/pypi/tronpy/)
+[![Docs](https://github.com/bitcart/tronpy/actions/workflows/docs.yml/badge.svg)](https://tronpy.bitcart.ai)
 
-TRON Python Client Library. [Documentation](https://tronpy.readthedocs.io/en/latest/index.html)
+TRON Python Client Library. [Documentation](https://tronpy.bitcart.ai)
 
 > Note: in case you want to use cryptocurrency functions in an universal way or e.g. reliably calculate transaction fees for BTC, ETH, Tron and many others, check out the [Bitcart project](https://bitcart.ai)
 
@@ -13,7 +15,7 @@ TRON Python Client Library. [Documentation](https://tronpy.readthedocs.io/en/lat
 from tronpy import Tron
 from tronpy.keys import PrivateKey
 
-client = Tron(network='nile')
+client = Tron(network="nile")
 # Private key of TJzXt1sZautjqXnpjQT4xSCBHNSYgBkDr3
 priv_key = PrivateKey(bytes.fromhex("8888888888888888888888888888888888888888888888888888888888888888"))
 
@@ -43,8 +45,9 @@ from tronpy.keys import PrivateKey
 # private key of TMisHYBVvFHwKXHPYTqo8DhrRPTbWeAM6z
 priv_key = PrivateKey(bytes.fromhex("8888888888888888888888888888888888888888888888888888888888888888"))
 
+
 async def transfer():
-    async with AsyncTron(network='nile') as client:
+    async with AsyncTron(network="nile") as client:
         print(client)
 
         txb = (
@@ -60,7 +63,8 @@ async def transfer():
         print(await txn_ret.wait())
         # > {'id': 'edc2a625752b9c71fdd0d68117802860c6adb1a45c19fd631a41757fa334d72b', 'blockNumber': 10163821, 'blockTimeStamp': 1603368072000, 'contractResult': [''], 'receipt': {'net_usage': 283}}
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     asyncio.run(transfer())
 ```
 
@@ -73,8 +77,9 @@ from tronpy.defaults import CONF_NILE
 
 
 async def transfer():
-    _http_client = AsyncClient(limits=Limits(max_connections=100, max_keepalive_connections=20),
-                               timeout=Timeout(timeout=10, connect=5, read=5))
+    _http_client = AsyncClient(
+        limits=Limits(max_connections=100, max_keepalive_connections=20), timeout=Timeout(timeout=10, connect=5, read=5)
+    )
     provider = AsyncHTTPProvider(CONF_NILE, client=_http_client)
     client = AsyncTron(provider=provider)
     print(client)
@@ -93,6 +98,7 @@ async def transfer():
     print(await txn_ret.wait())
     await client.close()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     asyncio.run(transfer())
 ```

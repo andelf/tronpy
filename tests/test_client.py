@@ -1,3 +1,4 @@
+import socket
 import time
 
 import pytest
@@ -40,6 +41,12 @@ TRANSFER_TRC10_EXPECTED_RESP = {
     },
     "type": "TransferAssetContract",
 }
+
+
+@pytest.fixture
+def stalled_node():
+    with socket.create_server(("127.0.0.1", 0)) as server:
+        yield f"http://127.0.0.1:{server.getsockname()[1]}"
 
 
 def test_client_keygen():
@@ -202,21 +209,21 @@ async def test_async_client_transfer_trc10():
         check_transaction_structure(tx.to_json(), TRANSFER_TRC10_EXPECTED_RESP, 0)
 
 
-def test_client_timeout():
+def test_client_timeout(stalled_node):
     import requests.exceptions
 
-    # must be a timeout
-    client = Tron(network="nile", conf={"timeout": 0.0001})
+    client = Tron(network="nile", conf={"timeout": 0.01})
+    client.provider.endpoint_uri = stalled_node
 
     with pytest.raises(requests.exceptions.Timeout):
         client.get_block()
 
 
 @pytest.mark.asyncio
-async def test_async_client_timeout():
+async def test_async_client_timeout(stalled_node):
     from httpx import TimeoutException
 
-    # must be a timeout
-    async with AsyncTron(network="nile", conf={"timeout": 0.0001}) as client:
+    async with AsyncTron(network="nile", conf={"timeout": 0.01}) as client:
+        client.provider.endpoint_uri = stalled_node
         with pytest.raises(TimeoutException):
             await client.get_block()

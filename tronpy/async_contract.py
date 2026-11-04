@@ -1,5 +1,3 @@
-from typing import Union
-
 import tronpy
 from tronpy import keys
 from tronpy.contract import Contract, ContractFunctions, ContractMethod, ShieldedTRC20
@@ -11,7 +9,7 @@ class AsyncContract(Contract):
 
     @property
     def functions(self) -> "ContractFunctions":
-        """The :class:`~ContractFunctions` object, wraps all contract methods."""
+        """The [`ContractFunctions`][tronpy.contract.ContractFunctions] object, wraps all contract methods."""
         if self._functions is None:
             if self.abi:
                 self._functions = AsyncContractFunctions(self)
@@ -124,8 +122,8 @@ class AsyncShieldedTRC20(ShieldedTRC20):
     async def transfer(
         self,
         zkey: dict,
-        notes: Union[list, dict],
-        *to: Union[tuple[str, int], tuple[str, int, str]],
+        notes: list | dict,
+        *to: tuple[str, int] | tuple[str, int, str],
     ) -> "tronpy.async_tron.AsyncTransactionBuilder":
         """Transfer from z-address to z-address."""
         if isinstance(notes, (dict,)):
@@ -182,7 +180,7 @@ class AsyncShieldedTRC20(ShieldedTRC20):
         )
 
     async def burn(
-        self, zkey: dict, note: dict, *to: Union[tuple[str, int], tuple[str, int, str]]
+        self, zkey: dict, note: dict, *to: tuple[str, int] | tuple[str, int, str]
     ) -> "tronpy.async_tron.AsyncTransactionBuilder":
         """Burn, transfer from z-address to T-address."""
         spends = []
@@ -262,7 +260,7 @@ class AsyncShieldedTRC20(ShieldedTRC20):
         return self._fix_notes(ret.get("noteTxs", []))
 
     async def scan_outgoing_notes(
-        self, zkey_or_ovk: Union[dict, str], start_block_number: int, end_block_number: int = None
+        self, zkey_or_ovk: dict | str, start_block_number: int, end_block_number: int = None
     ) -> list:
         """Scan outgoing notes using ovk."""
         if end_block_number is None:

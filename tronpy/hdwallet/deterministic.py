@@ -87,7 +87,7 @@ class Node(int):
         if len(node) < 1:
             raise ValidationError("Cannot use empty string")
 
-        node_class: Union[type[SoftNode], type[HardNode]]
+        node_class: type[SoftNode] | type[HardNode]
         if node[-1] in HARD_NODE_SUFFIXES:
             node_class = HardNode
             node_index = node[:-1]

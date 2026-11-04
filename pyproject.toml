@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "tronpy"
 dynamic = ["version"]
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 description = "TRON Python client library"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -22,20 +22,15 @@ classifiers = [
     "Intended Audience :: System Administrators",
     "Natural Language :: English",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
     "base58",
-    "coincurve",
-    # Coincurve v21.0.0 is broken with python 3.14.
-    # See issue: https://github.com/ofek/coincurve/issues/219
-    "coincurve>=20.0.0,<21.0.0;python_version=='3.14'",
+    "coincurve>=21.0.0",
     "eth-abi>=5.0.0,<6.0.0",
+    "eth-utils",
     "httpx",
     "pycryptodome<4",
     "requests",
@@ -46,40 +41,36 @@ mnemonic = ["mnemonic==0.20"]
 offline = ["protobuf"]
 
 [project.urls]
-Homepage = "https://github.com/andelf/tronpy"
-Repository = "https://github.com/andelf/tronpy"
-Documentation = "https://tronpy.readthedocs.io"
+Homepage = "https://github.com/bitcart/tronpy"
+Source = "https://github.com/bitcart/tronpy"
+Changelog = "https://github.com/bitcart/tronpy/blob/master/CHANGELOG.md"
+Documentation = "https://tronpy.bitcart.ai"
 
 [dependency-groups]
-dev = [
-    "pytest",
-    "pytest-cov",
-    "pytest-asyncio",
-    "mypy",
-    "codecov",
-    "pre-commit",
-    "freezegun",
-    "ruff>=0.12.3",
-    "taskipy>=1.14.1",
-]
-docs = ["sphinx"]
+lint = ["deptry", "mypy", "prek", "ruff"]
+test = ["freezegun", "pytest", "pytest-asyncio", "pytest-cov", "pytest-durations"]
+docs = ["zensical", "mkdocstrings-python"]
+dev = ["rust-just>=1.46.0", { include-group = "lint" }, { include-group = "test" }]
+all = [{ include-group = "dev" }, { include-group = "docs" }]
 
-[tool.taskipy.tasks]
-lint = { cmd = "ruff format . && ruff check --fix .", help = "run linters with autofix" }
-lint_check = { cmd = "ruff format --check . && ruff check .", help = "run ruff linter" }
-test = { cmd = "pytest tests/ ${TEST_ARGS}", help = "run tests" }
-ci = { cmd = "task lint_check && task test", help = "run ci checks" }
+[tool.uv]
+cache-keys = [{ file = "pyproject.toml" }, { file = "tronpy/version.py" }]
+# dependency cooldowns for security
+exclude-newer = "1 week"
 
-[tool.hatch.version]
-path = "tronpy/version.py"
+[tool.hatch.build.targets.sdist]
+include = ["tronpy", "tests", "CHANGELOG.md"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["tronpy"]
 
+[tool.hatch.version]
+path = "tronpy/version.py"
+
 [tool.ruff]
-target-version = "py39"
+target-version = "py311"
 line-length = 127
-exclude = ["tronpy/proto/tron_pb2.*"]
+extend-exclude = ["tronpy/proto/tron_pb2.*"]
 
 [tool.ruff.lint]
 select = [
@@ -99,31 +90,32 @@ select = [
     "ASYNC",
     "TID",
 ]
-unfixable = ["F401"]
-ignore = ["RET502", "RET503", "S104", "S507", "ASYNC110"]
+ignore = ["RET502", "RET503", "S104", "S507", "ASYNC109", "ASYNC110"]
 mccabe = { max-complexity = 12 }
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S"]
 
 [tool.mypy]
-ignore_missing_imports = true
 warn_redundant_casts = true
 warn_unused_ignores = true
-disallow_any_generics = true
-check_untyped_defs = true
-no_implicit_reexport = true
-strict_equality = true
+disallow_untyped_calls = true
 disallow_untyped_defs = true
-skip_cache_mtime_checks = true
+check_untyped_defs = true
+warn_return_any = true
+no_implicit_optional = true
+strict_optional = true
+ignore_missing_imports = true
 exclude = ["tests"]
 
 [tool.pytest.ini_options]
-addopts = ["--cov=.", "--cov-report", "term-missing"]
-filterwarnings = [
-    "error::DeprecationWarning",
-    "error::PendingDeprecationWarning",
-]
+strict = true
+testpaths = ["tests"]
+junit_duration_report = "call"
+junit_suite_name = "tronpy_test_suite"
+addopts = ["--cov=tronpy", "--cov-report", "term-missing"]
+filterwarnings = ["error::DeprecationWarning", "error::PendingDeprecationWarning"]
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.coverage.run]
-omit = ["*__init__.py", "tests/*", "venv/*", "env/*", "setup.py"]
+omit = ["tronpy/version.py", "tronpy/proto/tron_pb2.py"]

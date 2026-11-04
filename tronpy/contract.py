@@ -1,6 +1,6 @@
 import itertools
 from collections.abc import Generator
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 from Crypto.Hash import keccak
 from eth_utils import decode_hex
@@ -17,7 +17,7 @@ def keccak256(data: bytes) -> bytes:
     return hasher.digest()
 
 
-def assure_bytes(value: Union[str, bytes]) -> bytes:
+def assure_bytes(value: str | bytes) -> bytes:
     if isinstance(value, (str,)):
         return bytes.fromhex(value)
     if isinstance(value, (bytes,)):
@@ -32,9 +32,9 @@ class Contract:
         self,
         addr=None,
         *,
-        bytecode: Union[str, bytes] = "",
+        bytecode: str | bytes = "",
         name: str = None,
-        abi: Optional[Union[dict, list[dict]]] = None,
+        abi: dict | list[dict] | None = None,
         user_resource_percent: int = 100,
         origin_energy_limit: int = 1,
         origin_address: str = None,
@@ -151,7 +151,7 @@ class Contract:
 
     @property
     def functions(self) -> "ContractFunctions":
-        """The :class:`~ContractFunctions` object, wraps all contract methods."""
+        """The [`ContractFunctions`][tronpy.contract.ContractFunctions] object, wraps all contract methods."""
         if self._functions is None:
             if self.abi:
                 self._functions = ContractFunctions(self)
@@ -170,7 +170,7 @@ class Contract:
 
     @property
     def events(self) -> "ContractEvents":
-        """The :class:`~ContractEvents` object, wraps all contract events."""
+        """The [`ContractEvents`][tronpy.contract.ContractEvents] object, wraps all contract events."""
         if self._events is None:
             if self.abi:
                 self._events = ContractEvents(self)
@@ -240,7 +240,8 @@ class ContractEvent:
 
         topics = log["topics"][1:]
         decoded_topic_data = [
-            trx_abi.decode_single(topic_type, decode_hex(topic_data)) for topic_type, topic_data in zip(topic_types, topics)
+            trx_abi.decode_single(topic_type, decode_hex(topic_data))
+            for topic_type, topic_data in zip(topic_types, topics, strict=False)
         ]
 
         data = decode_hex(log["data"])
@@ -248,8 +249,8 @@ class ContractEvent:
 
         event_args = dict(
             itertools.chain(
-                zip(topic_names, decoded_topic_data),
-                zip(data_names, decoded_data),
+                zip(topic_names, decoded_topic_data, strict=False),
+                zip(data_names, decoded_data, strict=False),
             )
         )
         return {
@@ -350,7 +351,7 @@ class ContractMethod:
     def with_owner(self, addr: str) -> "ContractMethod":
         """Set the calling owner address.
 
-        Can also be changed through :meth:`TransactionBuilder.with_owner() <tronpy.tron.TransactionBuilder.with_owner>`.
+        Can also be changed through [TransactionBuilder.with_owner()][tronpy.tron.TransactionBuilder.with_owner].
         """
         self._owner_address = addr
         return self
@@ -545,8 +546,8 @@ class ShieldedTRC20:
     def transfer(
         self,
         zkey: dict,
-        notes: Union[list, dict],
-        *to: Union[tuple[str, int], tuple[str, int, str]],
+        notes: list | dict,
+        *to: tuple[str, int] | tuple[str, int, str],
     ) -> "tronpy.tron.TransactionBuilder":
         """Transfer from z-address to z-address."""
         if isinstance(notes, (dict,)):
@@ -602,9 +603,7 @@ class ShieldedTRC20:
             method=self.shielded.functions.transfer,
         )
 
-    def burn(
-        self, zkey: dict, note: dict, *to: Union[tuple[str, int], tuple[str, int, str]]
-    ) -> "tronpy.tron.TransactionBuilder":
+    def burn(self, zkey: dict, note: dict, *to: tuple[str, int] | tuple[str, int, str]) -> "tronpy.tron.TransactionBuilder":
         """Burn, transfer from z-address to T-address."""
         spends = []
         alpha = self.get_rcm()
@@ -692,9 +691,7 @@ class ShieldedTRC20:
         self._client._handle_api_error(ret)
         return self._fix_notes(ret.get("noteTxs", []))
 
-    def scan_outgoing_notes(
-        self, zkey_or_ovk: Union[dict, str], start_block_number: int, end_block_number: int = None
-    ) -> list:
+    def scan_outgoing_notes(self, zkey_or_ovk: dict | str, start_block_number: int, end_block_number: int = None) -> list:
         """Scan outgoing notes using ovk."""
         if end_block_number is None:
             end_block_number = start_block_number + 1000

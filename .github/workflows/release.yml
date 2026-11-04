@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  release:
+    types: [created]
+
+concurrency:
+  group: ${{ github.workflow_ref }}
+  cancel-in-progress: false
+  queue: max
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  release:
+    name: release
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/tronpy
+
+    permissions:
+      contents: read
+      id-token: write # OIDC token for pypi trusted publishing
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: bitcart/bitcart-actions/actions/setup-python@master
+        with:
+          enable-cache: false
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Build package
+        run: uv build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3

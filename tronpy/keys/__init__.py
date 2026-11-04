@@ -1,7 +1,7 @@
 import hashlib
 import os
 from collections.abc import Hashable, Iterator, Sequence
-from typing import Any, Union
+from typing import Any
 
 import base58
 from coincurve import PrivateKey as CoincurvePrivateKey
@@ -76,7 +76,7 @@ def public_key_to_addr(pub_key: bytes) -> bytes:
     return b"\x41" + keccak256(pub_key)[-20:]
 
 
-def to_base58check_address(raw_addr: Union[str, bytes]) -> str:
+def to_base58check_address(raw_addr: str | bytes) -> str:
     """Convert hex address or base58check address to base58check address(and verify it)."""
     if isinstance(raw_addr, (str,)):
         if raw_addr[0] == "T" and len(raw_addr) == 34:
@@ -101,17 +101,17 @@ def to_base58check_address(raw_addr: Union[str, bytes]) -> str:
     raise BadAddress(repr(raw_addr))
 
 
-def to_hex_address(raw_addr: Union[str, bytes]) -> str:
+def to_hex_address(raw_addr: str | bytes) -> str:
     addr = to_base58check_address(raw_addr)
     return base58.b58decode_check(addr).hex()
 
 
-def to_raw_address(raw_addr: Union[str, bytes]) -> bytes:
+def to_raw_address(raw_addr: str | bytes) -> bytes:
     addr = to_base58check_address(raw_addr)
     return base58.b58decode_check(addr)
 
 
-def to_tvm_address(raw_addr: Union[str, bytes]) -> bytes:
+def to_tvm_address(raw_addr: str | bytes) -> bytes:
     return to_raw_address(raw_addr)[1:]
 
 

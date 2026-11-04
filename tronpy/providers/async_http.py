@@ -2,7 +2,7 @@ import asyncio
 import os
 import secrets
 import sys
-from typing import Any, Union
+from typing import Any
 from urllib.parse import urljoin
 
 import httpx
@@ -32,10 +32,10 @@ class AsyncHTTPProvider:
 
     def __init__(
         self,
-        endpoint_uri: Union[str, dict] = None,
+        endpoint_uri: str | dict = None,
         timeout: float = DEFAULT_TIMEOUT,
         client: httpx.AsyncClient = None,
-        api_key: Union[str, list[str]] = None,
+        api_key: str | list[str] = None,
         jw_token: str = None,
     ):
         super().__init__()

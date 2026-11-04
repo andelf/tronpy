@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow_ref }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: lint
+    uses: bitcart/bitcart-actions/.github/workflows/lint.yml@master
+    with:
+      install-dependencies: |
+        uv sync --frozen --compile-bytecode --all-extras
+
+  workflows:
+    name: workflows
+    uses: bitcart/bitcart-actions/.github/workflows/workflow-checks.yml@master
+
+    permissions:
+      contents: read
+      security-events: write # needed for github advanced security
+
+  test:
+    name: test
+    uses: bitcart/bitcart-actions/.github/workflows/python-tests.yml@master
+    needs: [lint, workflows]
+    with:
+      python-versions: '["3.11", "3.12", "3.13"]'
+      install-dependencies: |
+        uv sync --frozen --compile-bytecode --all-extras
+
+    permissions:
+      contents: read
+      id-token: write # OIDC token for codecov uploads
+
+  combine-coverage:
+    name: combine-coverage
+    uses: bitcart/bitcart-actions/.github/workflows/combine-coverage.yml@master
+    needs: test
+    if: ${{ !cancelled() }}

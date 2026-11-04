@@ -4,7 +4,7 @@ import json
 import time
 from decimal import Decimal
 from pprint import pprint
-from typing import Optional, Union
+from typing import Optional
 
 from tronpy import keys
 from tronpy.abi import tron_abi
@@ -130,7 +130,7 @@ class AsyncTransaction:
         self.txid: str = raw_data.get("txID", txid)
         """The transaction id in hex."""
 
-        self._permission: Optional[dict] = raw_data.get("permission", permission)
+        self._permission: dict | None = raw_data.get("permission", permission)
 
         # IMPORTANT must use "Transaction.create" to create a new Transaction
 
@@ -159,7 +159,7 @@ class AsyncTransaction:
         }
 
     @classmethod
-    async def from_json(cls, data: Union[str, dict], client: "AsyncTron" = None) -> "AsyncTransaction":
+    async def from_json(cls, data: str | dict, client: "AsyncTron" = None) -> "AsyncTransaction":
         if isinstance(json, str):
             data = json.loads(data)
         return await cls.create(
@@ -240,7 +240,7 @@ class AsyncTransaction:
 
 # noinspection PyBroadException
 class AsyncTransactionBuilder:
-    """TransactionBuilder, to build a :class:`~Transaction` object."""
+    """TransactionBuilder, to build a [`AsyncTransaction`][tronpy.async_tron.AsyncTransaction] object."""
 
     def __init__(self, inner: dict, client: "AsyncTron", method: AsyncContractMethod = None):
         self._client = client
@@ -270,7 +270,7 @@ class AsyncTransactionBuilder:
         self._raw_data["contract"][0]["Permission_id"] = perm_id
         return self
 
-    def memo(self, memo: Union[str, bytes]) -> "AsyncTransactionBuilder":
+    def memo(self, memo: str | bytes) -> "AsyncTransactionBuilder":
         """Set memo of the transaction."""
         data = memo.encode() if isinstance(memo, (str,)) else memo
         self._raw_data["data"] = data.hex()
@@ -409,7 +409,7 @@ class AsyncTrx:
         """Update account permission.
 
         :param owner: Address of owner
-        :param perm: Permission dict from :meth:`~tronpy.Tron.get_account_permission`
+        :param perm: Permission dict from [`get_account_permission`][tronpy.Tron.get_account_permission]
         """
 
         if "owner" in perm:
@@ -571,7 +571,7 @@ class AsyncTrx:
 class AsyncTron:
     """The Async TRON API Client.
 
-    :param provider: An :class:`~tronpy.providers.HTTPProvider` object, can be configured to use private node
+    :param provider: An [`HTTPProvider`][tronpy.providers.HTTPProvider] object, can be configured to use private node
     :param network: Which network to connect, one of ``"mainnet"``, ``"shasta"``, ``"nile"``, or ``"tronex"``
     """
 
@@ -592,6 +592,7 @@ class AsyncTron:
     """Convert address of any format to a hex format."""
 
     to_canonical_address = staticmethod(keys.to_base58check_address)
+    """Convert address of any format to a base58check format."""
 
     def __init__(self, provider: AsyncHTTPProvider = None, *, network: str = "mainnet", conf: dict = None):
         self.conf = DEFAULT_CONF
@@ -611,11 +612,7 @@ class AsyncTron:
 
     @property
     def trx(self) -> AsyncTrx:
-        """
-        Helper object to send various transactions.
-
-        :type: Trx
-        """
+        """Helper object to send various transactions."""
         return self._trx
 
     def _handle_api_error(self, payload: dict):
@@ -789,7 +786,7 @@ class AsyncTron:
         info = await self.get_account(addr)
         return {p["key"]: p["value"] for p in info.get("assetV2", {}) if p["value"] > 0}
 
-    async def get_account_asset_balance(self, addr: TAddress, token_id: Union[int, str]) -> int:
+    async def get_account_asset_balance(self, addr: TAddress, token_id: int | str) -> int:
         """Get TRC10 token balance of an account. Result is in raw amount."""
         if int(token_id) < 1000000 or int(token_id) > 1999999:
             raise ValueError("invalid token_id range")
@@ -908,7 +905,7 @@ class AsyncTron:
         info = await self.provider.make_request("wallet/getnodeinfo")
         return int(info["block"].split(",ID:", 1)[0].replace("Num:", "", 1))
 
-    async def get_block(self, id_or_num: Union[None, str, int] = None, *, visible: bool = True) -> dict:
+    async def get_block(self, id_or_num: None | str | int = None, *, visible: bool = True) -> dict:
         """Get block from a block id or block number.
 
         :param id_or_num: Block number, or Block hash(id), or ``None`` (default) to get the latest block.
