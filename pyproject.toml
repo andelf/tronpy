@@ -50,7 +50,14 @@ Documentation = "https://tronpy.bitcart.ai"
 
 [dependency-groups]
 lint = ["deptry", "mypy", "prek", "ruff"]
-test = ["freezegun", "pytest", "pytest-asyncio", "pytest-cov", "pytest-durations"]
+test = [
+    "freezegun",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "pytest-durations",
+    "pytest-rerunfailures",
+]
 docs = ["zensical", "mkdocstrings-python"]
 dev = ["rust-just>=1.46.0", { include-group = "lint" }, { include-group = "test" }]
 all = [{ include-group = "dev" }, { include-group = "docs" }]
@@ -115,7 +122,17 @@ strict = true
 testpaths = ["tests"]
 junit_duration_report = "call"
 junit_suite_name = "tronpy_test_suite"
-addopts = ["--cov=tronpy", "--cov-report", "term-missing"]
+addopts = [
+    "--cov=tronpy",
+    "--cov-report",
+    "term-missing",
+    "--reruns",
+    "5",
+    "--reruns-delay",
+    "3",
+    "--only-rerun",
+    "503 Server Error|503 Service Unavailable",
+]
 filterwarnings = ["error::DeprecationWarning", "error::PendingDeprecationWarning"]
 asyncio_default_fixture_loop_scope = "function"
 
