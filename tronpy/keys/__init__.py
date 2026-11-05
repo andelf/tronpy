@@ -1,4 +1,3 @@
-import hashlib
 import os
 from collections.abc import Hashable, Sequence
 from typing import Any
@@ -14,12 +13,6 @@ TRON_MESSAGE_PREFIX = "\x19TRON Signed Message:\n"
 
 def keccak256(data: bytes) -> bytes:
     hasher = keccak.new(digest_bits=256)
-    hasher.update(data)
-    return hasher.digest()
-
-
-def sha256(data: bytes) -> bytes:
-    hasher = hashlib.sha256()
     hasher.update(data)
     return hasher.digest()
 
@@ -233,11 +226,6 @@ class PrivateKey(BaseKey):
         """Generate a random private key."""
         return cls(os.urandom(32))
 
-    @classmethod
-    def from_passphrase(cls, passphrase: bytes) -> "PrivateKey":
-        """Get a private key from sha256 of a passphrase."""
-        return cls(sha256(passphrase))
-
 
 class Signature(Sequence):
     """The signature object."""
@@ -365,6 +353,5 @@ __all__ = [
     "is_base58check_address",
     "is_hex_address",
     "hash_message",
-    "sha256",
     "keccak256",
 ]

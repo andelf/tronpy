@@ -2,6 +2,10 @@
 
 ## Latest changes
 
+**Breaking**: Remove `PrivateKey.from_passphrase` and `get_address_from_passphrase`. They used a single SHA-256 of the passphrase as the private key, which is crackable offline, and existed for compatibility with `wallet/createaddress`, removed from java-tron in 4.7.1.1. Use `generate_address` or a mnemonic instead
+
+**Breaking**: Remove the `sha256` helper from `tronpy.keys`, use `hashlib.sha256` instead
+
 ## 0.6.2
 
 Add support for python 3.14

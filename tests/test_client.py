@@ -52,14 +52,12 @@ def stalled_node():
 def test_client_keygen():
     client = Tron()
     check_generate_address(client.generate_address())
-    check_generate_address(client.get_address_from_passphrase("A"))
 
 
 @pytest.mark.asyncio
 async def test_async_client_keygen():
     client = AsyncTron()
     check_generate_address(client.generate_address())
-    check_generate_address(client.get_address_from_passphrase("A"))
 
 
 def test_client():

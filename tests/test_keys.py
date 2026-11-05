@@ -15,7 +15,6 @@ from tronpy.keys import (
     _secp256k1,
     hash_message,
     keccak256,
-    sha256,
     to_base58check_address,
 )
 
@@ -95,13 +94,13 @@ def test_signature_recover(signature, txid, address, raw_data):
     recovered_address = signature.recover_public_key_from_msg_hash(txid).to_base58check_address()
     assert address == recovered_address
 
-    recovered_address = signature.recover_public_key_from_msg_hash(sha256(raw_data)).to_base58check_address()
+    recovered_address = signature.recover_public_key_from_msg_hash(hashlib.sha256(raw_data).digest()).to_base58check_address()
     assert address == recovered_address
 
 
 def test_signature_verify(signature, txid, raw_data, pub_key):
     assert signature.verify_msg_hash(txid, pub_key)
-    assert signature.verify_msg_hash(sha256(raw_data), pub_key)
+    assert signature.verify_msg_hash(hashlib.sha256(raw_data).digest(), pub_key)
 
 
 def test_signature_sign(signature: Signature, raw_data: bytes, txid: bytes):

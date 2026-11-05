@@ -689,11 +689,6 @@ class AsyncTron:
         mnemonic = generate_mnemonic(num_words, language)
         return self.generate_address_from_mnemonic(mnemonic, passphrase, account_path), mnemonic
 
-    def get_address_from_passphrase(self, passphrase: str) -> dict:
-        """Get an address from a passphrase, compatiable with `wallet/createaddress`."""
-        priv_key = PrivateKey.from_passphrase(passphrase.encode())
-        return self.generate_address(priv_key)
-
     async def generate_zkey(self) -> dict:
         """Generate a random shielded address."""
         return await self.provider.make_request("wallet/getnewshieldedaddress")
