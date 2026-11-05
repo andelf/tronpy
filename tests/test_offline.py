@@ -121,6 +121,7 @@ def test_create_transaction_offline(
             "ref_block_bytes": "6431",
             "ref_block_hash": "212a13dbe72ac5c0",
         },
+        "raw_data_hex": "0a0264312208212a13dbe72ac5c040e381a7dcfc325a65080112610a2d747970652e676f6f676c65617069732e636f6d2f70726f746f636f6c2e5472616e73666572436f6e747261637412300a154194a15629b2b2bbd3a5453e6d6696b2875278633b1215413c9b65b212316904572826240224750eccce29a218017083ada3dcfc32",  # noqa: E501
         "signature": [],
         "permission": None,
     }
@@ -174,6 +175,7 @@ def test_create_smart_contract_transaction_offline(
             "ref_block_hash": REF_BLOCK_HASH,
             "fee_limit": 50000000,
         },
+        "raw_data_hex": "0a0264312208212a13dbe72ac5c040c7f89586fd325aae01081f12a9010a31747970652e676f6f676c65617069732e636f6d2f70726f746f636f6c2e54726967676572536d617274436f6e747261637412740a154194a15629b2b2bbd3a5453e6d6696b2875278633b12154154e24764f19b0450d49d4b66270da289666cf82a2244a9059cbb0000000000000000000000003c9b65b212316904572826240224750eccce29a2000000000000000000000000000000000000000000000000000000000000000170e7a39286fd32900180e1eb17",  # noqa: E501
         "signature": [],
         "permission": None,
     }
@@ -191,6 +193,22 @@ def test_offline_transaction_fields_vs_online() -> None:
     assert online_json == offline_json
     with pytest.raises(ValueError, match="ref_block_id is required"):
         client.trx.transfer(FROM_ADDR, TO_ADDR, 1).build(offline=True)
+
+
+@pytest.mark.skipif(not protobuf_installed, reason="Protobuf not installed")
+@pytest.mark.parametrize(
+    "customize",
+    [lambda builder: builder.memo("test memo"), lambda builder: builder.permission_id(2)],
+    ids=["memo", "permission_id"],
+)
+@freezegun.freeze_time(datetime.datetime(2025, 7, 13, 10, 30, 0, 0, tzinfo=datetime.UTC))
+def test_offline_transaction_optional_fields_vs_online(customize: typing.Callable) -> None:
+    client = Tron(network="nile")
+    with patch.object(client, "get_latest_solid_block_id", return_value=REF_BLOCK_ID):
+        online = customize(client.trx.transfer(FROM_ADDR, TO_ADDR, 1)).build()
+    offline = customize(client.trx.transfer(FROM_ADDR, TO_ADDR, 1)).build(offline=True, ref_block_id=REF_BLOCK_ID)
+    assert online.txid == offline.txid
+    assert online.raw_data_hex == offline.raw_data_hex
 
 
 @pytest.mark.skipif(not protobuf_installed, reason="Protobuf not installed")

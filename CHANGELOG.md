@@ -12,6 +12,12 @@ Fix encoding and decoding of the `trcToken` ABI type
 
 Allow `eth-abi` 6 and `pycryptodome` 4
 
+Add `raw_data_hex` to transactions and their `to_json` output, including offline-built ones, so they can be signed by tools that require it, like TronWeb
+
+Fix wrong `txID` of offline-built transactions with a memo or `permission_id`
+
+Fix `Transaction.from_json` and `AsyncTransaction.from_json` failing on JSON strings
+
 ## 0.6.2
 
 Add support for python 3.14

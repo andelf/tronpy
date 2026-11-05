@@ -116,6 +116,7 @@ class Transaction:
         txid: str = "",
         permission: dict = EMPTY,
         signature: list = None,
+        raw_data_hex: str = "",
     ):
         self._raw_data: dict = raw_data
         self._signature: list = signature or []
@@ -126,6 +127,9 @@ class Transaction:
         self.txid: str = txid
         """The transaction id in hex."""
 
+        self.raw_data_hex: str = raw_data_hex
+        """The protobuf-serialized `raw_data` in hex."""
+
         self._permission: dict | None = permission
 
         if (not self.txid or self._permission is EMPTY) and self._client:
@@ -134,6 +138,7 @@ class Transaction:
                 self._client._handle_api_error(sign_weight)
                 return  # unreachable
             self.txid = sign_weight["transaction"]["transaction"]["txID"]
+            self.raw_data_hex = sign_weight["transaction"]["transaction"]["raw_data_hex"]
 
             # when account not exist on-chain
             self._permission = sign_weight.get("permission", None)
@@ -142,19 +147,21 @@ class Transaction:
         return {
             "txID": self.txid,
             "raw_data": self._raw_data,
+            "raw_data_hex": self.raw_data_hex,
             "signature": self._signature,
             "permission": self._permission if self._permission is not EMPTY else None,
         }
 
     @classmethod
     def from_json(cls, data: str | dict, client: "Tron" = None):
-        if isinstance(json, str):
+        if isinstance(data, str):
             data = json.loads(data)
         return cls(
             client=client,
             txid=data["txID"],
             permission=data["permission"],
             raw_data=data["raw_data"],
+            raw_data_hex=data.get("raw_data_hex", ""),
             signature=data["signature"],
         )
 
@@ -209,6 +216,7 @@ class Transaction:
         self._raw_data["ref_block_hash"] = ref_block_id[16:32]
 
         self.txid = ""
+        self.raw_data_hex = ""
         self._permission = None
         self._signature = []
         sign_weight = self._client.get_sign_weight(self)
@@ -216,6 +224,7 @@ class Transaction:
             self._client._handle_api_error(sign_weight)
             return  # unreachable
         self.txid = sign_weight["transaction"]["transaction"]["txID"]
+        self.raw_data_hex = sign_weight["transaction"]["transaction"]["raw_data_hex"]
 
         # when account not exist on-chain
         self._permission = sign_weight.get("permission", None)
@@ -284,13 +293,13 @@ class TransactionBuilder:
         self._raw_data["ref_block_bytes"] = ref_block_id[12:16]
         self._raw_data["ref_block_hash"] = ref_block_id[16:32]
         if offline:
-            txid = proto.calculate_txid_from_raw_data(self._raw_data)
             return Transaction(
                 self._raw_data,
                 client=None,
                 method=self._method,
-                txid=txid,
+                txid=proto.calculate_txid_from_raw_data(self._raw_data),
                 permission=None,
+                raw_data_hex=proto.calculate_raw_data_hex(self._raw_data),
             )
         return Transaction(self._raw_data, client=self._client, method=self._method)
 

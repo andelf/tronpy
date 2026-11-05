@@ -1,3 +1,5 @@
+import hashlib
+
 RAW_DATA_KEYS = {
     "contract",
     "timestamp",
@@ -9,7 +11,8 @@ RAW_DATA_KEYS = {
 
 
 def check_transaction_structure(tx, expected, fee_limit, *, expect_signature=True, expect_memo=True):
-    assert set(tx.keys()) == {"txID", "raw_data", "signature", "permission"}
+    assert set(tx.keys()) == {"txID", "raw_data", "raw_data_hex", "signature", "permission"}
+    assert hashlib.sha256(bytes.fromhex(tx["raw_data_hex"])).hexdigest() == tx["txID"]
     assert set(tx["raw_data"].keys()) == (RAW_DATA_KEYS | {"data"} if expect_memo else RAW_DATA_KEYS)
     if fee_limit is not None:
         assert tx["raw_data"]["fee_limit"] == fee_limit

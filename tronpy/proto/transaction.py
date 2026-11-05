@@ -14,10 +14,12 @@ except ImportError as exc:
 
 def calculate_txid_from_raw_data(raw_data: dict[str, Any]) -> str:
     """Calculate txid using protobuf serialization"""
-    transaction_raw = _raw_data_to_protobuf(raw_data)
-    transaction = tron_pb2.Transaction(raw_data=transaction_raw)
-    raw_bytes = transaction.raw_data.SerializeToString()
-    return hashlib.sha256(raw_bytes).hexdigest()
+    return hashlib.sha256(_raw_data_to_protobuf(raw_data).SerializeToString()).hexdigest()
+
+
+def calculate_raw_data_hex(raw_data: dict[str, Any]) -> str:
+    """Calculate raw_data_hex using protobuf serialization"""
+    return _raw_data_to_protobuf(raw_data).SerializeToString().hex()
 
 
 def _raw_data_to_protobuf(raw_data: dict[str, Any]):
@@ -49,6 +51,7 @@ def _raw_data_to_protobuf(raw_data: dict[str, Any]):
                 type_url=contract_data["parameter"]["type_url"],
                 value=contract_proto.SerializeToString(),
             ),
+            Permission_id=contract_data.get("Permission_id", 0),
         )
         contracts.append(contract)
     transaction_raw = tron_pb2.Transaction.raw(
@@ -60,4 +63,6 @@ def _raw_data_to_protobuf(raw_data: dict[str, Any]):
     )
     if "fee_limit" in raw_data:
         transaction_raw.fee_limit = raw_data["fee_limit"]
+    if "data" in raw_data:
+        transaction_raw.data = bytes.fromhex(raw_data["data"])
     return transaction_raw
