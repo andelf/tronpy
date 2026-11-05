@@ -1,6 +1,6 @@
 import os
 from collections.abc import Hashable, Sequence
-from typing import Any
+from typing import Any, Self
 
 import base58
 from Crypto.Hash import keccak
@@ -98,7 +98,7 @@ class BaseKey(Sequence, Hashable):
         return self._raw_key.hex()
 
     @classmethod
-    def fromhex(cls, hex_str: str) -> "BaseKey":
+    def fromhex(cls, hex_str: str) -> Self:
         """
         Construct a key from a hex str.
 

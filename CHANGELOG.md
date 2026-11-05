@@ -6,6 +6,8 @@
 
 **Breaking**: Remove the `sha256` helper from `tronpy.keys`, use `hashlib.sha256` instead
 
+`PrivateKey.fromhex` and `PublicKey.fromhex` are now typed to return their own class instead of `BaseKey`
+
 ## 0.6.2
 
 Add support for python 3.14
