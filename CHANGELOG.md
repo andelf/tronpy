@@ -8,6 +8,8 @@
 
 `PrivateKey.fromhex` and `PublicKey.fromhex` are now typed to return their own class instead of `BaseKey`
 
+Fix encoding and decoding of the `trcToken` ABI type
+
 ## 0.6.2
 
 Add support for python 3.14

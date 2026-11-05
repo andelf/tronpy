@@ -1,10 +1,9 @@
 import functools
 
-import eth_abi
 from eth_abi.base import parse_type_str
 from eth_abi.codec import ABICodec as ETHABICodec
-from eth_abi.decoding import Fixed32ByteSizeDecoder
-from eth_abi.encoding import Fixed32ByteSizeEncoder
+from eth_abi.decoding import Fixed32ByteSizeDecoder, UnsignedIntegerDecoder
+from eth_abi.encoding import Fixed32ByteSizeEncoder, UnsignedIntegerEncoder
 from eth_abi.exceptions import NonEmptyPaddingBytes
 from eth_abi.registry import BaseEquals
 from eth_abi.registry import registry as default_registry
@@ -54,6 +53,18 @@ class TronAddressEncoder(Fixed32ByteSizeEncoder):
         return cls()
 
 
+class TrcTokenDecoder(UnsignedIntegerDecoder):
+    @parse_type_str("trcToken")
+    def from_type_str(cls, abi_type, registry):
+        return cls(value_bit_size=256)
+
+
+class TrcTokenEncoder(UnsignedIntegerEncoder):
+    @parse_type_str("trcToken")
+    def from_type_str(cls, abi_type, registry):
+        return cls(value_bit_size=256)
+
+
 def do_patching(registry):
     registry.unregister("address")
 
@@ -65,9 +76,9 @@ def do_patching(registry):
     )
 
     registry.register(
-        BaseEquals("trcToken"),
-        eth_abi.encoding.UnsignedIntegerEncoder,
-        eth_abi.decoding.UnsignedIntegerDecoder,
+        BaseEquals("trcToken", with_sub=False),
+        TrcTokenEncoder,
+        TrcTokenDecoder,
         label="trcToken",
     )
 
