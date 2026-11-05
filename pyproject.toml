@@ -31,10 +31,10 @@ classifiers = [
 dependencies = [
     "base58",
     "cryptography>=50.0.2",
-    "eth-abi>=5.0.0,<6.0.0",
+    "eth-abi>=5.0.0,<7.0.0",
     "eth-utils",
     "httpx",
-    "pycryptodome<4",
+    "pycryptodome<5",
     "requests",
 ]
 

@@ -42,4 +42,4 @@ repos:
         language: node
         require_serial: true
         entry: oxfmt --no-error-on-unmatched-pattern
-        additional_dependencies: [oxfmt@0.75.0]
+        additional_dependencies: [oxfmt@0.76.0]

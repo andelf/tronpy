@@ -10,6 +10,8 @@
 
 Fix encoding and decoding of the `trcToken` ABI type
 
+Allow `eth-abi` 6 and `pycryptodome` 4
+
 ## 0.6.2
 
 Add support for python 3.14
