@@ -1,7 +1,41 @@
-import pytest
+import hashlib
+import importlib
 
-from tronpy.exceptions import BadKey
-from tronpy.keys import PrivateKey, PublicKey, Signature, hash_message, keccak256, sha256, to_base58check_address
+import pytest
+from cryptography.exceptions import UnsupportedAlgorithm
+from cryptography.hazmat.backends.openssl.backend import backend
+
+from tronpy.exceptions import BadKey, BadSignature
+from tronpy.hdwallet import TRON_DEFAULT_PATH, key_from_seed, seed_from_mnemonic
+from tronpy.hdwallet._utils import ec_point
+from tronpy.keys import (
+    PrivateKey,
+    PublicKey,
+    Signature,
+    _secp256k1,
+    hash_message,
+    keccak256,
+    sha256,
+    to_base58check_address,
+)
+
+SECP256K1_P = 2**256 - 2**32 - 977
+SECP256K1_N = 115792089237316195423570985008687907852837564279074904382605163141518161494337
+GENERATOR_X = "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+GENERATOR_Y = "483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
+NEGATED_GENERATOR_Y = "b7c52588d95c3b9aa25b0403f1eef75702e84bb7597aabe663b82f6f04ef2777"
+ZERO_DIGEST = bytes(32)
+SIGNING_KEY = PrivateKey(b"\x01" * 32)
+SIGNED_DIGEST = hashlib.sha256((0).to_bytes(4, "big")).digest()
+SIGNED_DIGEST_SIGNATURE = Signature.fromhex(
+    "544677df3a29dc2251f2aa1e3e4050a58b645f863f21a8418998f35e5814e668"
+    "77ec0968fce695363e4e7bd74d9913bb0f50bbe87849727f97857e6d2ddb207600"
+)
+
+
+def build_signature(r: int, s: int, v: int) -> Signature:
+    return Signature(r.to_bytes(32, "big") + s.to_bytes(32, "big") + bytes([v]))
+
 
 # https://shasta.tronscan.org/#/transaction/17821228a79904c23bd35e566f320c2d43e6940c0d44bc8d70f257f3485459bb
 
@@ -167,3 +201,218 @@ def test_tronweb_compatibility(test_case):
     assert recovered_address == test_case["address"], (
         f"Address mismatch: expected {test_case['address']}, got {recovered_address}"
     )
+
+
+def test_signature_vectors_for_fixed_key():
+    combined = hashlib.sha256()
+    for i in range(300):
+        digest = hashlib.sha256(i.to_bytes(4, "big")).digest()
+        signature = SIGNING_KEY.sign_msg_hash(digest)
+        recovered = signature.recover_public_key_from_msg_hash(digest)
+        assert recovered == SIGNING_KEY.public_key
+        assert signature.verify_msg_hash(digest, recovered) is True
+        combined.update(signature.to_bytes() + b"\x04" + recovered.to_bytes())
+    assert combined.hexdigest() == "37b67a4b15f9d39dca378a3cf5e6bf52c303d2f312ca8dee00332fb807b199b8"
+
+
+@pytest.mark.parametrize(
+    ("digest", "expected"),
+    [
+        (
+            ZERO_DIGEST,
+            "6734cb4e3c071082482bf0f8579484f28dcdb1ca15b0cce72fbf130b2673d00c"
+            "5fbeecc4075cfd6a52634210486f24ce6db20f2870e606acc43ade814d48394a00",
+        ),
+        (
+            SECP256K1_N.to_bytes(32, "big"),
+            "6734cb4e3c071082482bf0f8579484f28dcdb1ca15b0cce72fbf130b2673d00c"
+            "5fbeecc4075cfd6a52634210486f24ce6db20f2870e606acc43ade814d48394a00",
+        ),
+        (
+            SECP256K1_P.to_bytes(32, "big"),
+            "7b8059a5092e4f4bb679e46fcc29e5bb8ca95d390e59274d8d09ef5a858d063f"
+            "2cfa364b8ac641432a37ddbae381b93ddb46b41740f156d82993132510b7a52d00",
+        ),
+        (
+            b"\xff" * 32,
+            "1b3e4eb79d6c3ff54ed5a83dc3e0476abeb3a9488d721c0ee057f48ae17a873c"
+            "7a6086244f54c15be735d8b3d5d2ca49106175b061491033c8e6dfa7f93eac9500",
+        ),
+    ],
+    ids=["zero", "n", "p", "max"],
+)
+def test_signature_vectors_for_edge_digests(digest, expected):
+    signature = SIGNING_KEY.sign_msg_hash(digest)
+    assert signature.hex() == expected
+    assert signature.recover_public_key_from_msg_hash(digest) == SIGNING_KEY.public_key
+    assert signature.verify_msg_hash(digest, SIGNING_KEY.public_key) is True
+
+
+def test_signature_is_low_s():
+    assert SIGNED_DIGEST_SIGNATURE.s <= SECP256K1_N // 2
+    assert SIGNING_KEY.sign_msg_hash(SIGNED_DIGEST) == SIGNED_DIGEST_SIGNATURE
+
+
+def test_verify_accepts_high_s():
+    signature = SIGNED_DIGEST_SIGNATURE
+    high_s = build_signature(signature.r, SECP256K1_N - signature.s, signature.v ^ 1)
+    assert high_s.verify_msg_hash(SIGNED_DIGEST, SIGNING_KEY.public_key) is True
+    assert high_s.recover_public_key_from_msg_hash(SIGNED_DIGEST) == SIGNING_KEY.public_key
+
+
+@pytest.mark.parametrize(
+    ("r", "s"),
+    [
+        (0, SIGNED_DIGEST_SIGNATURE.s),
+        (SIGNED_DIGEST_SIGNATURE.r, 0),
+        (0, 0),
+        (SECP256K1_N, SIGNED_DIGEST_SIGNATURE.s),
+        (SIGNED_DIGEST_SIGNATURE.r, SECP256K1_N),
+        (2**256 - 1, SIGNED_DIGEST_SIGNATURE.s),
+        (SIGNED_DIGEST_SIGNATURE.r, 2**256 - 1),
+        (SIGNED_DIGEST_SIGNATURE.r, SECP256K1_N + 1),
+    ],
+    ids=["r=0", "s=0", "r=s=0", "r=n", "s=n", "r=max", "s=max", "s=n+1"],
+)
+def test_verify_rejects_out_of_range_signature(r, s):
+    assert build_signature(r, s, 0).verify_msg_hash(SIGNED_DIGEST, SIGNING_KEY.public_key) is False
+
+
+def test_verify_rejects_wrong_digest_and_wrong_key():
+    signature = SIGNED_DIGEST_SIGNATURE
+    assert signature.verify_msg_hash(ZERO_DIGEST, SIGNING_KEY.public_key) is False
+    assert signature.verify_msg_hash(SIGNED_DIGEST, PrivateKey(b"\x02" * 32).public_key) is False
+
+
+@pytest.mark.parametrize(
+    "public_key",
+    [bytes(64), b"\xff" * 64, (1).to_bytes(32, "big") * 2],
+    ids=["zero", "above-field", "off-curve"],
+)
+def test_verify_raises_on_invalid_public_key(public_key):
+    with pytest.raises(ValueError):
+        SIGNED_DIGEST_SIGNATURE.verify_msg_hash(SIGNED_DIGEST, PublicKey(public_key))
+
+
+@pytest.mark.parametrize(
+    ("r", "s"),
+    [
+        (0, SIGNED_DIGEST_SIGNATURE.s),
+        (SIGNED_DIGEST_SIGNATURE.r, 0),
+        (SECP256K1_N, SIGNED_DIGEST_SIGNATURE.s),
+        (SIGNED_DIGEST_SIGNATURE.r, SECP256K1_N),
+        (5, SIGNED_DIGEST_SIGNATURE.s),
+    ],
+    ids=["r=0", "s=0", "r=n", "s=n", "r-not-on-curve"],
+)
+def test_recover_raises_bad_signature(r, s):
+    with pytest.raises(BadSignature):
+        build_signature(r, s, 0).recover_public_key_from_msg_hash(SIGNED_DIGEST)
+
+
+def test_recover_raises_bad_signature_at_infinity():
+    nonce = 99
+    nonce_point = PrivateKey(nonce.to_bytes(32, "big")).public_key
+    r = int.from_bytes(nonce_point[:32], "big")
+    y = int.from_bytes(nonce_point[32:], "big")
+    with pytest.raises(BadSignature):
+        build_signature(r, 5, y & 1).recover_public_key_from_msg_hash((5 * nonce).to_bytes(32, "big"))
+
+
+@pytest.mark.parametrize("v", [0, 1])
+def test_recover_with_edge_scalars(v):
+    nonce_point = PrivateKey((99).to_bytes(32, "big")).public_key
+    r = int.from_bytes(nonce_point[:32], "big")
+    same_point = build_signature(r, r, v).recover_public_key_from_msg_hash(ZERO_DIGEST)
+    negated_point = build_signature(r, SECP256K1_N - r, v).recover_public_key_from_msg_hash(ZERO_DIGEST)
+    assert same_point[:32] == negated_point[:32] == nonce_point[:32]
+    assert same_point[63] & 1 == v
+    assert negated_point[63] & 1 == v ^ 1
+
+
+def test_recover_with_wrong_recovery_id():
+    signature = SIGNED_DIGEST_SIGNATURE
+    wrong = build_signature(signature.r, signature.s, signature.v ^ 1)
+    recovered = wrong.recover_public_key_from_msg_hash(SIGNED_DIGEST)
+    assert recovered.hex() == (
+        "36372b0b2af7b2911b430bbff5d90e567dd3b5423a7e1a7506c1776574b165db"
+        "70327871071b97a41db878b4c6bb44c5b549d558993654f1c9efca5f691c55c3"
+    )
+    assert wrong.verify_msg_hash(SIGNED_DIGEST, recovered) is True
+    assert wrong.verify_msg_hash(SIGNED_DIGEST, SIGNING_KEY.public_key) is True
+
+
+def test_recover_rejects_recovery_id_outside_signature_range():
+    signature = SIGNED_DIGEST_SIGNATURE.to_bytes()[:64] + b"\x02"
+    with pytest.raises(ValueError):
+        _secp256k1.recover(signature, SIGNED_DIGEST)
+
+
+@pytest.mark.parametrize(
+    ("digest", "error"),
+    [
+        (bytes(31), ValueError),
+        (bytes(33), ValueError),
+        (b"", ValueError),
+        ("a" * 31, ValueError),
+        ("a" * 32, TypeError),
+        (bytearray(32), TypeError),
+        (memoryview(bytes(32)), TypeError),
+        (None, TypeError),
+    ],
+    ids=["short", "long", "empty", "str-short", "str", "bytearray", "memoryview", "none"],
+)
+def test_invalid_message_hash(digest, error):
+    with pytest.raises(error):
+        SIGNING_KEY.sign_msg_hash(digest)
+    with pytest.raises(error):
+        SIGNED_DIGEST_SIGNATURE.verify_msg_hash(digest, SIGNING_KEY.public_key)
+    with pytest.raises(BadSignature):
+        SIGNED_DIGEST_SIGNATURE.recover_public_key_from_msg_hash(digest)
+
+
+@pytest.mark.parametrize(
+    ("value", "y", "compressed_prefix"),
+    [(1, GENERATOR_Y, "02"), (SECP256K1_N - 1, NEGATED_GENERATOR_Y, "03")],
+    ids=["1", "n-1"],
+)
+def test_valid_key_bounds(value, y, compressed_prefix):
+    raw_key = value.to_bytes(32, "big")
+    assert PrivateKey(raw_key).public_key.hex() == GENERATOR_X + y
+    assert ec_point(raw_key).hex() == compressed_prefix + GENERATOR_X
+    signature = PrivateKey(raw_key).sign_msg_hash(SIGNED_DIGEST)
+    assert signature.recover_public_key_from_msg_hash(SIGNED_DIGEST) == PrivateKey(raw_key).public_key
+
+
+@pytest.mark.parametrize("value", [0, SECP256K1_N, SECP256K1_N + 1, 2**256 - 1], ids=["0", "n", "n+1", "max"])
+def test_invalid_key_bounds(value):
+    raw_key = value.to_bytes(32, "big")
+    with pytest.raises(BadKey):
+        PrivateKey(raw_key)
+    with pytest.raises(ValueError):
+        ec_point(raw_key)
+
+
+def test_hd_vector():
+    pytest.importorskip("mnemonic")
+    seed = seed_from_mnemonic(
+        "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about", ""
+    )
+    private_key = PrivateKey(key_from_seed(seed, TRON_DEFAULT_PATH))
+    assert private_key.public_key.to_base58check_address() == "TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH"
+
+
+def test_signing_refuses_unmatched_recovery_id(monkeypatch):
+    monkeypatch.setattr(_secp256k1, "_recover_point", lambda *_: (1, 1))
+    with pytest.raises(ValueError):
+        SIGNING_KEY.sign_msg_hash(SIGNED_DIGEST)
+
+
+def test_only_signing_needs_deterministic_support(monkeypatch):
+    monkeypatch.setattr(backend, "ecdsa_deterministic_supported", lambda: False)
+    importlib.reload(_secp256k1)
+    assert PrivateKey(b"\x01" * 32).public_key == SIGNING_KEY.public_key
+    assert SIGNED_DIGEST_SIGNATURE.verify_msg_hash(SIGNED_DIGEST, SIGNING_KEY.public_key) is True
+    assert SIGNED_DIGEST_SIGNATURE.recover_public_key_from_msg_hash(SIGNED_DIGEST) == SIGNING_KEY.public_key
+    with pytest.raises(UnsupportedAlgorithm):
+        SIGNING_KEY.sign_msg_hash(SIGNED_DIGEST)

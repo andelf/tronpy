@@ -4,7 +4,7 @@
 import hashlib
 import hmac
 
-from coincurve import PrivateKey as CoincurvePrivateKey
+from tronpy.keys._secp256k1 import compressed_public_key_bytes
 
 PBKDF2_ROUNDS = 2048
 SECP256K1_N = int("FFFFFFFF_FFFFFFFF_FFFFFFFF_FFFFFFFE_BAAEDCE6_AF48A03B_BFD25E8C_D0364141", 16)
@@ -23,4 +23,4 @@ def ec_point(pkey: bytes) -> bytes:
 
     Note: Result is ecdsa public key serialized to compressed form
     """
-    return CoincurvePrivateKey(pkey).public_key.format(compressed=True)
+    return compressed_public_key_bytes(pkey)
