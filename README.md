@@ -71,7 +71,7 @@ if __name__ == "__main__":
 Or close async client manually:
 
 ```python
-from httpx import AsyncClient, Timeout
+from httpx2 import AsyncClient, Limits, Timeout
 from tronpy.providers.async_http import AsyncHTTPProvider
 from tronpy.defaults import CONF_NILE
 

@@ -67,7 +67,6 @@ def test_offline_contract_transfer_raises_import_error(
 ) -> None:
     client = client_class(network="nile")
     if client_class == AsyncTron:
-        import asyncio
 
         async def run_contract_test():
             contract = await client.get_contract(TRC20_CONTRACT)

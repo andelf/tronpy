@@ -33,7 +33,7 @@ dependencies = [
     "cryptography>=50.0.2",
     "eth-abi>=5.0.0,<7.0.0",
     "eth-utils",
-    "httpx",
+    "httpx2>=2.15.1",
     "pycryptodome<5",
     "requests",
     "typing-extensions>=4.4.0",
@@ -99,6 +99,7 @@ select = [
     "S",
     "ASYNC",
     "TID",
+    "PLC",
 ]
 ignore = ["RET502", "RET503", "S104", "S507", "ASYNC109", "ASYNC110"]
 mccabe = { max-complexity = 12 }

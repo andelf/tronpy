@@ -5,8 +5,8 @@ import sys
 from typing import Any, cast
 from urllib.parse import urljoin
 
-import httpx
-from httpx import Timeout
+import httpx2
+from httpx2 import Timeout
 
 from tronpy.exceptions import ApiError
 from tronpy.version import VERSION
@@ -34,7 +34,7 @@ class AsyncHTTPProvider:
         self,
         endpoint_uri: str | dict | None = None,
         timeout: float = DEFAULT_TIMEOUT,
-        client: httpx.AsyncClient | None = None,
+        client: httpx2.AsyncClient | None = None,
         api_key: str | list[str] | None = None,
         jw_token: str | None = None,
     ):
@@ -64,7 +64,7 @@ class AsyncHTTPProvider:
         self.jw_token = jw_token
 
         if client is None:
-            self.client: httpx.AsyncClient = httpx.AsyncClient(timeout=Timeout(timeout))
+            self.client: httpx2.AsyncClient = httpx2.AsyncClient(timeout=Timeout(timeout))
         else:
             self.client = client
 

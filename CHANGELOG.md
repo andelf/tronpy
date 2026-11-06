@@ -2,6 +2,8 @@
 
 ## Latest changes
 
+**Breaking**: the async client now uses `httpx2` instead of `httpx`. Build `AsyncHTTPProvider(client=...)` clients and catch timeouts and other HTTP errors from `httpx2`. TLS verification now uses the OS trust store instead of `certifi`
+
 **Breaking**: `Tron` and `AsyncTron` now raise `ValueError` on an unknown `network`, instead of silently connecting to mainnet or to `TRONPY_HTTP_PROVIDER_URI`
 
 Move `as_shielded_trc20` from `ContractMethod`, where it always raised `TypeError`, to `Contract`

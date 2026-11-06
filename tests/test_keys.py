@@ -6,7 +6,7 @@ from cryptography.exceptions import UnsupportedAlgorithm
 from cryptography.hazmat.backends.openssl.backend import backend
 
 from tronpy.exceptions import BadKey, BadSignature
-from tronpy.hdwallet import TRON_DEFAULT_PATH, key_from_seed, seed_from_mnemonic
+from tronpy.hdwallet import TRON_DEFAULT_PATH, generate_mnemonic, key_from_seed, seed_from_mnemonic
 from tronpy.hdwallet._utils import ec_point
 from tronpy.keys import (
     BaseKey,
@@ -400,6 +400,14 @@ def test_hd_vector():
     )
     private_key = PrivateKey(key_from_seed(seed, TRON_DEFAULT_PATH))
     assert private_key.public_key.to_base58check_address() == "TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH"
+
+
+def test_mnemonic_extra_missing(monkeypatch):
+    monkeypatch.setattr("tronpy.hdwallet.Mnemonic", None)
+    with pytest.raises(ImportError, match=r"tronpy\[mnemonic\]"):
+        generate_mnemonic(12, "english")
+    with pytest.raises(ImportError, match=r"tronpy\[mnemonic\]"):
+        seed_from_mnemonic("abandon about", "")
 
 
 def test_signing_refuses_unmatched_recovery_id(monkeypatch):

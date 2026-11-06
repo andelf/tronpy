@@ -1,7 +1,7 @@
 # The Async API
 
 TronPy offers a standard synchronous API by default,
-but also introduces an async client via [httpx](https://www.python-httpx.org/).
+but also introduces an async client via [httpx2](https://pydantic.dev/docs/httpx2/).
 
 The async client is `AsyncTron`. It almost uses the same API as the synchronous client `Tron`.
 

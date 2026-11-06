@@ -4,11 +4,15 @@ import socket
 import time
 
 import pytest
+import requests.exceptions
+from httpx2 import AsyncClient, Limits, Timeout, TimeoutException
 
 from tests.utils import check_generate_address, check_transaction_structure
 from tronpy import AsyncTron, Tron
 from tronpy.async_tron import AsyncTransaction
+from tronpy.defaults import CONF_NILE
 from tronpy.keys import PrivateKey
+from tronpy.providers.async_http import AsyncHTTPProvider
 from tronpy.tron import Transaction
 
 # test_net address
@@ -175,11 +179,6 @@ async def test_async_client():
 
 @pytest.mark.asyncio
 async def test_async_manual_client():
-    from httpx import AsyncClient, Limits, Timeout
-
-    from tronpy.defaults import CONF_NILE
-    from tronpy.providers.async_http import AsyncHTTPProvider
-
     _http_client = AsyncClient(
         limits=Limits(max_connections=100, max_keepalive_connections=20),
         timeout=Timeout(timeout=10, connect=5, read=5),
@@ -255,8 +254,6 @@ async def test_async_client_transfer_trc10():
 
 
 def test_client_timeout(stalled_node):
-    import requests.exceptions
-
     client = Tron(network="nile", conf={"timeout": 0.01})
     client.provider.endpoint_uri = stalled_node
 
@@ -266,8 +263,6 @@ def test_client_timeout(stalled_node):
 
 @pytest.mark.asyncio
 async def test_async_client_timeout(stalled_node):
-    from httpx import TimeoutException
-
     async with AsyncTron(network="nile", conf={"timeout": 0.01}) as client:
         client.provider.endpoint_uri = stalled_node
         with pytest.raises(TimeoutException):
