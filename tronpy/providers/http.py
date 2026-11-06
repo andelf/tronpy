@@ -2,7 +2,7 @@ import os
 import secrets
 import sys
 import time
-from typing import Any
+from typing import Any, cast
 from urllib.parse import urljoin
 
 import requests
@@ -33,15 +33,15 @@ class HTTPProvider:
 
     def __init__(
         self,
-        endpoint_uri: str | dict = None,
+        endpoint_uri: str | dict | None = None,
         timeout: float = DEFAULT_TIMEOUT,
-        api_key: str | list[str] = None,
-        jw_token: str = None,
+        api_key: str | list[str] | None = None,
+        jw_token: str | None = None,
     ):
         super().__init__()
 
         if endpoint_uri is None:
-            self.endpoint_uri = os.environ.get("TRONPY_HTTP_PROVIDER_URI", "https://api.trongrid.io/")
+            self.endpoint_uri: str = os.environ.get("TRONPY_HTTP_PROVIDER_URI", "https://api.trongrid.io/")
         elif isinstance(endpoint_uri, (dict,)):
             self.endpoint_uri = endpoint_uri["fullnode"]
         elif isinstance(endpoint_uri, (str,)):
@@ -87,16 +87,16 @@ class HTTPProvider:
             return self.make_request(method, params)
 
         resp.raise_for_status()
-        return resp.json()
+        return cast(dict, resp.json())
 
     @property
-    def random_api_key(self):
+    def random_api_key(self) -> str:
         try:
             return secrets.choice(self._api_keys)
         except IndexError as e:
             raise ApiError("rate limit! please add more API keys") from e
 
-    def _handle_rate_limit(self):
+    def _handle_rate_limit(self) -> None:
         if len(self._api_keys) > 0:
             self._api_keys.remove(self.sess.headers["Tron-Pro-Api-Key"])
         else:

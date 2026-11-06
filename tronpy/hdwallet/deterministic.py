@@ -43,7 +43,7 @@ Definitions
 # - Unlike other libraries, this library does not use Bitcoin key serialization, because it is
 #   not intended to be ultimately used for Bitcoin key derivations. This presents a simplified
 #   API, and no expectation is given for `xpub/xpriv` key derivation.
-from typing import Union
+from typing import Self, Union
 
 from eth_utils import ValidationError, to_int
 
@@ -62,7 +62,7 @@ class Node(int):
     OFFSET = 0x0  # No offset
     index: int
 
-    def __new__(cls, index):
+    def __new__(cls, index: int) -> Self:
         if index < 0 or index > 2**31:
             raise ValidationError(f"{cls} cannot be initialized with value {index}")
 
@@ -70,10 +70,10 @@ class Node(int):
         obj.index = index
         return obj
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.index})"
 
-    def __add__(self, other: int):
+    def __add__(self, other: int) -> Self:
         return self.__class__(self.index + other)
 
     def serialize(self) -> bytes:

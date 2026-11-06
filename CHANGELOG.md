@@ -2,6 +2,28 @@
 
 ## Latest changes
 
+**Breaking**: `Tron` and `AsyncTron` now raise `ValueError` on an unknown `network`, instead of silently connecting to mainnet or to `TRONPY_HTTP_PROVIDER_URI`
+
+Move `as_shielded_trc20` from `ContractMethod`, where it always raised `TypeError`, to `Contract`
+
+Fix `AsyncTron.get_contract_as_shielded_trc20` returning the sync wrapper, and `AsyncShieldedTRC20` failing on `mint`, `transfer` and `burn`, or on a second read of `trc20` or `scale_factor`
+
+`Tron.get_asset` now raises `ValueError` when given both an id and an issuer, instead of returning the exception
+
+`is_note_spent` now returns `False` instead of `None` when the node omits `is_spent`
+
+Calling contract methods or printing them no longer raises `AttributeError` when their ABI has no `stateMutability`
+
+Broadcasting or updating a transaction without a client now raises a clear `TypeError` instead of `AttributeError`
+
+Signing a transaction that has no client and no known permission no longer raises `TypeError`
+
+Report the actual number of arguments when contract methods and constructors get a wrong number of keyword arguments
+
+`BaseKey` is now abstract. It could already only be built without arguments, and the result had no key data
+
+Annotate the whole package, check it with mypy in CI, and ship a `py.typed` marker so type checkers use these annotations
+
 ## 0.7.0
 
 **Breaking**: Drop support for python 3.9 and 3.10

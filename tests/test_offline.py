@@ -230,3 +230,25 @@ def test_offline_smart_contract_transaction_fields_vs_online() -> None:
     assert offline_json.pop("permission") is None
     online_json.pop("permission")
     assert online_json == offline_json
+
+
+@pytest.mark.skipif(not protobuf_installed, reason="Protobuf not installed")
+def test_offline_transaction_needs_client_to_reach_the_node() -> None:
+    transaction = Tron(network="nile").trx.transfer(FROM_ADDR, TO_ADDR, 1).build(offline=True, ref_block_id=REF_BLOCK_ID)
+    with pytest.raises(TypeError, match="transaction has no client"):
+        transaction.broadcast()
+    with pytest.raises(TypeError, match="transaction has no client"):
+        transaction.update()
+
+
+@pytest.mark.skipif(not protobuf_installed, reason="Protobuf not installed")
+@pytest.mark.asyncio
+async def test_async_offline_transaction_needs_client_to_reach_the_node() -> None:
+    async with AsyncTron(network="nile") as client:
+        transaction = await client.trx.transfer(FROM_ADDR, TO_ADDR, 1).build(offline=True, ref_block_id=REF_BLOCK_ID)
+    with pytest.raises(TypeError, match="transaction has no client"):
+        await transaction.broadcast()
+    with pytest.raises(TypeError, match="transaction has no client"):
+        await transaction.update()
+    with pytest.raises(TypeError, match="transaction has no client"):
+        await transaction.check_sign_weight()

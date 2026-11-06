@@ -3,6 +3,7 @@ import json
 import time
 from decimal import Decimal
 from pprint import pprint
+from typing import Any, Self, cast
 
 from tronpy import keys
 from tronpy.abi import tron_abi
@@ -32,7 +33,7 @@ from tronpy.providers import HTTPProvider
 try:
     from tronpy import proto
 except ProtobufImportError:
-    proto = None
+    proto = None  # type: ignore[assignment]
 
 TAddress = str
 
@@ -47,19 +48,19 @@ def current_timestamp() -> int:
 
 
 class TransactionRet(dict):
-    def __init__(self, iterable, client: "Tron", method: ContractMethod = None):
+    def __init__(self, iterable: dict, client: "Tron", method: ContractMethod | None = None):
         super().__init__(iterable)
 
         self._client = client
-        self._txid = self["txid"]
+        self._txid: str = self["txid"]
         self._method = method
 
     @property
-    def txid(self):
+    def txid(self) -> str:
         """The transaction id in hex."""
         return self._txid
 
-    def wait(self, timeout=30, interval=1.6, solid=False) -> dict:
+    def wait(self, timeout: float = 30, interval: float = 1.6, solid: bool = False) -> dict:
         """Wait the transaction to be on chain.
 
         :returns: TransactionInfo
@@ -78,7 +79,7 @@ class TransactionRet(dict):
 
         raise TransactionNotFound("timeout and can not find the transaction")
 
-    def result(self, timeout=30, interval=1.6, solid=False) -> dict:
+    def result(self, timeout: float = 30, interval: float = 1.6, solid: bool = False) -> Any:
         """Wait the contract calling result.
 
         :returns: Result of contract method
@@ -102,7 +103,7 @@ class TransactionRet(dict):
         return self._method.parse_output(receipt["contractResult"][0])
 
 
-EMPTY = object()
+EMPTY: Any = object()
 
 
 class Transaction:
@@ -111,11 +112,11 @@ class Transaction:
     def __init__(
         self,
         raw_data: dict,
-        client: "Tron" = None,
-        method: ContractMethod = None,
+        client: "Tron | None" = None,
+        method: ContractMethod | None = None,
         txid: str = "",
-        permission: dict = EMPTY,
-        signature: list = None,
+        permission: dict | None = EMPTY,
+        signature: list | None = None,
         raw_data_hex: str = "",
     ):
         self._raw_data: dict = raw_data
@@ -153,9 +154,9 @@ class Transaction:
         }
 
     @classmethod
-    def from_json(cls, data: str | dict, client: "Tron" = None):
+    def from_json(cls, data: str | dict, client: "Tron | None" = None) -> Self:
         if isinstance(data, str):
-            data = json.loads(data)
+            data = cast(dict, json.loads(data))
         return cls(
             client=client,
             txid=data["txID"],
@@ -177,7 +178,7 @@ class Transaction:
         if self.is_expired:
             raise ValueError("expired")
 
-        if self._permission is not None:
+        if self._permission is not None and self._permission is not EMPTY:
             addr_of_key = priv_key.public_key.to_hex_address()
             for key in self._permission["keys"]:
                 if key["address"] == addr_of_key:
@@ -194,6 +195,8 @@ class Transaction:
 
     def broadcast(self) -> TransactionRet:
         """Broadcast the transaction to TRON network."""
+        if self._client is None:
+            raise TypeError("transaction has no client")
         return TransactionRet(self._client.broadcast(self), client=self._client, method=self._method)
 
     def set_signature(self, signature: list) -> "Transaction":
@@ -203,10 +206,12 @@ class Transaction:
 
     @property
     def is_expired(self) -> bool:
-        return current_timestamp() >= self._raw_data["expiration"]
+        return cast(bool, current_timestamp() >= self._raw_data["expiration"])
 
-    def update(self):
+    def update(self) -> None:
         """update Transaction, change ref_block and txID, remove all signature"""
+        if self._client is None:
+            raise TypeError("transaction has no client")
         self._raw_data["timestamp"] = current_timestamp()
         self._raw_data["expiration"] = self._raw_data["timestamp"] + 60_000
         ref_block_id = self._client.get_latest_solid_block_id()
@@ -231,16 +236,16 @@ class Transaction:
         # remove all _signature
         self._signature = []
 
-    def __str__(self):
+    def __str__(self) -> str:
         return json.dumps(self.to_json(), indent=2)
 
 
 class TransactionBuilder:
     """TransactionBuilder, to build a [`Transaction`][tronpy.tron.Transaction] object."""
 
-    def __init__(self, inner: dict, client: "Tron", method: ContractMethod = None):
+    def __init__(self, inner: dict, client: "Tron", method: ContractMethod | None = None):
         self._client = client
-        self._raw_data = {
+        self._raw_data: dict = {
             "contract": [inner],
             "timestamp": current_timestamp(),
             "expiration": current_timestamp() + 60_000,
@@ -281,7 +286,7 @@ class TransactionBuilder:
         self._raw_data["fee_limit"] = value
         return self
 
-    def build(self, *, offline: bool = False, ref_block_id: str = None, **kwargs) -> Transaction:
+    def build(self, *, offline: bool = False, ref_block_id: str | None = None, **kwargs: Any) -> Transaction:
         """Build the transaction."""
         if offline:
             if not ref_block_id:
@@ -307,14 +312,14 @@ class TransactionBuilder:
 class Trx:
     """The Trx(transaction) API."""
 
-    def __init__(self, tron):
+    def __init__(self, tron: "Tron"):
         self._tron = tron
 
     @property
     def client(self) -> "Tron":
         return self._tron
 
-    def _build_transaction(self, type_: str, obj: dict, *, method: ContractMethod = None) -> TransactionBuilder:
+    def _build_transaction(self, type_: str, obj: dict, *, method: ContractMethod | None = None) -> TransactionBuilder:
         inner = {
             "parameter": {"value": obj, "type_url": f"type.googleapis.com/protocol.{type_}"},
             "type": type_,
@@ -351,12 +356,12 @@ class Trx:
         total_supply: int,
         *,
         url: str,
-        name: str = None,
+        name: str | None = None,
         description: str = "",
-        start_time: int = None,
-        end_time: int = None,
+        start_time: int | None = None,
+        end_time: int | None = None,
         precision: int = 6,
-        frozen_supply: list = None,
+        frozen_supply: list | None = None,
         trx_num: int = 1,
         num: int = 1,
     ) -> TransactionBuilder:
@@ -469,7 +474,7 @@ class Trx:
         return self._build_transaction("UnfreezeBalanceV2Contract", payload)
 
     def unfreeze_balance_legacy(
-        self, owner: TAddress, resource: str = "ENERGY", receiver: TAddress = None
+        self, owner: TAddress, resource: str = "ENERGY", receiver: TAddress | None = None
     ) -> "TransactionBuilder":
         """Unfreeze Stake 1.0 balance to get TRX back.
 
@@ -492,7 +497,7 @@ class Trx:
         balance: int,
         resource: str = "BANDWIDTH",
         lock: bool = False,
-        lock_period: int = None,
+        lock_period: int | None = None,
     ) -> "TransactionBuilder":
         """Delegate bandwidth or energy resources to other accounts in Stake2.0.
 
@@ -545,8 +550,8 @@ class Trx:
 
     def vote_witness(self, owner: TAddress, *votes: tuple[TAddress, int]) -> "TransactionBuilder":
         """Vote for witnesses. Empty ``votes`` to clean voted."""
-        votes = [{"vote_address": keys.to_hex_address(addr), "vote_count": count} for addr, count in votes]
-        payload = {"owner_address": keys.to_hex_address(owner), "votes": votes}
+        vote_entries = [{"vote_address": keys.to_hex_address(addr), "vote_count": count} for addr, count in votes]
+        payload = {"owner_address": keys.to_hex_address(owner), "votes": vote_entries}
         return self._build_transaction("VoteWitnessContract", payload)
 
     def withdraw_rewards(self, owner: TAddress) -> "TransactionBuilder":
@@ -592,8 +597,8 @@ class Tron:
     to_canonical_address = staticmethod(keys.to_base58check_address)
     """Convert address of any format to a base58check format."""
 
-    def __init__(self, provider: HTTPProvider = None, *, network: str = "mainnet", conf: dict = None):
-        self.conf = DEFAULT_CONF
+    def __init__(self, provider: HTTPProvider | None = None, *, network: str = "mainnet", conf: dict | None = None):
+        self.conf: dict = DEFAULT_CONF
         """The config dict."""
 
         if conf is not None:
@@ -602,7 +607,7 @@ class Tron:
                 raise ValueError("timeout value should be set in provider")
 
         if provider is None:
-            self.provider = HTTPProvider(conf_for_name(network), self.conf["timeout"])
+            self.provider: HTTPProvider = HTTPProvider(conf_for_name(network), self.conf["timeout"])
         elif isinstance(provider, (HTTPProvider,)):
             self.provider = provider
         else:
@@ -615,7 +620,7 @@ class Tron:
         """Helper object to send various transactions."""
         return self._trx
 
-    def _handle_api_error(self, payload: dict):
+    def _handle_api_error(self, payload: dict) -> None:
         if payload.get("result") is True:
             return
         if "Error" in payload:
@@ -642,7 +647,7 @@ class Tron:
 
     # Address utilities
 
-    def generate_address(self, priv_key=None) -> dict:
+    def generate_address(self, priv_key: PrivateKey | None = None) -> dict:
         """Generate a random address."""
         if priv_key is None:
             priv_key = PrivateKey.random()
@@ -653,7 +658,9 @@ class Tron:
             "public_key": priv_key.public_key.hex(),
         }
 
-    def generate_address_from_mnemonic(self, mnemonic: str, passphrase: str = "", account_path: str = TRON_DEFAULT_PATH):
+    def generate_address_from_mnemonic(
+        self, mnemonic: str, passphrase: str = "", account_path: str = TRON_DEFAULT_PATH
+    ) -> dict:
         """
         Generate address from a mnemonic.
 
@@ -674,7 +681,7 @@ class Tron:
 
     def generate_address_with_mnemonic(
         self, passphrase: str = "", num_words: int = 12, language: str = "english", account_path: str = TRON_DEFAULT_PATH
-    ):
+    ) -> tuple[dict, str]:
         r"""
         Create a new address and related mnemonic.
 
@@ -694,7 +701,7 @@ class Tron:
         """Generate a random shielded address."""
         return self.provider.make_request("wallet/getnewshieldedaddress")
 
-    def get_zkey_from_sk(self, sk: str, d: str = None) -> dict:
+    def get_zkey_from_sk(self, sk: str, d: str | None = None) -> dict:
         """Get the shielded address from sk(spending key) and d(diversifier)."""
         if len(sk) != 64:
             raise BadKey("32 byte sk required")
@@ -764,7 +771,7 @@ class Tron:
         )
         if ret:
             # (freeNetLimit - freeNetUsed) + (NetLimit - NetUsed)
-            return ret["freeNetLimit"] - ret.get("freeNetUsed", 0) + ret.get("NetLimit", 0) - ret.get("NetUsed", 0)
+            return cast(int, ret["freeNetLimit"] - ret.get("freeNetUsed", 0) + ret.get("NetLimit", 0) - ret.get("NetUsed", 0))
         raise AddressNotFound("account not found on-chain")
 
     def get_energy(self, address: str) -> int:
@@ -772,7 +779,7 @@ class Tron:
         account_info = self.get_account_resource(address)
         energy_limit = account_info.get("EnergyLimit", 0)
         energy_used = account_info.get("EnergyUsed", 0)
-        return energy_limit - energy_used
+        return cast(int, energy_limit - energy_used)
 
     def get_account_asset_balances(self, addr: TAddress) -> dict:
         """Get all TRC10 token balances of an account."""
@@ -785,7 +792,7 @@ class Tron:
             raise ValueError("invalid token_id range")
 
         balances = self.get_account_asset_balances(addr)
-        return balances.get(str(token_id), 0)
+        return cast(int, balances.get(str(token_id), 0))
 
     def get_account_permission(self, addr: TAddress) -> dict:
         """Get account's permission info from an address. Can be used in `account_permission_update`."""
@@ -870,7 +877,7 @@ class Tron:
         """Get latest solid block id in hex."""
 
         info = self.provider.make_request("wallet/getnodeinfo")
-        return info["solidityBlock"].split(",ID:", 1)[-1]
+        return cast(str, info["solidityBlock"].split(",ID:", 1)[-1])
 
     def get_latest_solid_block_number(self) -> int:
         """Get latest solid block number. Implemented via `wallet/getnodeinfo`,
@@ -886,7 +893,7 @@ class Tron:
         """Get latest block id in hex."""
 
         info = self.provider.make_request("wallet/getnodeinfo")
-        return info["block"].split(",ID:", 1)[-1]
+        return cast(str, info["block"].split(",ID:", 1)[-1])
 
     def get_latest_block_number(self) -> int:
         """Get latest block number. Implemented via `wallet/getnodeinfo`, which is faster than `wallet/getnowblock`."""
@@ -958,7 +965,7 @@ class Tron:
         """List all witnesses, including SR, SRP, and SRC."""
         # NOTE: visible parameter is ignored
         ret = self.provider.make_request("wallet/listwitnesses", {"visible": True})
-        witnesses = ret.get("witnesses", [])
+        witnesses: list = ret.get("witnesses", [])
         for witness in witnesses:
             witness["address"] = keys.to_base58check_address(witness["address"])
         return witnesses
@@ -967,7 +974,7 @@ class Tron:
         """List all nodes that current API node is connected to."""
         # NOTE: visible parameter is ignored
         ret = self.provider.make_request("wallet/listnodes", {"visible": True})
-        nodes = ret.get("nodes", [])
+        nodes: list = ret.get("nodes", [])
         for node in nodes:
             node["address"]["host"] = bytes.fromhex(node["address"]["host"]).decode()
         return nodes
@@ -977,21 +984,21 @@ class Tron:
 
         return self.provider.make_request("wallet/getnodeinfo", {"visible": True})
 
-    def get_chain_parameters(self) -> dict:
+    def get_chain_parameters(self) -> list:
         """List all chain parameters, values that can be changed via proposal."""
-        return self.provider.make_request("wallet/getchainparameters", {"visible": True}).get("chainParameter", [])
+        return cast(list, self.provider.make_request("wallet/getchainparameters", {"visible": True}).get("chainParameter", []))
 
     # Asset (TRC10)
 
-    def get_asset(self, asset_id: int = None, issuer: TAddress = None) -> dict:
+    def get_asset(self, asset_id: int | None = None, issuer: TAddress | None = None) -> dict:
         """Get TRC10(asset) info by asset's id or issuer."""
         if asset_id and issuer:
-            return ValueError("either query by id or issuer")
+            raise ValueError("either query by id or issuer")
         if asset_id:
             return self.provider.make_request("wallet/getassetissuebyid", {"value": asset_id, "visible": True})
         return self.provider.make_request(
             "wallet/getassetissuebyaccount",
-            {"address": keys.to_base58check_address(issuer), "visible": True},
+            {"address": keys.to_base58check_address(issuer), "visible": True},  # type: ignore[arg-type]
         )
 
     def get_asset_from_name(self, name: str) -> dict:
@@ -999,14 +1006,14 @@ class Tron:
         assets = [asset for asset in self.list_assets() if asset["abbr"] == name]
         if assets:
             if len(assets) == 1:
-                return assets[0]
+                return cast(dict, assets[0])
             raise ValueError("duplicated assets with the same name", [asset["id"] for asset in assets])
         raise AssetNotFound
 
     def list_assets(self) -> list:
         """List all TRC10 tokens(assets)."""
         ret = self.provider.make_request("wallet/getassetissuelist", {"visible": True})
-        assets = ret["assetIssue"]
+        assets: list = ret["assetIssue"]
         for asset in assets:
             asset["id"] = int(asset["id"])
             asset["owner_address"] = keys.to_base58check_address(asset["owner_address"])
@@ -1100,7 +1107,7 @@ class Tron:
         parameter: str,
     ) -> str:
         ret = self.trigger_constant_contract(owner_address, contract_address, function_selector, parameter)
-        return ret["constant_result"][0]
+        return cast(str, ret["constant_result"][0])
 
     # Transaction handling
 
@@ -1131,4 +1138,4 @@ class Tron:
         }
         ret = self.provider.make_request("wallet/estimateenergy", params)
         self._handle_api_error(ret)
-        return ret["energy_required"]
+        return cast(int, ret["energy_required"])

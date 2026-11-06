@@ -2102,6 +2102,7 @@ dependencies = [
     { name = "httpx" },
     { name = "pycryptodome" },
     { name = "requests" },
+    { name = "typing-extensions" },
 ]
 
 [package.optional-dependencies]
@@ -2171,6 +2172,7 @@ requires-dist = [
     { name = "protobuf", marker = "extra == 'offline'" },
     { name = "pycryptodome", specifier = "<5" },
     { name = "requests" },
+    { name = "typing-extensions", specifier = ">=4.4.0" },
 ]
 provides-extras = ["mnemonic", "offline"]
 

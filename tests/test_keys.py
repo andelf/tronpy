@@ -9,6 +9,7 @@ from tronpy.exceptions import BadKey, BadSignature
 from tronpy.hdwallet import TRON_DEFAULT_PATH, key_from_seed, seed_from_mnemonic
 from tronpy.hdwallet._utils import ec_point
 from tronpy.keys import (
+    BaseKey,
     PrivateKey,
     PublicKey,
     Signature,
@@ -415,3 +416,19 @@ def test_only_signing_needs_deterministic_support(monkeypatch):
     assert SIGNED_DIGEST_SIGNATURE.recover_public_key_from_msg_hash(SIGNED_DIGEST) == SIGNING_KEY.public_key
     with pytest.raises(UnsupportedAlgorithm):
         SIGNING_KEY.sign_msg_hash(SIGNED_DIGEST)
+
+
+def test_base_key_cannot_be_instantiated():
+    with pytest.raises(TypeError, match="abstract"):
+        BaseKey()
+    with pytest.raises(TypeError, match="abstract"):
+        BaseKey(b"\x01" * 32)
+    with pytest.raises(TypeError, match="abstract"):
+        BaseKey.fromhex("01" * 32)
+
+
+@pytest.mark.parametrize("key_class, raw", [(PrivateKey, b"\x01" * 32), (PublicKey, b"\x01" * 64)])
+def test_fromhex_returns_own_class(key_class, raw):
+    key = key_class.fromhex(raw.hex())
+    assert type(key) is key_class
+    assert key.to_bytes() == raw

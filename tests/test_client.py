@@ -272,3 +272,20 @@ async def test_async_client_timeout(stalled_node):
         client.provider.endpoint_uri = stalled_node
         with pytest.raises(TimeoutException):
             await client.get_block()
+
+
+@pytest.mark.parametrize("client_class", [Tron, AsyncTron])
+def test_unknown_network_is_rejected(client_class):
+    with pytest.raises(ValueError, match="unknown network 'nil'"):
+        client_class(network="nil")
+
+
+def test_get_asset_rejects_id_and_issuer_together():
+    with pytest.raises(ValueError, match="either query by id or issuer"):
+        Tron(network="nile").get_asset(1000001, FROM_ADDR)
+
+
+def test_sign_without_client_or_known_permission():
+    expiration = int(time.time() * 1000) + 60_000
+    transaction = Transaction({"expiration": expiration}, txid="00" * 32).sign(FROM_PRIV_KEY)
+    assert len(transaction.to_json()["signature"]) == 1

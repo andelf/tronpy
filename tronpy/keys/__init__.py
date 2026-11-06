@@ -1,6 +1,7 @@
 import os
+from abc import abstractmethod
 from collections.abc import Hashable, Sequence
-from typing import Any, Self
+from typing import Any, Self, cast
 
 import base58
 from Crypto.Hash import keccak
@@ -78,7 +79,7 @@ def is_address(value: str) -> bool:
     return is_base58check_address(value) or is_hex_address(value)
 
 
-def hash_message(message):
+def hash_message(message: str | bytes) -> bytes:
     if isinstance(message, str):
         message = message.encode()
     message_length = str(len(message)).encode()
@@ -86,7 +87,10 @@ def hash_message(message):
 
 
 class BaseKey(Sequence, Hashable):
-    _raw_key = None  # type: bytes
+    _raw_key: bytes
+
+    @abstractmethod
+    def __init__(self, raw_key: bytes) -> None: ...
 
     # compatible with bytes.hex()
     def hex(self) -> str:
@@ -123,12 +127,12 @@ class BaseKey(Sequence, Hashable):
 
     # Must be typed with `ignore` due to
     # https://github.com/python/mypy/issues/1237
-    def __getitem__(self, index: int) -> int:  # type: ignore
+    def __getitem__(self, index: int) -> int:  # type: ignore[override]
         return self._raw_key[index]
 
     def __eq__(self, other: Any) -> bool:
         if hasattr(other, "to_bytes"):
-            return self.to_bytes() == other.to_bytes()
+            return cast(bool, self.to_bytes() == other.to_bytes())
         if isinstance(other, (bytes, bytearray)):
             return self.to_bytes() == other
         return False
@@ -154,15 +158,13 @@ class PublicKey(BaseKey):
 
         self._raw_key = public_key_bytes
 
-        super().__init__()
-
     @classmethod
-    def recover_from_msg(cls, message: bytes, signature: "Signature"):
+    def recover_from_msg(cls, message: bytes, signature: "Signature") -> "PublicKey":
         """Recover public key(address) from raw message and signature."""
         return signature.recover_public_key_from_msg(message)
 
     @classmethod
-    def recover_from_msg_hash(cls, message_hash: bytes, signature: "Signature"):
+    def recover_from_msg_hash(cls, message_hash: bytes, signature: "Signature") -> "PublicKey":
         """Recover public key(address) from message hash and signature."""
         return signature.recover_public_key_from_msg_hash(message_hash)
 
@@ -192,7 +194,7 @@ class PublicKey(BaseKey):
 class PrivateKey(BaseKey):
     """The private key."""
 
-    public_key = None
+    public_key: PublicKey
 
     def __init__(self, private_key_bytes: bytes):
         if not isinstance(private_key_bytes, (bytes,)):
@@ -209,8 +211,6 @@ class PrivateKey(BaseKey):
         self._raw_key = private_key_bytes
 
         self.public_key = PublicKey(_secp256k1.public_key_bytes(self._raw_key))
-
-        super().__init__()
 
     def sign_msg(self, message: bytes) -> "Signature":
         """Sign a raw message."""
@@ -230,7 +230,7 @@ class PrivateKey(BaseKey):
 class Signature(Sequence):
     """The signature object."""
 
-    _raw_signature = None
+    _raw_signature: bytes
 
     def __init__(self, signature_bytes: bytes):
         if not isinstance(signature_bytes, (bytes,)):
@@ -322,12 +322,12 @@ class Signature(Sequence):
     def __len__(self) -> int:
         return 65
 
-    def __getitem__(self, index: int) -> int:  # type: ignore
+    def __getitem__(self, index: int) -> int:  # type: ignore[override]
         return self._raw_signature[index]
 
     def __eq__(self, other: Any) -> bool:
         if hasattr(other, "to_bytes"):
-            return self.to_bytes() == other.to_bytes()
+            return cast(bool, self.to_bytes() == other.to_bytes())
         if isinstance(other, (bytes, bytearray)):
             return self.to_bytes() == other
         return False

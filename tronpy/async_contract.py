@@ -1,11 +1,15 @@
+from typing import Any, cast
+
 import tronpy
 from tronpy import keys
 from tronpy.contract import Contract, ContractFunctions, ContractMethod, ShieldedTRC20
 from tronpy.exceptions import DoubleSpending
 
 
-class AsyncContract(Contract):
+class AsyncContract(Contract["tronpy.async_tron.AsyncTron"]):
     """A smart contract object."""
+
+    _client: "tronpy.async_tron.AsyncTron"  # type: ignore[assignment]
 
     @property
     def functions(self) -> "ContractFunctions":
@@ -22,7 +26,7 @@ class AsyncContract(Contract):
 
 
 class AsyncContractFunctions(ContractFunctions):
-    def __getitem__(self, method: str):
+    def __getitem__(self, method: str) -> "AsyncContractMethod":
         for method_abi in self._contract.abi:
             if method_abi.get("type", "").lower() == "function" and method_abi["name"] == method:
                 return AsyncContractMethod(method_abi, self._contract)
@@ -32,17 +36,19 @@ class AsyncContractFunctions(ContractFunctions):
 
 # noinspection PyProtectedMember
 class AsyncContractMethod(ContractMethod):
-    async def call(self, *args, **kwargs) -> "tronpy.async_tron.AsyncTransactionBuilder":
+    _client: "tronpy.async_tron.AsyncTron"  # type: ignore[assignment]
+
+    async def call(self, *args: Any, **kwargs: Any) -> Any:
         """Call the contract method."""
         return await self.__call__(*args, **kwargs)
 
-    async def __call__(self, *args, **kwargs) -> "tronpy.async_tron.AsyncTransactionBuilder":
+    async def __call__(self, *args: Any, **kwargs: Any) -> Any:
         """Call the contract method."""
         parameter = self._prepare_parameter(*args, **kwargs)
         return await self._async_trigger_contract(parameter)
 
-    async def _async_trigger_contract(self, parameter):
-        if self._abi.get("stateMutability", None).lower() in ["view", "pure"]:
+    async def _async_trigger_contract(self, parameter: str) -> Any:
+        if self._abi.get("stateMutability", "").lower() in ["view", "pure"]:
             # const call, contract ret
             ret = await self._client.trigger_const_smart_contract_function(
                 self._owner_address,
@@ -71,32 +77,37 @@ class AsyncContractMethod(ContractMethod):
 class AsyncShieldedTRC20(ShieldedTRC20):
     """Async Shielded TRC20 Wrapper."""
 
+    _client: "tronpy.async_tron.AsyncTron"  # type: ignore[assignment]
+    _trc20: AsyncContract | None
+
     @property
-    async def trc20(self) -> AsyncContract:
+    async def trc20(self) -> AsyncContract:  # type: ignore[override]
         """The corresponding TRC20 contract."""
         if self._trc20 is None:
             trc20_address = "41" + self.shielded._bytecode[-52:-32].hex()
-            self._trc20 = self._client.get_contract(trc20_address)
-        return await self._trc20
+            self._trc20 = await self._client.get_contract(trc20_address)
+        return self._trc20
 
     @property
-    async def scale_factor(self) -> int:
+    async def scale_factor(self) -> int:  # type: ignore[override]
         """Scaling factor of the shielded contract."""
         if self._scale_factor is None:
-            self._scale_factor = self.shielded.functions.scalingFactor()
-        return await self._scale_factor
+            self._scale_factor = await self.shielded.functions.scalingFactor()
+        return self._scale_factor
 
-    async def get_rcm(self) -> str:
-        return (await self._client.provider.make_request("wallet/getrcm"))["value"]
+    async def get_rcm(self) -> str:  # type: ignore[override]
+        return cast(str, (await self._client.provider.make_request("wallet/getrcm"))["value"])
 
-    async def mint(self, taddr: str, zaddr: str, amount: int, memo: str = "") -> "tronpy.async_tron.AsyncTransactionBuilder":
+    async def mint(  # type: ignore[override]
+        self, taddr: str, zaddr: str, amount: int, memo: str = ""
+    ) -> "tronpy.async_tron.AsyncTransactionBuilder":
         """Mint, transfer from T-address to z-address."""
         rcm = await self.get_rcm()
         payload = {
             "from_amount": str(amount),
             "shielded_receives": {
                 "note": {
-                    "value": amount // self.scale_factor,
+                    "value": amount // await self.scale_factor,
                     "payment_address": zaddr,
                     "rcm": rcm,
                     "memo": memo.encode().hex(),
@@ -119,7 +130,7 @@ class AsyncShieldedTRC20(ShieldedTRC20):
             method=self.shielded.functions.mint,
         )
 
-    async def transfer(
+    async def transfer(  # type: ignore[override]
         self,
         zkey: dict,
         notes: list | dict,
@@ -138,7 +149,7 @@ class AsyncShieldedTRC20(ShieldedTRC20):
             if note.get("is_spent", False):
                 raise DoubleSpending
             alpha = await self.get_rcm()
-            root, path = self.get_path(note.get("position", 0))
+            root, path = await self.get_path(note.get("position", 0))
             spends.append({"note": note["note"], "alpha": alpha, "root": root, "path": path, "pos": note.get("position", 0)})
             spend_amount += note["note"]["value"]
 
@@ -179,13 +190,13 @@ class AsyncShieldedTRC20(ShieldedTRC20):
             method=self.shielded.functions.transfer,
         )
 
-    async def burn(
+    async def burn(  # type: ignore[override]
         self, zkey: dict, note: dict, *to: tuple[str, int] | tuple[str, int, str]
     ) -> "tronpy.async_tron.AsyncTransactionBuilder":
         """Burn, transfer from z-address to T-address."""
         spends = []
         alpha = await self.get_rcm()
-        root, path = self.get_path(note.get("position", 0))
+        root, path = await self.get_path(note.get("position", 0))
         if note.get("is_spent", False):
             raise DoubleSpending
         spends.append({"note": note["note"], "alpha": alpha, "root": root, "path": path, "pos": note.get("position", 0)})
@@ -211,7 +222,8 @@ class AsyncShieldedTRC20(ShieldedTRC20):
                 to_amount = amount
                 to_memo = memo
 
-        if note["note"]["value"] * self.scale_factor - change_amount * self.scale_factor != to_amount:
+        scale_factor = await self.scale_factor
+        if note["note"]["value"] * scale_factor - change_amount * scale_factor != to_amount:
             raise ValueError("Balance amount is wrong")
 
         payload = {
@@ -221,7 +233,7 @@ class AsyncShieldedTRC20(ShieldedTRC20):
             "shielded_spends": spends,
             "shielded_receives": receives,
             "to_amount": str(to_amount),
-            "transparent_to_address": keys.to_hex_address(to_addr),
+            "transparent_to_address": keys.to_hex_address(to_addr),  # type: ignore[arg-type]
             "shielded_TRC20_contract_address": keys.to_hex_address(self.shielded.contract_address),
         }
 
@@ -243,7 +255,9 @@ class AsyncShieldedTRC20(ShieldedTRC20):
         return txn
 
     # use zkey pair from wallet/getnewshieldedaddress
-    async def scan_incoming_notes(self, zkey: dict, start_block_number: int, end_block_number: int = None) -> list:
+    async def scan_incoming_notes(  # type: ignore[override]
+        self, zkey: dict, start_block_number: int, end_block_number: int | None = None
+    ) -> list:
         """Scan incoming notes using ivk, ak, nk."""
         if end_block_number is None:
             end_block_number = start_block_number + 1000
@@ -259,8 +273,8 @@ class AsyncShieldedTRC20(ShieldedTRC20):
         self._client._handle_api_error(ret)
         return self._fix_notes(ret.get("noteTxs", []))
 
-    async def scan_outgoing_notes(
-        self, zkey_or_ovk: dict | str, start_block_number: int, end_block_number: int = None
+    async def scan_outgoing_notes(  # type: ignore[override]
+        self, zkey_or_ovk: dict | str, start_block_number: int, end_block_number: int | None = None
     ) -> list:
         """Scan outgoing notes using ovk."""
         if end_block_number is None:
@@ -278,9 +292,13 @@ class AsyncShieldedTRC20(ShieldedTRC20):
         }
         ret = await self._client.provider.make_request("wallet/scanshieldedtrc20notesbyovk", payload)
         self._client._handle_api_error(ret)
-        return ret.get("noteTxs", [])
+        return cast(list, ret.get("noteTxs", []))
 
-    async def is_note_spent(self, zkey: dict, note: dict) -> bool:
+    async def get_path(self, position: int = 0) -> tuple[str, str]:  # type: ignore[override]
+        root, path = await self.shielded.functions.getPath(position)
+        return root.hex(), "".join(p.hex() for p in path)
+
+    async def is_note_spent(self, zkey: dict, note: dict) -> bool:  # type: ignore[override]
         """Is a note spent."""
         payload = dict(note)
         payload["shielded_TRC20_contract_address"] = keys.to_hex_address(self.shielded.contract_address)
@@ -291,4 +309,4 @@ class AsyncShieldedTRC20(ShieldedTRC20):
 
         ret = await self._client.provider.make_request("wallet/isshieldedtrc20contractnotespent", payload)
 
-        return ret.get("is_spent", None)
+        return cast(bool, ret.get("is_spent", False))

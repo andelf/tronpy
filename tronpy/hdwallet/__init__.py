@@ -1,14 +1,19 @@
 # Originally from: https://github.com/ethereum/web3.py
 #
 
+from typing import TYPE_CHECKING
+
 from eth_utils import ValidationError
 
 from .deterministic import HDPath
 
+if TYPE_CHECKING:
+    from mnemonic import Mnemonic
+
 TRON_DEFAULT_PATH = "m/44'/195'/0'/0/0"
 
 
-def _import_mnemonic():
+def _import_mnemonic() -> "type[Mnemonic]":
     try:
         from mnemonic import Mnemonic
     except ImportError as e:
@@ -36,5 +41,5 @@ def seed_from_mnemonic(words: str, passphrase: str) -> bytes:
     return Mnemonic.to_seed(expanded_words, passphrase)
 
 
-def key_from_seed(seed: bytes, account_path: str):
+def key_from_seed(seed: bytes, account_path: str) -> bytes:
     return HDPath(account_path).derive(seed)

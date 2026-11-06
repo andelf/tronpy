@@ -1,14 +1,17 @@
 import itertools
-from collections.abc import Generator
-from typing import Any, Union
+from collections.abc import Generator, Iterator
+from typing import Any, Generic, Union, cast
 
 from Crypto.Hash import keccak
 from eth_utils import decode_hex
+from typing_extensions import TypeVar
 
 import tronpy
 from tronpy.abi import trx_abi
 from tronpy.exceptions import DoubleSpending
 from tronpy.keys import to_hex_address
+
+ClientT = TypeVar("ClientT", default="tronpy.tron.Tron")
 
 
 def keccak256(data: bytes) -> bytes:
@@ -25,24 +28,24 @@ def assure_bytes(value: str | bytes) -> bytes:
     raise ValueError("bad bytes format")
 
 
-class Contract:
+class Contract(Generic[ClientT]):
     """A smart contract object."""
 
     def __init__(
         self,
-        addr=None,
+        addr: str | None = None,
         *,
         bytecode: str | bytes = "",
-        name: str = None,
-        abi: dict | list[dict] | None = None,
+        name: str | None = None,
+        abi: list[dict] | None = None,
         user_resource_percent: int = 100,
         origin_energy_limit: int = 1,
-        origin_address: str = None,
+        origin_address: str | None = None,
         owner_address: str = "410000000000000000000000000000000000000000",
-        code_hash: str = None,
-        client=None,
+        code_hash: str | None = None,
+        client: ClientT | None = None,
     ):
-        self.contract_address = addr
+        self.contract_address: Any = addr
         self.address = addr
         """Address of the contract"""
 
@@ -63,29 +66,29 @@ class Contract:
         self.origin_energy_limit = origin_energy_limit
         """Origin energy limit, default 1"""
 
-        self.origin_address = origin_address
+        self.origin_address: Any = origin_address
         """Origin address of the contract, i.e. contract creator"""
 
         self.owner_address = owner_address
         """Current transaction owner's address, to call or trigger contract"""
 
-        self._functions = None
-        self._events = None
-        self._client = client
+        self._functions: ContractFunctions | None = None
+        self._events: ContractEvents | None = None
+        self._client = cast("tronpy.tron.Tron", client)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"<Contract {self.name} {self.contract_address}>"
 
     @property
-    def bytecode(self):
+    def bytecode(self) -> str:
         """Bytecode of the contract, in ``hex`` format"""
         return self._bytecode.hex()
 
     @bytecode.setter
-    def bytecode(self, value):
+    def bytecode(self, value: str | bytes) -> None:
         self._bytecode = assure_bytes(value)
 
-    def deploy(self) -> Any:
+    def deploy(self) -> "tronpy.tron.TransactionBuilder":
         if self.contract_address:
             raise RuntimeError(f"this contract has already deployed to {self.contract_address}")
 
@@ -178,43 +181,46 @@ class Contract:
             raise ValueError("can not call a contract without ABI")
         return self._events
 
-    def get_function_by_selector(self, selector) -> Union["ContractMethod", None]:
-        selector = selector.hex()
+    def as_shielded_trc20(self) -> "ShieldedTRC20":
+        return ShieldedTRC20(self)
+
+    def get_function_by_selector(self, selector: bytes) -> Union["ContractMethod", None]:
+        selector_hex = selector.hex()
 
         for fn in self.functions:
-            if selector == fn.function_signature_hash:
+            if selector_hex == fn.function_signature_hash:
                 return fn
 
         return None
 
 
 class ContractEvents:
-    def __init__(self, contract):
+    def __init__(self, contract: Contract[Any]):
         self._contract = contract
 
-    def __getitem__(self, event_name: str):
+    def __getitem__(self, event_name: str) -> "ContractEvent":
         for _abi in self._contract.abi:
             if _abi.get("type", "").lower() == "event" and _abi["name"] == event_name:
                 return ContractEvent(_abi, self._contract, event_name)
 
         raise KeyError(f"contract has no event named '{event_name}'")
 
-    def __getattr__(self, event: str):
+    def __getattr__(self, event: str) -> "ContractEvent":
         """Get the actual contract event object."""
         try:
             return self[event]
         except KeyError:
             raise AttributeError(f"contract has no method named '{event}'") from None
 
-    def __dir__(self):
+    def __dir__(self) -> list[str]:
         return [event["name"] for event in self._contract.abi if event.get("type", "").lower() == "event"]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator["ContractEvent"]:
         yield from [self[event] for event in dir(self)]
 
 
 class ContractEvent:
-    def __init__(self, abi: dict, contract: "Contract", event_name: str):
+    def __init__(self, abi: dict, contract: "Contract[Any]", event_name: str):
         self._abi = abi
         self._contract = contract
         self._event_name = event_name
@@ -222,13 +228,13 @@ class ContractEvent:
     def process_receipt(self, txn_receipt: dict) -> Generator:
         return self.parse_logs(txn_receipt["log"])
 
-    def parse_logs(self, logs: list[dict]):
+    def parse_logs(self, logs: list[dict]) -> Generator:
         for log in logs:
             if log["address"] != self._contract.contract_address:
                 continue
             yield self.get_event_data(log)
 
-    def get_event_data(self, log: dict):
+    def get_event_data(self, log: dict) -> dict:
         data_types, data_names, topic_types, topic_names = [], [], [], []  # cannot use `[[]] * 4`
         for arg in self._abi["inputs"]:
             if arg.get("indexed", False) is False:
@@ -261,41 +267,41 @@ class ContractEvent:
 
 
 class ContractFunctions:
-    def __init__(self, contract):
+    def __init__(self, contract: Contract[Any]):
         self._contract = contract
 
-    def __getitem__(self, method: str):
+    def __getitem__(self, method: str) -> "ContractMethod":
         for method_abi in self._contract.abi:
             if method_abi.get("type", "").lower() == "function" and method_abi["name"] == method:
                 return ContractMethod(method_abi, self._contract)
 
         raise KeyError(f"contract has no method named '{method}'")
 
-    def __getattr__(self, method: str):
+    def __getattr__(self, method: str) -> Any:
         """Get the actual contract method object."""
         try:
             return self[method]
         except KeyError:
             raise AttributeError(f"contract has no method named '{method}'") from None
 
-    def __dir__(self):
+    def __dir__(self) -> list[str]:
         return [method["name"] for method in self._contract.abi if method.get("type", "").lower() == "function"]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator["ContractMethod"]:
         yield from [self[method] for method in dir(self)]
 
 
 class ContractConstructor:
     """The constructor method of a contract."""
 
-    def __init__(self, abi: dict, contract: Contract):
+    def __init__(self, abi: dict, contract: Contract[Any]):
         self._abi = abi
         self._contract = contract
 
         self.inputs = abi.get("inputs", [])
         self.outputs = abi.get("outputs", [])
 
-    def __str__(self):
+    def __str__(self) -> str:
         types = ", ".join(arg.get("type", "") + " " + arg.get("name", "") for arg in self.inputs)
         return f"construct({types})"
 
@@ -303,7 +309,7 @@ class ContractConstructor:
     def input_type(self) -> str:
         return "(" + (",".join(arg.get("type", "") for arg in self.inputs)) + ")"
 
-    def encode_parameter(self, *args, **kwargs) -> str:
+    def encode_parameter(self, *args: Any, **kwargs: Any) -> str:
         """Encode constructor parameters according to ABI."""
         parameter = ""
 
@@ -319,20 +325,20 @@ class ContractConstructor:
             parameter = trx_abi.encode_single(self.input_type, args).hex()
         elif kwargs:
             if len(kwargs) != len(self.inputs):
-                raise TypeError(f"wrong number of arguments, require {len(self.inputs)} got {len(args)}")
-            args = []
+                raise TypeError(f"wrong number of arguments, require {len(self.inputs)} got {len(kwargs)}")
+            ordered_args = []
             for arg in self.inputs:
                 try:
-                    args.append(kwargs[arg["name"]])
+                    ordered_args.append(kwargs[arg["name"]])
                 except KeyError:
                     raise TypeError("missing argument '{}'".format(arg["name"])) from None
-            parameter = trx_abi.encode_single(self.input_type, args).hex()
+            parameter = trx_abi.encode_single(self.input_type, ordered_args).hex()
 
         return parameter
 
 
 class ContractMethod:
-    def __init__(self, abi: dict, contract: Contract):
+    def __init__(self, abi: dict, contract: Contract[Any]):
         self._abi = abi
         self._contract = contract
         self._owner_address = contract.owner_address
@@ -345,7 +351,7 @@ class ContractMethod:
         self.call_token_value = 0
         self.call_token_id = 0
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.function_type
 
     def with_owner(self, addr: str) -> "ContractMethod":
@@ -367,7 +373,7 @@ class ContractMethod:
         self.call_token_id = token_id
         return self
 
-    def call(self, *args, **kwargs) -> "tronpy.tron.TransactionBuilder":
+    def call(self, *args: Any, **kwargs: Any) -> Any:
         """Call the contract method."""
         return self.__call__(*args, **kwargs)
 
@@ -380,12 +386,12 @@ class ContractMethod:
             return None
         return parsed_result
 
-    def __call__(self, *args, **kwargs) -> "tronpy.tron.TransactionBuilder":
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
         """Call the contract method."""
         parameter = self._prepare_parameter(*args, **kwargs)
         return self._trigger_contract(parameter)
 
-    def _prepare_parameter(self, *args, **kwargs) -> "tronpy.tron.TransactionBuilder":
+    def _prepare_parameter(self, *args: Any, **kwargs: Any) -> str:
         """Prepare parameter."""
         parameter = ""
 
@@ -401,20 +407,20 @@ class ContractMethod:
             parameter = trx_abi.encode_single(self.input_type, args).hex()
         elif kwargs:
             if len(kwargs) != len(self.inputs):
-                raise TypeError(f"wrong number of arguments, require {len(self.inputs)} got {len(args)}")
-            args = []
+                raise TypeError(f"wrong number of arguments, require {len(self.inputs)} got {len(kwargs)}")
+            ordered_args = []
             for arg in self.inputs:
                 try:
-                    args.append(kwargs[arg["name"]])
+                    ordered_args.append(kwargs[arg["name"]])
                 except KeyError:
                     raise TypeError("missing argument '{}'".format(arg["name"])) from None
-            parameter = trx_abi.encode_single(self.input_type, args).hex()
+            parameter = trx_abi.encode_single(self.input_type, ordered_args).hex()
         else:
             raise TypeError(f"wrong number of arguments, require {len(self.inputs)}")
         return parameter
 
-    def _trigger_contract(self, parameter):
-        if self._abi.get("stateMutability", None).lower() in ["view", "pure"]:
+    def _trigger_contract(self, parameter: str) -> Any:
+        if self._abi.get("stateMutability", "").lower() in ["view", "pure"]:
             # const call, contract ret
             ret = self._client.trigger_const_smart_contract_function(
                 self._owner_address,
@@ -440,7 +446,7 @@ class ContractMethod:
 
     @property
     def name(self) -> str:
-        return self._abi["name"]
+        return cast(str, self._abi["name"])
 
     @property
     def input_type(self) -> str:
@@ -450,13 +456,13 @@ class ContractMethod:
     def output_type(self) -> str:
         return "({})".format(",".join(self.__format_json_abi_type_entry(arg) for arg in self.outputs))
 
-    def __format_json_abi_type_entry(self, entry) -> str:
+    def __format_json_abi_type_entry(self, entry: dict) -> str:
         if entry.get("type", "").startswith("tuple"):
             surfix = entry["type"][5:]
             if "components" not in entry:
                 raise ValueError("ABIEncoderV2 used, ABI should be set by hand")
             return "({}){}".format(",".join(self.__format_json_abi_type_entry(arg) for arg in entry["components"]), surfix)
-        return entry.get("type", "")
+        return cast(str, entry.get("type", ""))
 
     @property
     def function_signature(self) -> str:
@@ -470,30 +476,27 @@ class ContractMethod:
     def function_type(self) -> str:
         types = ", ".join(arg.get("type", "") + " " + arg.get("name", "") for arg in self.inputs)
         ret = f"function {self.name}({types})"
-        if self._abi.get("stateMutability", None).lower() == "view":
+        if self._abi.get("stateMutability", "").lower() == "view":
             ret += " view"
-        elif self._abi.get("stateMutability", None).lower() == "pure":
+        elif self._abi.get("stateMutability", "").lower() == "pure":
             ret += " pure"
         if self.outputs:
             ret += " returns ({})".format(", ".join(arg.get("type", "") + " " + arg.get("name", "") for arg in self.outputs))
         return ret
 
-    def as_shielded_trc20(self, trc20_addr: str) -> "ShieldedTRC20":
-        return ShieldedTRC20(self, trc20_addr)
-
 
 class ShieldedTRC20:
     """Shielded TRC20 Wrapper."""
 
-    def __init__(self, contract: Contract):
-        self.shielded = contract
+    def __init__(self, contract: Contract[Any]):
+        self.shielded: Contract[Any] = contract
         """Thi shielded TRC20 contract."""
 
         self._client = contract._client
 
         # lazy properties
-        self._trc20 = None
-        self._scale_factor = None
+        self._trc20: Contract[Any] | None = None
+        self._scale_factor: int | None = None
 
     @property
     def trc20(self) -> Contract:
@@ -511,7 +514,7 @@ class ShieldedTRC20:
         return self._scale_factor
 
     def get_rcm(self) -> str:
-        return self._client.provider.make_request("wallet/getrcm")["value"]
+        return cast(str, self._client.provider.make_request("wallet/getrcm")["value"])
 
     def mint(self, taddr: str, zaddr: str, amount: int, memo: str = "") -> "tronpy.tron.TransactionBuilder":
         """Mint, transfer from T-address to z-address."""
@@ -643,7 +646,7 @@ class ShieldedTRC20:
             "shielded_spends": spends,
             "shielded_receives": receives,
             "to_amount": str(to_amount),
-            "transparent_to_address": to_hex_address(to_addr),
+            "transparent_to_address": to_hex_address(to_addr),  # type: ignore[arg-type]
             "shielded_TRC20_contract_address": to_hex_address(self.shielded.contract_address),
         }
 
@@ -675,7 +678,7 @@ class ShieldedTRC20:
         return notes
 
     # use zkey pair from wallet/getnewshieldedaddress
-    def scan_incoming_notes(self, zkey: dict, start_block_number: int, end_block_number: int = None) -> list:
+    def scan_incoming_notes(self, zkey: dict, start_block_number: int, end_block_number: int | None = None) -> list:
         """Scan incoming notes using ivk, ak, nk."""
         if end_block_number is None:
             end_block_number = start_block_number + 1000
@@ -691,7 +694,9 @@ class ShieldedTRC20:
         self._client._handle_api_error(ret)
         return self._fix_notes(ret.get("noteTxs", []))
 
-    def scan_outgoing_notes(self, zkey_or_ovk: dict | str, start_block_number: int, end_block_number: int = None) -> list:
+    def scan_outgoing_notes(
+        self, zkey_or_ovk: dict | str, start_block_number: int, end_block_number: int | None = None
+    ) -> list:
         """Scan outgoing notes using ovk."""
         if end_block_number is None:
             end_block_number = start_block_number + 1000
@@ -708,7 +713,7 @@ class ShieldedTRC20:
         }
         ret = self._client.provider.make_request("wallet/scanshieldedtrc20notesbyovk", payload)
         self._client._handle_api_error(ret)
-        return ret.get("noteTxs", [])
+        return cast(list, ret.get("noteTxs", []))
 
     # (root, path)
     def get_path(self, position: int = 0) -> tuple[str, str]:
@@ -728,4 +733,4 @@ class ShieldedTRC20:
 
         ret = self._client.provider.make_request("wallet/isshieldedtrc20contractnotespent", payload)
 
-        return ret.get("is_spent", None)
+        return cast(bool, ret.get("is_spent", False))

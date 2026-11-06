@@ -33,7 +33,9 @@ ALL = {
 
 
 def conf_for_name(name: str) -> dict:
-    return ALL.get(name)
+    if name not in ALL:
+        raise ValueError(f"unknown network {name!r}, expected one of {list(ALL)}")
+    return ALL[name]
 
 
 PROTOBUF_NOT_INSTALLED_ERROR_MESSAGE = (

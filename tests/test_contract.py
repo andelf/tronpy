@@ -137,3 +137,33 @@ async def test_async_contract_create():
         cntr = AsyncContract(name="SimpleStore", bytecode=BYTECODE, abi=abi)
         tx = (await client.trx.deploy_contract(FROM_ADDR, cntr).fee_limit(5_000_000).build()).sign(FROM_PRIV_KEY)
         check_transaction_structure(tx.to_json(), CREATE_CONTRACT_EXPECTED_RESP, 5_000_000, expect_memo=False)
+
+
+def test_contract_method_without_state_mutability():
+    abi = [{"inputs": [], "name": "legacy", "outputs": [], "type": "function"}]
+    client = Tron(network="nile")
+    method = Contract(addr=TO_ADDR, abi=abi, client=client).functions.legacy
+    assert str(method) == "function legacy()"
+    assert method().with_owner(FROM_ADDR)._raw_data["contract"][0]["type"] == "TriggerSmartContract"
+
+
+@pytest.mark.asyncio
+async def test_async_contract_method_without_state_mutability():
+    abi = [{"inputs": [], "name": "legacy", "outputs": [], "type": "function"}]
+    async with AsyncTron(network="nile") as client:
+        method = AsyncContract(addr=TO_ADDR, abi=abi, client=client).functions.legacy
+        builder = await method()
+    assert builder.with_owner(FROM_ADDR)._raw_data["contract"][0]["type"] == "TriggerSmartContract"
+
+
+def test_wrong_keyword_argument_count_is_reported():
+    inputs = [{"name": "value", "type": "uint256"}]
+    abi = [
+        {"type": "constructor", "inputs": inputs},
+        {"type": "function", "name": "set", "inputs": inputs, "outputs": [], "stateMutability": "nonpayable"},
+    ]
+    contract = Contract(addr=TO_ADDR, abi=abi)
+    with pytest.raises(TypeError, match="require 1 got 2"):
+        contract.constructor.encode_parameter(value=1, other=2)
+    with pytest.raises(TypeError, match="require 1 got 2"):
+        contract.functions.set(value=1, other=2)

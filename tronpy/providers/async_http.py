@@ -2,7 +2,7 @@ import asyncio
 import os
 import secrets
 import sys
-from typing import Any
+from typing import Any, cast
 from urllib.parse import urljoin
 
 import httpx
@@ -32,16 +32,16 @@ class AsyncHTTPProvider:
 
     def __init__(
         self,
-        endpoint_uri: str | dict = None,
+        endpoint_uri: str | dict | None = None,
         timeout: float = DEFAULT_TIMEOUT,
-        client: httpx.AsyncClient = None,
-        api_key: str | list[str] = None,
-        jw_token: str = None,
+        client: httpx.AsyncClient | None = None,
+        api_key: str | list[str] | None = None,
+        jw_token: str | None = None,
     ):
         super().__init__()
 
         if endpoint_uri is None:
-            self.endpoint_uri = os.environ.get("TRONPY_HTTP_PROVIDER_URI", "https://api.trongrid.io/")
+            self.endpoint_uri: str = os.environ.get("TRONPY_HTTP_PROVIDER_URI", "https://api.trongrid.io/")
         elif isinstance(endpoint_uri, (dict,)):
             self.endpoint_uri = endpoint_uri["fullnode"]
         elif isinstance(endpoint_uri, (str,)):
@@ -64,7 +64,7 @@ class AsyncHTTPProvider:
         self.jw_token = jw_token
 
         if client is None:
-            self.client = httpx.AsyncClient(timeout=Timeout(timeout))
+            self.client: httpx.AsyncClient = httpx.AsyncClient(timeout=Timeout(timeout))
         else:
             self.client = client
 
@@ -90,16 +90,16 @@ class AsyncHTTPProvider:
             return await self.make_request(method, params)
 
         resp.raise_for_status()
-        return resp.json()
+        return cast(dict, resp.json())
 
     @property
-    def random_api_key(self):
+    def random_api_key(self) -> str:
         try:
             return secrets.choice(self._api_keys)
         except IndexError as e:
             raise ApiError("rate limit! please add more API keys") from e
 
-    async def _handle_rate_limit(self, used_key):
+    async def _handle_rate_limit(self, used_key: str) -> None:
         if len(self._api_keys) > 0:
             self._api_keys.remove(used_key)
         else:
