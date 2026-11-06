@@ -2,6 +2,10 @@
 
 ## Latest changes
 
+## 0.7.0
+
+**Breaking**: Drop support for python 3.9 and 3.10
+
 **Breaking**: Remove `PrivateKey.from_passphrase` and `get_address_from_passphrase`. They used a single SHA-256 of the passphrase as the private key, which is crackable offline, and existed for compatibility with `wallet/createaddress`, removed from java-tron in 4.7.1.1. Use `generate_address` or a mnemonic instead
 
 **Breaking**: Remove the `sha256` helper from `tronpy.keys`, use `hashlib.sha256` instead
@@ -10,13 +14,25 @@
 
 Fix encoding and decoding of the `trcToken` ABI type
 
+Add support for python 3.15
+
+Use `cryptography` instead of `coincurve` for secp256k1 operations
+
 Allow `eth-abi` 6 and `pycryptodome` 4
 
+Upgrade the `mnemonic` extra to 0.21
+
 Add `raw_data_hex` to transactions and their `to_json` output, including offline-built ones, so they can be signed by tools that require it, like TronWeb
+
+If you pass `to_json` output to `trontxsize`, upgrade it to 1.5.0 or newer
 
 Fix wrong `txID` of offline-built transactions with a memo or `permission_id`
 
 Fix `Transaction.from_json` and `AsyncTransaction.from_json` failing on JSON strings
+
+Fix `from tronpy.providers import *`
+
+Move docs to Zensical and CI to GitHub Actions
 
 ## 0.6.2
 
