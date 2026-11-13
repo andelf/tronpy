@@ -1,17 +1,15 @@
 import itertools
 from collections.abc import Generator, Iterator
-from typing import Any, Generic, Union, cast
+from typing import Any, Union, cast
 
 from Crypto.Hash import keccak
 from eth_utils import decode_hex
-from typing_extensions import TypeVar
+from universalasync import wrap
 
 import tronpy
 from tronpy.abi import trx_abi
 from tronpy.exceptions import DoubleSpending
 from tronpy.keys import to_hex_address
-
-ClientT = TypeVar("ClientT", default="tronpy.tron.Tron")
 
 
 def keccak256(data: bytes) -> bytes:
@@ -28,7 +26,7 @@ def assure_bytes(value: str | bytes) -> bytes:
     raise ValueError("bad bytes format")
 
 
-class Contract(Generic[ClientT]):
+class Contract:
     """A smart contract object."""
 
     def __init__(
@@ -43,7 +41,7 @@ class Contract(Generic[ClientT]):
         origin_address: str | None = None,
         owner_address: str = "410000000000000000000000000000000000000000",
         code_hash: str | None = None,
-        client: ClientT | None = None,
+        client: "tronpy.tron.Tron | None" = None,
     ):
         self.contract_address: Any = addr
         self.address = addr
@@ -195,7 +193,7 @@ class Contract(Generic[ClientT]):
 
 
 class ContractEvents:
-    def __init__(self, contract: Contract[Any]):
+    def __init__(self, contract: Contract):
         self._contract = contract
 
     def __getitem__(self, event_name: str) -> "ContractEvent":
@@ -220,7 +218,7 @@ class ContractEvents:
 
 
 class ContractEvent:
-    def __init__(self, abi: dict, contract: "Contract[Any]", event_name: str):
+    def __init__(self, abi: dict, contract: Contract, event_name: str):
         self._abi = abi
         self._contract = contract
         self._event_name = event_name
@@ -267,7 +265,7 @@ class ContractEvent:
 
 
 class ContractFunctions:
-    def __init__(self, contract: Contract[Any]):
+    def __init__(self, contract: Contract):
         self._contract = contract
 
     def __getitem__(self, method: str) -> "ContractMethod":
@@ -294,7 +292,7 @@ class ContractFunctions:
 class ContractConstructor:
     """The constructor method of a contract."""
 
-    def __init__(self, abi: dict, contract: Contract[Any]):
+    def __init__(self, abi: dict, contract: Contract):
         self._abi = abi
         self._contract = contract
 
@@ -337,8 +335,9 @@ class ContractConstructor:
         return parameter
 
 
+@wrap
 class ContractMethod:
-    def __init__(self, abi: dict, contract: Contract[Any]):
+    def __init__(self, abi: dict, contract: Contract):
         self._abi = abi
         self._contract = contract
         self._owner_address = contract.owner_address
@@ -373,9 +372,9 @@ class ContractMethod:
         self.call_token_id = token_id
         return self
 
-    def call(self, *args: Any, **kwargs: Any) -> Any:
+    async def call(self, *args: Any, **kwargs: Any) -> Any:
         """Call the contract method."""
-        return self.__call__(*args, **kwargs)
+        return await self.__call__(*args, **kwargs)
 
     def parse_output(self, raw: str) -> Any:
         """Parse contract result as result."""
@@ -386,10 +385,10 @@ class ContractMethod:
             return None
         return parsed_result
 
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+    async def __call__(self, *args: Any, **kwargs: Any) -> Any:
         """Call the contract method."""
         parameter = self._prepare_parameter(*args, **kwargs)
-        return self._trigger_contract(parameter)
+        return await self._trigger_contract(parameter)
 
     def _prepare_parameter(self, *args: Any, **kwargs: Any) -> str:
         """Prepare parameter."""
@@ -419,10 +418,10 @@ class ContractMethod:
             raise TypeError(f"wrong number of arguments, require {len(self.inputs)}")
         return parameter
 
-    def _trigger_contract(self, parameter: str) -> Any:
+    async def _trigger_contract(self, parameter: str) -> Any:
         if self._abi.get("stateMutability", "").lower() in ["view", "pure"]:
             # const call, contract ret
-            ret = self._client.trigger_const_smart_contract_function(
+            ret = await self._client.trigger_const_smart_contract_function(
                 self._owner_address,
                 self._contract.contract_address,
                 self.function_signature,
@@ -485,45 +484,46 @@ class ContractMethod:
         return ret
 
 
+@wrap
 class ShieldedTRC20:
     """Shielded TRC20 Wrapper."""
 
-    def __init__(self, contract: Contract[Any]):
-        self.shielded: Contract[Any] = contract
+    def __init__(self, contract: Contract):
+        self.shielded: Contract = contract
         """Thi shielded TRC20 contract."""
 
         self._client = contract._client
 
         # lazy properties
-        self._trc20: Contract[Any] | None = None
+        self._trc20: Contract | None = None
         self._scale_factor: int | None = None
 
     @property
-    def trc20(self) -> Contract:
+    async def trc20(self) -> Contract:
         """The corresponding TRC20 contract."""
         if self._trc20 is None:
             trc20_address = "41" + self.shielded._bytecode[-52:-32].hex()
-            self._trc20 = self._client.get_contract(trc20_address)
+            self._trc20 = await self._client.get_contract(trc20_address)
         return self._trc20
 
     @property
-    def scale_factor(self) -> int:
+    async def scale_factor(self) -> int:
         """Scaling factor of the shielded contract."""
         if self._scale_factor is None:
-            self._scale_factor = self.shielded.functions.scalingFactor()
+            self._scale_factor = await self.shielded.functions.scalingFactor()
         return self._scale_factor
 
-    def get_rcm(self) -> str:
-        return cast(str, self._client.provider.make_request("wallet/getrcm")["value"])
+    async def get_rcm(self) -> str:
+        return cast(str, (await self._client.provider.make_request("wallet/getrcm"))["value"])
 
-    def mint(self, taddr: str, zaddr: str, amount: int, memo: str = "") -> "tronpy.tron.TransactionBuilder":
+    async def mint(self, taddr: str, zaddr: str, amount: int, memo: str = "") -> "tronpy.tron.TransactionBuilder":
         """Mint, transfer from T-address to z-address."""
-        rcm = self.get_rcm()
+        rcm = await self.get_rcm()
         payload = {
             "from_amount": str(amount),
             "shielded_receives": {
                 "note": {
-                    "value": amount // self.scale_factor,
+                    "value": amount // await self.scale_factor,
                     "payment_address": zaddr,
                     "rcm": rcm,
                     "memo": memo.encode().hex(),
@@ -532,7 +532,7 @@ class ShieldedTRC20:
             "shielded_TRC20_contract_address": to_hex_address(self.shielded.contract_address),
         }
 
-        ret = self._client.provider.make_request("wallet/createshieldedcontractparameters", payload)
+        ret = await self._client.provider.make_request("wallet/createshieldedcontractparameters", payload)
         self._client._handle_api_error(ret)
         parameter = ret["trigger_contract_input"]
         function_signature = self.shielded.functions.mint.function_signature_hash
@@ -546,7 +546,7 @@ class ShieldedTRC20:
             method=self.shielded.functions.mint,
         )
 
-    def transfer(
+    async def transfer(
         self,
         zkey: dict,
         notes: list | dict,
@@ -564,8 +564,8 @@ class ShieldedTRC20:
         for note in notes:
             if note.get("is_spent", False):
                 raise DoubleSpending
-            alpha = self.get_rcm()
-            root, path = self.get_path(note.get("position", 0))
+            alpha = await self.get_rcm()
+            root, path = await self.get_path(note.get("position", 0))
             spends.append({"note": note["note"], "alpha": alpha, "root": root, "path": path, "pos": note.get("position", 0)})
             spend_amount += note["note"]["value"]
 
@@ -577,7 +577,7 @@ class ShieldedTRC20:
             receive_amount += amount
             memo = recv[2] if len(recv) == 3 else ""
 
-            rcm = self.get_rcm()
+            rcm = await self.get_rcm()
 
             receives.append({"note": {"value": amount, "payment_address": addr, "rcm": rcm, "memo": memo.encode().hex()}})
 
@@ -592,7 +592,7 @@ class ShieldedTRC20:
             "shielded_receives": receives,
             "shielded_TRC20_contract_address": to_hex_address(self.shielded.contract_address),
         }
-        ret = self._client.provider.make_request("wallet/createshieldedcontractparameters", payload)
+        ret = await self._client.provider.make_request("wallet/createshieldedcontractparameters", payload)
         self._client._handle_api_error(ret)
         parameter = ret["trigger_contract_input"]
         function_signature = self.shielded.functions.transfer.function_signature_hash
@@ -606,11 +606,13 @@ class ShieldedTRC20:
             method=self.shielded.functions.transfer,
         )
 
-    def burn(self, zkey: dict, note: dict, *to: tuple[str, int] | tuple[str, int, str]) -> "tronpy.tron.TransactionBuilder":
+    async def burn(
+        self, zkey: dict, note: dict, *to: tuple[str, int] | tuple[str, int, str]
+    ) -> "tronpy.tron.TransactionBuilder":
         """Burn, transfer from z-address to T-address."""
         spends = []
-        alpha = self.get_rcm()
-        root, path = self.get_path(note.get("position", 0))
+        alpha = await self.get_rcm()
+        root, path = await self.get_path(note.get("position", 0))
         if note.get("is_spent", False):
             raise DoubleSpending
         spends.append({"note": note["note"], "alpha": alpha, "root": root, "path": path, "pos": note.get("position", 0)})
@@ -628,7 +630,7 @@ class ShieldedTRC20:
 
             if addr.startswith("ztron1"):
                 change_amount += amount
-                rcm = self.get_rcm()
+                rcm = await self.get_rcm()
                 receives = [{"note": {"value": amount, "payment_address": addr, "rcm": rcm, "memo": memo.encode().hex()}}]
             else:
                 # assume T-address
@@ -636,7 +638,8 @@ class ShieldedTRC20:
                 to_amount = amount
                 to_memo = memo
 
-        if note["note"]["value"] * self.scale_factor - change_amount * self.scale_factor != to_amount:
+        scale_factor = await self.scale_factor
+        if note["note"]["value"] * scale_factor - change_amount * scale_factor != to_amount:
             raise ValueError("Balance amount is wrong")
 
         payload = {
@@ -650,7 +653,7 @@ class ShieldedTRC20:
             "shielded_TRC20_contract_address": to_hex_address(self.shielded.contract_address),
         }
 
-        ret = self._client.provider.make_request("wallet/createshieldedcontractparameters", payload)
+        ret = await self._client.provider.make_request("wallet/createshieldedcontractparameters", payload)
         self._client._handle_api_error(ret)
         parameter = ret["trigger_contract_input"]
         function_signature = self.shielded.functions.burn.function_signature_hash
@@ -678,7 +681,7 @@ class ShieldedTRC20:
         return notes
 
     # use zkey pair from wallet/getnewshieldedaddress
-    def scan_incoming_notes(self, zkey: dict, start_block_number: int, end_block_number: int | None = None) -> list:
+    async def scan_incoming_notes(self, zkey: dict, start_block_number: int, end_block_number: int | None = None) -> list:
         """Scan incoming notes using ivk, ak, nk."""
         if end_block_number is None:
             end_block_number = start_block_number + 1000
@@ -690,11 +693,11 @@ class ShieldedTRC20:
             "ak": zkey["ak"],
             "nk": zkey["nk"],
         }
-        ret = self._client.provider.make_request("wallet/scanshieldedtrc20notesbyivk", payload)
+        ret = await self._client.provider.make_request("wallet/scanshieldedtrc20notesbyivk", payload)
         self._client._handle_api_error(ret)
         return self._fix_notes(ret.get("noteTxs", []))
 
-    def scan_outgoing_notes(
+    async def scan_outgoing_notes(
         self, zkey_or_ovk: dict | str, start_block_number: int, end_block_number: int | None = None
     ) -> list:
         """Scan outgoing notes using ovk."""
@@ -711,18 +714,16 @@ class ShieldedTRC20:
             "shielded_TRC20_contract_address": to_hex_address(self.shielded.contract_address),
             "ovk": ovk,
         }
-        ret = self._client.provider.make_request("wallet/scanshieldedtrc20notesbyovk", payload)
+        ret = await self._client.provider.make_request("wallet/scanshieldedtrc20notesbyovk", payload)
         self._client._handle_api_error(ret)
         return cast(list, ret.get("noteTxs", []))
 
     # (root, path)
-    def get_path(self, position: int = 0) -> tuple[str, str]:
-        root, path = self.shielded.functions.getPath(position)
-        root = root.hex()
-        path = "".join(p.hex() for p in path)
-        return (root, path)
+    async def get_path(self, position: int = 0) -> tuple[str, str]:
+        root, path = await self.shielded.functions.getPath(position)
+        return root.hex(), "".join(p.hex() for p in path)
 
-    def is_note_spent(self, zkey: dict, note: dict) -> bool:
+    async def is_note_spent(self, zkey: dict, note: dict) -> bool:
         """Is a note spent."""
         payload = dict(note)
         payload["shielded_TRC20_contract_address"] = to_hex_address(self.shielded.contract_address)
@@ -731,6 +732,6 @@ class ShieldedTRC20:
         payload["ak"] = zkey["ak"]
         payload["nk"] = zkey["nk"]
 
-        ret = self._client.provider.make_request("wallet/isshieldedtrc20contractnotespent", payload)
+        ret = await self._client.provider.make_request("wallet/isshieldedtrc20contractnotespent", payload)
 
         return cast(bool, ret.get("is_spent", False))

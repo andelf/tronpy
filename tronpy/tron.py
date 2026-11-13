@@ -1,9 +1,13 @@
+import asyncio
 import contextlib
 import json
 import time
 from decimal import Decimal
 from pprint import pprint
+from types import TracebackType
 from typing import Any, Self, cast
+
+from universalasync import wrap
 
 from tronpy import keys
 from tronpy.abi import tron_abi
@@ -47,6 +51,7 @@ def current_timestamp() -> int:
     return int(time.time() * 1000)
 
 
+@wrap
 class TransactionRet(dict):
     def __init__(self, iterable: dict, client: "Tron", method: ContractMethod | None = None):
         super().__init__(iterable)
@@ -60,7 +65,7 @@ class TransactionRet(dict):
         """The transaction id in hex."""
         return self._txid
 
-    def wait(self, timeout: float = 30, interval: float = 1.6, solid: bool = False) -> dict:
+    async def wait(self, timeout: float = 30, interval: float = 1.6, solid: bool = False) -> dict:
         """Wait the transaction to be on chain.
 
         :returns: TransactionInfo
@@ -73,13 +78,13 @@ class TransactionRet(dict):
         end_time = time.time() + timeout
         while time.time() < end_time:
             try:
-                return get_transaction_info(self._txid)
+                return await get_transaction_info(self._txid)
             except TransactionNotFound:
-                time.sleep(interval)
+                await asyncio.sleep(interval)
 
         raise TransactionNotFound("timeout and can not find the transaction")
 
-    def result(self, timeout: float = 30, interval: float = 1.6, solid: bool = False) -> Any:
+    async def result(self, timeout: float = 30, interval: float = 1.6, solid: bool = False) -> Any:
         """Wait the contract calling result.
 
         :returns: Result of contract method
@@ -87,7 +92,7 @@ class TransactionRet(dict):
         if self._method is None:
             raise TypeError("Not a smart contract call")
 
-        receipt = self.wait(timeout, interval, solid)
+        receipt = await self.wait(timeout, interval, solid)
 
         if receipt.get("result", None) == "FAILED":
             msg = receipt.get("resMessage", receipt["result"])
@@ -103,9 +108,7 @@ class TransactionRet(dict):
         return self._method.parse_output(receipt["contractResult"][0])
 
 
-EMPTY: Any = object()
-
-
+@wrap
 class Transaction:
     """The Transaction object, signed or unsigned."""
 
@@ -115,34 +118,44 @@ class Transaction:
         client: "Tron | None" = None,
         method: ContractMethod | None = None,
         txid: str = "",
-        permission: dict | None = EMPTY,
+        permission: dict | None = None,
         signature: list | None = None,
         raw_data_hex: str = "",
     ):
-        self._raw_data: dict = raw_data
-        self._signature: list = signature or []
+        self._raw_data: dict = raw_data.get("raw_data", raw_data)
+        self._signature: list = raw_data.get("signature", signature or [])
         self._client = client
 
         self._method = method
 
-        self.txid: str = txid
+        self.txid: str = raw_data.get("txID", txid)
         """The transaction id in hex."""
 
-        self.raw_data_hex: str = raw_data_hex
+        self.raw_data_hex: str = raw_data.get("raw_data_hex", raw_data_hex)
         """The protobuf-serialized `raw_data` in hex."""
 
-        self._permission: dict | None = permission
+        self._permission: dict | None = raw_data.get("permission", permission)
 
-        if (not self.txid or self._permission is EMPTY) and self._client:
-            sign_weight = self._client.get_sign_weight(self)
-            if "transaction" not in sign_weight:
-                self._client._handle_api_error(sign_weight)
-                return  # unreachable
-            self.txid = sign_weight["transaction"]["transaction"]["txID"]
-            self.raw_data_hex = sign_weight["transaction"]["transaction"]["raw_data_hex"]
+        # IMPORTANT must use "Transaction.create" to create a new Transaction
 
-            # when account not exist on-chain
-            self._permission = sign_weight.get("permission", None)
+    @classmethod
+    async def create(cls, *args: Any, **kwargs: Any) -> Self:
+        _tx = cls(*args, **kwargs)
+        if not _tx.txid:
+            await _tx.check_sign_weight()
+        return _tx
+
+    async def check_sign_weight(self) -> None:
+        if self._client is None:
+            raise TypeError("transaction has no client")
+        sign_weight = await self._client.get_sign_weight(self)
+        if "transaction" not in sign_weight:
+            self._client._handle_api_error(sign_weight)
+            raise TransactionError("transaction not in sign_weight")
+        self.txid = sign_weight["transaction"]["transaction"]["txID"]
+        self.raw_data_hex = sign_weight["transaction"]["transaction"]["raw_data_hex"]
+        # when account not exist on-chain
+        self._permission = sign_weight.get("permission", None)
 
     def to_json(self) -> dict:
         return {
@@ -150,14 +163,14 @@ class Transaction:
             "raw_data": self._raw_data,
             "raw_data_hex": self.raw_data_hex,
             "signature": self._signature,
-            "permission": self._permission if self._permission is not EMPTY else None,
+            "permission": self._permission,
         }
 
     @classmethod
-    def from_json(cls, data: str | dict, client: "Tron | None" = None) -> Self:
+    async def from_json(cls, data: str | dict, client: "Tron | None" = None) -> Self:
         if isinstance(data, str):
             data = cast(dict, json.loads(data))
-        return cls(
+        return await cls.create(
             client=client,
             txid=data["txID"],
             permission=data["permission"],
@@ -178,7 +191,7 @@ class Transaction:
         if self.is_expired:
             raise ValueError("expired")
 
-        if self._permission is not None and self._permission is not EMPTY:
+        if self._permission is not None:
             addr_of_key = priv_key.public_key.to_hex_address()
             for key in self._permission["keys"]:
                 if key["address"] == addr_of_key:
@@ -193,11 +206,11 @@ class Transaction:
         self._signature.append(sig.hex())
         return self
 
-    def broadcast(self) -> TransactionRet:
+    async def broadcast(self) -> TransactionRet:
         """Broadcast the transaction to TRON network."""
         if self._client is None:
             raise TypeError("transaction has no client")
-        return TransactionRet(self._client.broadcast(self), client=self._client, method=self._method)
+        return TransactionRet(await self._client.broadcast(self), client=self._client, method=self._method)
 
     def set_signature(self, signature: list) -> "Transaction":
         """set transaction signature"""
@@ -208,13 +221,13 @@ class Transaction:
     def is_expired(self) -> bool:
         return cast(bool, current_timestamp() >= self._raw_data["expiration"])
 
-    def update(self) -> None:
+    async def update(self) -> None:
         """update Transaction, change ref_block and txID, remove all signature"""
         if self._client is None:
             raise TypeError("transaction has no client")
         self._raw_data["timestamp"] = current_timestamp()
         self._raw_data["expiration"] = self._raw_data["timestamp"] + 60_000
-        ref_block_id = self._client.get_latest_solid_block_id()
+        ref_block_id = await self._client.get_latest_solid_block_id()
         # last 2 byte of block number part
         self._raw_data["ref_block_bytes"] = ref_block_id[12:16]
         # last half part of block hash
@@ -224,7 +237,7 @@ class Transaction:
         self.raw_data_hex = ""
         self._permission = None
         self._signature = []
-        sign_weight = self._client.get_sign_weight(self)
+        sign_weight = await self._client.get_sign_weight(self)
         if "transaction" not in sign_weight:
             self._client._handle_api_error(sign_weight)
             return  # unreachable
@@ -240,6 +253,7 @@ class Transaction:
         return json.dumps(self.to_json(), indent=2)
 
 
+@wrap
 class TransactionBuilder:
     """TransactionBuilder, to build a [`Transaction`][tronpy.tron.Transaction] object."""
 
@@ -286,7 +300,7 @@ class TransactionBuilder:
         self._raw_data["fee_limit"] = value
         return self
 
-    def build(self, *, offline: bool = False, ref_block_id: str | None = None, **kwargs: Any) -> Transaction:
+    async def build(self, *, offline: bool = False, ref_block_id: str | None = None, **kwargs: Any) -> Transaction:
         """Build the transaction."""
         if offline:
             if not ref_block_id:
@@ -294,7 +308,7 @@ class TransactionBuilder:
             if proto is None:
                 raise ImportError(PROTOBUF_NOT_INSTALLED_ERROR_MESSAGE)
         else:
-            ref_block_id = self._client.get_latest_solid_block_id()
+            ref_block_id = await self._client.get_latest_solid_block_id()
         self._raw_data["ref_block_bytes"] = ref_block_id[12:16]
         self._raw_data["ref_block_hash"] = ref_block_id[16:32]
         if offline:
@@ -306,7 +320,7 @@ class TransactionBuilder:
                 permission=None,
                 raw_data_hex=proto.calculate_raw_data_hex(self._raw_data),
             )
-        return Transaction(self._raw_data, client=self._client, method=self._method)
+        return await Transaction.create(self._raw_data, client=self._client, method=self._method)
 
 
 class Trx:
@@ -408,7 +422,7 @@ class Trx:
     def account_permission_update(self, owner: TAddress, perm: dict) -> "TransactionBuilder":
         """Update account permission.
 
-        :param owner:
+        :param owner: Address of owner
         :param perm: Permission dict from [`get_account_permission`][tronpy.Tron.get_account_permission]
         """
 
@@ -438,8 +452,6 @@ class Trx:
     def freeze_balance(self, owner: TAddress, amount: int, resource: str = "ENERGY") -> "TransactionBuilder":
         """Freeze balance to get energy or bandwidth, for 3 days.
 
-        :param owner:
-        :param amount:
         :param resource: Resource type, can be ``"ENERGY"`` or ``"BANDWIDTH"``
         """
         payload = {
@@ -462,9 +474,7 @@ class Trx:
     def unfreeze_balance(self, owner: TAddress, resource: str = "ENERGY", *, unfreeze_balance: int) -> "TransactionBuilder":
         """Unfreeze balance to get TRX back.
 
-        :param owner:
         :param resource: Resource type, can be ``"ENERGY"`` or ``"BANDWIDTH"``
-        :param unfreeze_balance:
         """
         payload = {
             "owner_address": keys.to_hex_address(owner),
@@ -478,9 +488,7 @@ class Trx:
     ) -> "TransactionBuilder":
         """Unfreeze Stake 1.0 balance to get TRX back.
 
-        :param owner:
         :param resource: Resource type, can be ``"ENERGY"`` or ``"BANDWIDTH"``
-        :param receiver:
         """
         payload = {
             "owner_address": keys.to_hex_address(owner),
@@ -571,6 +579,7 @@ class Trx:
         return contract.deploy()
 
 
+@wrap
 class Tron:
     """The TRON API Client.
 
@@ -640,7 +649,6 @@ class Tron:
                 raise TransactionError(msg)
             if payload["code"] == "CONTRACT_VALIDATE_ERROR":
                 raise ValidationError(msg)
-
             raise UnknownError(msg, payload["code"])
         if "result" in payload and isinstance(payload["result"], (dict,)):
             return self._handle_api_error(payload["result"])
@@ -697,30 +705,30 @@ class Tron:
         mnemonic = generate_mnemonic(num_words, language)
         return self.generate_address_from_mnemonic(mnemonic, passphrase, account_path), mnemonic
 
-    def generate_zkey(self) -> dict:
+    async def generate_zkey(self) -> dict:
         """Generate a random shielded address."""
-        return self.provider.make_request("wallet/getnewshieldedaddress")
+        return await self.provider.make_request("wallet/getnewshieldedaddress")
 
-    def get_zkey_from_sk(self, sk: str, d: str | None = None) -> dict:
+    async def get_zkey_from_sk(self, sk: str, d: str | None = None) -> dict:
         """Get the shielded address from sk(spending key) and d(diversifier)."""
         if len(sk) != 64:
             raise BadKey("32 byte sk required")
         if d and len(d) != 22:
             raise BadKey("11 byte d required")
 
-        esk = self.provider.make_request("wallet/getexpandedspendingkey", {"value": sk})
+        esk = await self.provider.make_request("wallet/getexpandedspendingkey", {"value": sk})
         ask = esk["ask"]
         nsk = esk["nsk"]
         ovk = esk["ovk"]
-        ak = self.provider.make_request("wallet/getakfromask", {"value": ask})["value"]
-        nk = self.provider.make_request("wallet/getnkfromnsk", {"value": nsk})["value"]
+        ak = (await self.provider.make_request("wallet/getakfromask", {"value": ask}))["value"]
+        nk = (await self.provider.make_request("wallet/getnkfromnsk", {"value": nsk}))["value"]
 
-        ivk = self.provider.make_request("wallet/getincomingviewingkey", {"ak": ak, "nk": nk})["ivk"]
+        ivk = (await self.provider.make_request("wallet/getincomingviewingkey", {"ak": ak, "nk": nk}))["ivk"]
 
         if d is None:
-            d = self.provider.make_request("wallet/getdiversifier")["d"]
+            d = (await self.provider.make_request("wallet/getdiversifier"))["d"]
 
-        ret = self.provider.make_request("wallet/getzenpaymentaddress", {"ivk": ivk, "d": d})
+        ret = await self.provider.make_request("wallet/getzenpaymentaddress", {"ivk": ivk, "d": d})
         pkD = ret["pkD"]
         payment_address = ret["payment_address"]
 
@@ -738,19 +746,20 @@ class Tron:
         }
 
     # Account query
-
-    def get_account(self, addr: TAddress) -> dict:
+    async def get_account(self, addr: TAddress) -> dict:
         """Get account info from an address."""
 
-        ret = self.provider.make_request("wallet/getaccount", {"address": keys.to_base58check_address(addr), "visible": True})
+        ret = await self.provider.make_request(
+            "wallet/getaccount", {"address": keys.to_base58check_address(addr), "visible": True}
+        )
         if ret:
             return ret
         raise AddressNotFound("account not found on-chain")
 
-    def get_account_resource(self, addr: TAddress) -> dict:
+    async def get_account_resource(self, addr: TAddress) -> dict:
         """Get resource info of an account."""
 
-        ret = self.provider.make_request(
+        ret = await self.provider.make_request(
             "wallet/getaccountresource",
             {"address": keys.to_base58check_address(addr), "visible": True},
         )
@@ -758,15 +767,16 @@ class Tron:
             return ret
         raise AddressNotFound("account not found on-chain")
 
-    def get_account_balance(self, addr: TAddress) -> Decimal:
+    async def get_account_balance(self, addr: TAddress) -> Decimal:
         """Get TRX balance of an account. Result in `TRX`."""
 
-        info = self.get_account(addr)
+        info = await self.get_account(addr)
         return Decimal(info.get("balance", 0)) / 1_000_000
 
-    def get_bandwidth(self, addr: TAddress) -> int:
+    async def get_bandwidth(self, addr: TAddress) -> int:
         """Query the bandwidth of the account"""
-        ret = self.provider.make_request(
+
+        ret = await self.provider.make_request(
             "wallet/getaccountnet", {"address": keys.to_base58check_address(addr), "visible": True}
         )
         if ret:
@@ -774,32 +784,32 @@ class Tron:
             return cast(int, ret["freeNetLimit"] - ret.get("freeNetUsed", 0) + ret.get("NetLimit", 0) - ret.get("NetUsed", 0))
         raise AddressNotFound("account not found on-chain")
 
-    def get_energy(self, address: str) -> int:
+    async def get_energy(self, address: str) -> int:
         """Query the energy of the account"""
-        account_info = self.get_account_resource(address)
+        account_info = await self.get_account_resource(address)
         energy_limit = account_info.get("EnergyLimit", 0)
         energy_used = account_info.get("EnergyUsed", 0)
         return cast(int, energy_limit - energy_used)
 
-    def get_account_asset_balances(self, addr: TAddress) -> dict:
+    async def get_account_asset_balances(self, addr: TAddress) -> dict:
         """Get all TRC10 token balances of an account."""
-        info = self.get_account(addr)
+        info = await self.get_account(addr)
         return {p["key"]: p["value"] for p in info.get("assetV2", {}) if p["value"] > 0}
 
-    def get_account_asset_balance(self, addr: TAddress, token_id: int | str) -> int:
+    async def get_account_asset_balance(self, addr: TAddress, token_id: int | str) -> int:
         """Get TRC10 token balance of an account. Result is in raw amount."""
         if int(token_id) < 1000000 or int(token_id) > 1999999:
             raise ValueError("invalid token_id range")
 
-        balances = self.get_account_asset_balances(addr)
+        balances = await self.get_account_asset_balances(addr)
         return cast(int, balances.get(str(token_id), 0))
 
-    def get_account_permission(self, addr: TAddress) -> dict:
+    async def get_account_permission(self, addr: TAddress) -> dict:
         """Get account's permission info from an address. Can be used in `account_permission_update`."""
 
         addr = keys.to_base58check_address(addr)
         # will check account existence
-        info = self.get_account(addr)
+        info = await self.get_account(addr)
         # For old accounts prior to AccountPermissionUpdate, these fields are not set.
         # So default permission is for backward compatibility.
         default_witness = None
@@ -832,9 +842,9 @@ class Tron:
             "witness": info.get("witness_permission", default_witness),
         }
 
-    def get_delegated_resource_v2(self, fromAddr: TAddress, toAddr: TAddress) -> dict:
+    async def get_delegated_resource_v2(self, fromAddr: TAddress, toAddr: TAddress) -> dict:
         """Query the amount of delegatable resources share of the specified resource type for an address"""
-        return self.provider.make_request(
+        return await self.provider.make_request(
             "wallet/getdelegatedresourcev2",
             {
                 "fromAddress": keys.to_base58check_address(fromAddr),
@@ -843,7 +853,7 @@ class Tron:
             },
         )
 
-    def get_can_delegated_max_size(self, address: TAddress, resource: str = "ENERGY") -> dict:
+    async def get_can_delegated_max_size(self, address: TAddress, resource: str = "ENERGY") -> dict:
         """Query the amount of delegatable resources share of the specified resource type for an address
 
         Args:
@@ -853,14 +863,14 @@ class Tron:
         Returns:
             dict: Response data
         """
-        return self.provider.make_request(
+        return await self.provider.make_request(
             "wallet/getcandelegatedmaxsize",
             {"owner_address": keys.to_base58check_address(address), "type": 1 if resource == "ENERGY" else 0, "visible": True},
         )
 
-    def get_delegated_resource_account_index_v2(self, addr: TAddress) -> dict:
+    async def get_delegated_resource_account_index_v2(self, addr: TAddress) -> dict:
         """Query the resource delegation index by an account"""
-        return self.provider.make_request(
+        return await self.provider.make_request(
             "wallet/getdelegatedresourceaccountindexv2",
             {
                 "value": keys.to_base58check_address(addr),
@@ -870,38 +880,42 @@ class Tron:
 
     # Block query
 
-    def get_latest_solid_block(self) -> dict:
-        return self.provider.make_request("walletsolidity/getnowblock")
+    async def get_latest_solid_block(self) -> dict:
+        return await self.provider.make_request("walletsolidity/getnowblock")
 
-    def get_latest_solid_block_id(self) -> str:
+    async def get_latest_solid_block_id(self) -> str:
         """Get latest solid block id in hex."""
 
-        info = self.provider.make_request("wallet/getnodeinfo")
-        return cast(str, info["solidityBlock"].split(",ID:", 1)[-1])
+        try:
+            info = await self.provider.make_request("wallet/getnodeinfo")
+            return cast(str, info["solidityBlock"].split(",ID:", 1)[-1])
+        except Exception:
+            info = await self.get_latest_solid_block()
+            return cast(str, info["blockID"])
 
-    def get_latest_solid_block_number(self) -> int:
+    async def get_latest_solid_block_number(self) -> int:
         """Get latest solid block number. Implemented via `wallet/getnodeinfo`,
         which is faster than `walletsolidity/getnowblock`."""
-        info = self.provider.make_request("wallet/getnodeinfo")
+        info = await self.provider.make_request("wallet/getnodeinfo")
         return int(info["solidityBlock"].split(",ID:", 1)[0].replace("Num:", "", 1))
 
-    def get_latest_block(self) -> dict:
+    async def get_latest_block(self) -> dict:
         """Get latest block."""
-        return self.provider.make_request("wallet/getnowblock", {"visible": True})
+        return await self.provider.make_request("wallet/getnowblock", {"visible": True})
 
-    def get_latest_block_id(self) -> str:
+    async def get_latest_block_id(self) -> str:
         """Get latest block id in hex."""
 
-        info = self.provider.make_request("wallet/getnodeinfo")
+        info = await self.provider.make_request("wallet/getnodeinfo")
         return cast(str, info["block"].split(",ID:", 1)[-1])
 
-    def get_latest_block_number(self) -> int:
+    async def get_latest_block_number(self) -> int:
         """Get latest block number. Implemented via `wallet/getnodeinfo`, which is faster than `wallet/getnowblock`."""
 
-        info = self.provider.make_request("wallet/getnodeinfo")
+        info = await self.provider.make_request("wallet/getnodeinfo")
         return int(info["block"].split(",ID:", 1)[0].replace("Num:", "", 1))
 
-    def get_block(self, id_or_num: None | str | int = None, *, visible: bool = True) -> dict:
+    async def get_block(self, id_or_num: None | str | int = None, *, visible: bool = True) -> dict:
         """Get block from a block id or block number.
 
         :param id_or_num: Block number, or Block hash(id), or ``None`` (default) to get the latest block.
@@ -909,11 +923,11 @@ class Tron:
         """
 
         if isinstance(id_or_num, (int,)):
-            block = self.provider.make_request("wallet/getblockbynum", {"num": id_or_num, "visible": visible})
+            block = await self.provider.make_request("wallet/getblockbynum", {"num": id_or_num, "visible": visible})
         elif isinstance(id_or_num, (str,)):
-            block = self.provider.make_request("wallet/getblockbyid", {"value": id_or_num, "visible": visible})
+            block = await self.provider.make_request("wallet/getblockbyid", {"value": id_or_num, "visible": visible})
         elif id_or_num is None:
-            block = self.provider.make_request("wallet/getnowblock", {"visible": visible})
+            block = await self.provider.make_request("wallet/getnowblock", {"visible": visible})
         else:
             raise TypeError(f"can not infer type of {id_or_num}")
 
@@ -923,37 +937,49 @@ class Tron:
             return block
         raise BlockNotFound
 
-    def get_transaction(self, txn_id: str) -> dict:
+    async def get_transaction(self, txn_id: str) -> dict:
         """Get transaction from a transaction id."""
 
         if len(txn_id) != 64:
             raise BadHash("wrong transaction hash length")
 
-        ret = self.provider.make_request("wallet/gettransactionbyid", {"value": txn_id, "visible": True})
+        ret = await self.provider.make_request("wallet/gettransactionbyid", {"value": txn_id, "visible": True})
         self._handle_api_error(ret)
         if ret:
             return ret
         raise TransactionNotFound
 
-    def get_transaction_info(self, txn_id: str) -> dict:
+    async def get_solid_transaction(self, txn_id: str) -> dict:
+        """Get transaction from a transaction id, must be in solid block."""
+
+        if len(txn_id) != 64:
+            raise BadHash("wrong transaction hash length")
+
+        ret = await self.provider.make_request("walletsolidity/gettransactionbyid", {"value": txn_id, "visible": True})
+        self._handle_api_error(ret)
+        if ret:
+            return ret
+        raise TransactionNotFound
+
+    async def get_transaction_info(self, txn_id: str) -> dict:
         """Get transaction receipt info from a transaction id."""
 
         if len(txn_id) != 64:
             raise BadHash("wrong transaction hash length")
 
-        ret = self.provider.make_request("wallet/gettransactioninfobyid", {"value": txn_id, "visible": True})
+        ret = await self.provider.make_request("wallet/gettransactioninfobyid", {"value": txn_id, "visible": True})
         self._handle_api_error(ret)
         if ret:
             return ret
         raise TransactionNotFound
 
-    def get_solid_transaction_info(self, txn_id: str) -> dict:
+    async def get_solid_transaction_info(self, txn_id: str) -> dict:
         """Get transaction receipt info from a transaction id, must be in solid block."""
 
         if len(txn_id) != 64:
             raise BadHash("wrong transaction hash length")
 
-        ret = self.provider.make_request("walletsolidity/gettransactioninfobyid", {"value": txn_id, "visible": True})
+        ret = await self.provider.make_request("walletsolidity/gettransactioninfobyid", {"value": txn_id, "visible": True})
         self._handle_api_error(ret)
         if ret:
             return ret
@@ -961,58 +987,60 @@ class Tron:
 
     # Chain parameters
 
-    def list_witnesses(self) -> list:
+    async def list_witnesses(self) -> list:
         """List all witnesses, including SR, SRP, and SRC."""
         # NOTE: visible parameter is ignored
-        ret = self.provider.make_request("wallet/listwitnesses", {"visible": True})
+        ret = await self.provider.make_request("wallet/listwitnesses", {"visible": True})
         witnesses: list = ret.get("witnesses", [])
         for witness in witnesses:
             witness["address"] = keys.to_base58check_address(witness["address"])
+
         return witnesses
 
-    def list_nodes(self) -> list:
+    async def list_nodes(self) -> list:
         """List all nodes that current API node is connected to."""
         # NOTE: visible parameter is ignored
-        ret = self.provider.make_request("wallet/listnodes", {"visible": True})
+        ret = await self.provider.make_request("wallet/listnodes", {"visible": True})
         nodes: list = ret.get("nodes", [])
         for node in nodes:
             node["address"]["host"] = bytes.fromhex(node["address"]["host"]).decode()
         return nodes
 
-    def get_node_info(self) -> dict:
+    async def get_node_info(self) -> dict:
         """Get current API node' info."""
 
-        return self.provider.make_request("wallet/getnodeinfo", {"visible": True})
+        return await self.provider.make_request("wallet/getnodeinfo", {"visible": True})
 
-    def get_chain_parameters(self) -> list:
+    async def get_chain_parameters(self) -> list:
         """List all chain parameters, values that can be changed via proposal."""
-        return cast(list, self.provider.make_request("wallet/getchainparameters", {"visible": True}).get("chainParameter", []))
+        params = await self.provider.make_request("wallet/getchainparameters", {"visible": True})
+        return cast(list, params.get("chainParameter", []))
 
     # Asset (TRC10)
 
-    def get_asset(self, asset_id: int | None = None, issuer: TAddress | None = None) -> dict:
+    async def get_asset(self, asset_id: int | None = None, issuer: TAddress | None = None) -> dict:
         """Get TRC10(asset) info by asset's id or issuer."""
         if asset_id and issuer:
             raise ValueError("either query by id or issuer")
         if asset_id:
-            return self.provider.make_request("wallet/getassetissuebyid", {"value": asset_id, "visible": True})
-        return self.provider.make_request(
+            return await self.provider.make_request("wallet/getassetissuebyid", {"value": asset_id, "visible": True})
+        return await self.provider.make_request(
             "wallet/getassetissuebyaccount",
             {"address": keys.to_base58check_address(issuer), "visible": True},  # type: ignore[arg-type]
         )
 
-    def get_asset_from_name(self, name: str) -> dict:
+    async def get_asset_from_name(self, name: str) -> dict:
         """Get asset info from its abbr name, might fail if there're duplicates."""
-        assets = [asset for asset in self.list_assets() if asset["abbr"] == name]
+        assets = [asset for asset in await self.list_assets() if asset["abbr"] == name]
         if assets:
             if len(assets) == 1:
                 return cast(dict, assets[0])
             raise ValueError("duplicated assets with the same name", [asset["id"] for asset in assets])
         raise AssetNotFound
 
-    def list_assets(self) -> list:
+    async def list_assets(self) -> list:
         """List all TRC10 tokens(assets)."""
-        ret = self.provider.make_request("wallet/getassetissuelist", {"visible": True})
+        ret = await self.provider.make_request("wallet/getassetissuelist", {"visible": True})
         assets: list = ret["assetIssue"]
         for asset in assets:
             asset["id"] = int(asset["id"])
@@ -1031,10 +1059,10 @@ class Tron:
 
     # Smart contract
 
-    def get_contract(self, addr: TAddress) -> Contract:
+    async def get_contract(self, addr: TAddress) -> Contract:
         """Get a contract object."""
         addr = keys.to_base58check_address(addr)
-        info = self.provider.make_request("wallet/getcontract", {"value": addr, "visible": True})
+        info = await self.provider.make_request("wallet/getcontract", {"value": addr, "visible": True})
 
         try:
             self._handle_api_error(info)
@@ -1054,10 +1082,10 @@ class Tron:
             client=self,
         )
 
-    def get_contract_info(self, addr: TAddress) -> dict:
+    async def get_contract_info(self, addr: TAddress) -> dict:
         """Queries a contract's information from the blockchain"""
         addr = keys.to_base58check_address(addr)
-        info = self.provider.make_request("wallet/getcontractinfo", {"value": addr, "visible": True})
+        info = await self.provider.make_request("wallet/getcontractinfo", {"value": addr, "visible": True})
 
         try:
             self._handle_api_error(info)
@@ -1066,19 +1094,19 @@ class Tron:
 
         return info
 
-    def get_contract_as_shielded_trc20(self, addr: TAddress) -> ShieldedTRC20:
+    async def get_contract_as_shielded_trc20(self, addr: TAddress) -> ShieldedTRC20:
         """Get a Shielded TRC20 Contract object."""
-        contract = self.get_contract(addr)
+        contract = await self.get_contract(addr)
         return ShieldedTRC20(contract)
 
-    def trigger_constant_contract(
+    async def trigger_constant_contract(
         self,
         owner_address: TAddress,
         contract_address: TAddress,
         function_selector: str,
         parameter: str,
     ) -> dict:
-        ret = self.provider.make_request(
+        ret = await self.provider.make_request(
             "wallet/triggerconstantcontract",
             {
                 "owner_address": keys.to_base58check_address(owner_address),
@@ -1099,29 +1127,29 @@ class Tron:
             raise TvmError(msg)
         return ret
 
-    def trigger_const_smart_contract_function(
+    async def trigger_const_smart_contract_function(
         self,
         owner_address: TAddress,
         contract_address: TAddress,
         function_selector: str,
         parameter: str,
     ) -> str:
-        ret = self.trigger_constant_contract(owner_address, contract_address, function_selector, parameter)
+        ret = await self.trigger_constant_contract(owner_address, contract_address, function_selector, parameter)
         return cast(str, ret["constant_result"][0])
 
     # Transaction handling
 
-    def broadcast(self, txn: Transaction) -> dict:
-        payload = self.provider.make_request("wallet/broadcasttransaction", txn.to_json())
+    async def broadcast(self, txn: Transaction) -> dict:
+        payload = await self.provider.make_request("wallet/broadcasttransaction", txn.to_json())
         self._handle_api_error(payload)
         if payload.get("txid") is None:
             payload["txid"] = txn.txid
         return payload
 
-    def get_sign_weight(self, txn: Transaction) -> dict:
-        return self.provider.make_request("wallet/getsignweight", txn.to_json())
+    async def get_sign_weight(self, txn: Transaction) -> dict:
+        return await self.provider.make_request("wallet/getsignweight", txn.to_json())
 
-    def get_estimated_energy(
+    async def get_estimated_energy(
         self,
         owner_address: TAddress,
         contract_address: TAddress,
@@ -1136,6 +1164,17 @@ class Tron:
             "parameter": parameter,
             "visible": True,
         }
-        ret = self.provider.make_request("wallet/estimateenergy", params)
+        ret = await self.provider.make_request("wallet/estimateenergy", params)
         self._handle_api_error(ret)
         return cast(int, ret["energy_required"])
+
+    async def close(self) -> None:
+        await self.provider.close()
+
+    async def __aenter__(self) -> Self:
+        return self
+
+    async def __aexit__(
+        self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: TracebackType | None
+    ) -> None:
+        await self.close()

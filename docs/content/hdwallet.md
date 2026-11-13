@@ -8,7 +8,7 @@ TronPy HD wallet API can be used by installing `mnemonic` as follows:
 
 ## Calling HD Wallet APIs
 
-The [`Tron`][tronpy.Tron] wraps many query APIs and utility functions. You use it using either `Tron` or `AsyncTron` classes
+The [`Tron`][tronpy.Tron] wraps many query APIs and utility functions. You use it from either sync or async code
 
 ```python
 >>> from tronpy import Tron
@@ -51,16 +51,16 @@ The [`Tron`][tronpy.Tron] wraps many query APIs and utility functions. You use i
 
 ## Using Async API
 
-The async client is `AsyncTron`. It uses almost the same API as the synchronous client `Tron`.
+Address generation does not reach the node, so these methods are not awaited.
 
 ```python
 import asyncio
 
-from tronpy import AsyncTron
+from tronpy import Tron
 
 
 async def create_hd_wallet(passphrase, num_of_words):
-    async with AsyncTron(network="nile") as client:
+    async with Tron(network="nile") as client:
         print(client)
 
         first_index_wallet_details, mnemonic_code = client.generate_address_with_mnemonic(
@@ -75,7 +75,7 @@ async def create_hd_wallet(passphrase, num_of_words):
 
 
 async def derive_hd_wallet(mnemonic_str, passphrase="", account_number=0, account_index=0):
-    async with AsyncTron(network="nile") as client:
+    async with Tron(network="nile") as client:
         print(client)
 
         wallet_details = client.generate_address_from_mnemonic(

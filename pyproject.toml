@@ -35,8 +35,7 @@ dependencies = [
     "eth-utils",
     "httpx2>=2.15.1",
     "pycryptodome<5",
-    "requests",
-    "typing-extensions>=4.4.0",
+    "universalasync>=0.6.3.1",
 ]
 
 [project.optional-dependencies]
@@ -67,6 +66,10 @@ all = [{ include-group = "dev" }, { include-group = "docs" }]
 cache-keys = [{ file = "pyproject.toml" }, { file = "tronpy/version.py" }]
 # dependency cooldowns for security
 exclude-newer = "1 week"
+
+# except for our packages
+[tool.uv.exclude-newer-package]
+universalasync = "0 days"
 
 [tool.hatch.build.targets.sdist]
 include = ["tronpy", "tests", "CHANGELOG.md"]

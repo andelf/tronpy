@@ -2,6 +2,30 @@
 
 ## Latest changes
 
+One async-native client, usable from sync code through `universalasync`. `AsyncTron` and the other `Async*` names remain as aliases for compatibility, but aren't recommended: drop the prefix. See the [migration notes](https://tronpy.bitcart.ai/async/#migrating-to-the-single-client)
+
+**Breaking**: `requests` is removed. Sync users catch `httpx2` exceptions, `HTTPProvider.sess` is gone, TLS uses the OS trust store and redirects are no longer followed
+
+**Breaking**: `asyncio.run(client.method())` raises `ValueError` (`TypeError` on Python 3.14+) after the call has already run, so `asyncio.run(tx.broadcast())` sends and then raises. Wrap it in `async def main()`
+
+**Breaking**: sync-style calls inside a running event loop return a coroutine
+
+**Breaking**: type checkers see the methods as async, so typed sync callers need `cast` or `type: ignore`
+
+**Breaking**: custom providers need an async `make_request`
+
+**Breaking**: `Transaction(raw, client=c)` no longer makes a network call, use `Transaction.create`. `tronpy.tron.EMPTY` is removed
+
+**Breaking**: `HTTPProvider` arguments after `timeout` are keyword-only
+
+**Breaking**: `AsyncTron` users now get `ValueError` when passing `conf={"timeout": ...}` along with a provider
+
+`HTTPProvider` keeps one client per event loop, so `Tron` works across threads, repeated `asyncio.run`
+
+Add `HTTPProvider(client_factory=...)` to use custom HTTP client settings on every event loop. A client passed with `client=` only applies to the event loop current when the provider is created
+
+Fix `broadcast` raising `KeyError` in async code after sending, when a node omits `txid`
+
 **Breaking**: the async client now uses `httpx2` instead of `httpx`. Build `AsyncHTTPProvider(client=...)` clients and catch timeouts and other HTTP errors from `httpx2`. TLS verification now uses the OS trust store instead of `certifi`
 
 **Breaking**: `Tron` and `AsyncTron` now raise `ValueError` on an unknown `network`, instead of silently connecting to mainnet or to `TRONPY_HTTP_PROVIDER_URI`

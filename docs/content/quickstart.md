@@ -19,6 +19,8 @@ only HTTP Provider is available.
 
 There are preset networks along with client, use `network=` to choose from the mainnet or testnets.
 
+All examples below are sync. The same client works from async code, see [Sync and Async](async.md).
+
 ### The mainnet
 
 ```python

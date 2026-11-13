@@ -1,14 +1,11 @@
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 import pytest_asyncio
 from eth_abi import encode
 
-from tronpy import AsyncTron, Tron
-from tronpy.async_contract import AsyncContract, AsyncShieldedTRC20
-from tronpy.async_tron import AsyncTransactionBuilder
-from tronpy.contract import ShieldedTRC20
-from tronpy.providers import AsyncHTTPProvider, HTTPProvider
+from tronpy import Contract, ShieldedTRC20, Tron
+from tronpy.providers import HTTPProvider
 from tronpy.tron import TransactionBuilder
 
 SHIELDED_ADDR = "TEkQTDyZmbY6hngxdAsxzxy9r3bUNhRjdS"
@@ -57,16 +54,10 @@ def node_response(method, params=None):
     raise AssertionError(f"unexpected request {method}")
 
 
-@pytest.fixture
-def sync_node():
-    with patch.object(HTTPProvider, "make_request", MagicMock(side_effect=node_response)) as mock:
-        yield mock
-
-
 @pytest_asyncio.fixture
 async def shielded():
-    with patch.object(AsyncHTTPProvider, "make_request", AsyncMock(side_effect=node_response)) as mock:
-        async with AsyncTron(network="nile") as client:
+    with patch.object(HTTPProvider, "make_request", AsyncMock(side_effect=node_response)) as mock:
+        async with Tron(network="nile") as client:
             wrapper = await client.get_contract_as_shielded_trc20(SHIELDED_ADDR)
             wrapper.node = mock
             yield wrapper
@@ -77,57 +68,55 @@ def requests_to(node, method):
 
 
 @pytest.mark.asyncio
-async def test_async_client_returns_async_wrapper(shielded):
-    assert isinstance(shielded, AsyncShieldedTRC20)
+async def test_client_returns_shielded_wrapper(shielded):
+    assert isinstance(shielded, ShieldedTRC20)
 
 
 @pytest.mark.asyncio
-async def test_async_lazy_properties_can_be_read_twice(shielded):
+async def test_lazy_properties_can_be_read_twice(shielded):
     assert await shielded.scale_factor == SCALING_FACTOR
     assert await shielded.scale_factor == SCALING_FACTOR
     assert len(requests_to(shielded.node, "wallet/triggerconstantcontract")) == 1
 
     trc20 = await shielded.trc20
-    assert isinstance(trc20, AsyncContract)
+    assert isinstance(trc20, Contract)
     assert await shielded.trc20 is trc20
 
 
 @pytest.mark.asyncio
-async def test_async_mint(shielded):
+async def test_mint(shielded):
     builder = await shielded.mint(T_ADDR, Z_ADDR, 2 * SCALING_FACTOR)
-    assert isinstance(builder, AsyncTransactionBuilder)
+    assert isinstance(builder, TransactionBuilder)
     payload = requests_to(shielded.node, "wallet/createshieldedcontractparameters")[0]
     assert payload["shielded_receives"]["note"]["value"] == 2
 
 
 @pytest.mark.asyncio
-async def test_async_transfer(shielded):
+async def test_transfer(shielded):
     note = {"note": {"value": 2}, "position": 7}
     builder = await shielded.transfer(ZKEY, note, (Z_ADDR, 2))
-    assert isinstance(builder, AsyncTransactionBuilder)
+    assert isinstance(builder, TransactionBuilder)
     spend = requests_to(shielded.node, "wallet/createshieldedcontractparameters")[0]["shielded_spends"][0]
     assert spend["root"] == ROOT.hex()
     assert spend["path"] == "".join(item.hex() for item in PATH)
 
 
 @pytest.mark.asyncio
-async def test_async_burn(shielded):
+async def test_burn(shielded):
     note = {"note": {"value": 2}}
     builder = await shielded.burn(ZKEY, note, (T_ADDR, 2 * SCALING_FACTOR))
-    assert isinstance(builder, AsyncTransactionBuilder)
+    assert isinstance(builder, TransactionBuilder)
     with pytest.raises(ValueError, match="Balance amount is wrong"):
         await shielded.burn(ZKEY, note, (T_ADDR, 1))
 
 
 @pytest.mark.asyncio
-async def test_async_is_note_spent_when_node_omits_the_field(shielded):
+async def test_is_note_spent_when_node_omits_the_field(shielded):
     assert await shielded.is_note_spent(ZKEY, {"note": {}}) is False
 
 
-@pytest.mark.usefixtures("sync_node")
-def test_sync_contract_as_shielded_trc20():
-    client = Tron(network="nile")
-    wrapper = client.get_contract(SHIELDED_ADDR).as_shielded_trc20()
-    assert type(wrapper) is ShieldedTRC20
-    assert isinstance(wrapper.mint(T_ADDR, Z_ADDR, 2 * SCALING_FACTOR), TransactionBuilder)
-    assert wrapper.is_note_spent(ZKEY, {"note": {}}) is False
+@pytest.mark.asyncio
+async def test_contract_as_shielded_trc20(shielded):
+    wrapper = shielded.shielded.as_shielded_trc20()
+    assert isinstance(wrapper, ShieldedTRC20)
+    assert isinstance(await wrapper.mint(T_ADDR, Z_ADDR, 2 * SCALING_FACTOR), TransactionBuilder)

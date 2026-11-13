@@ -60,7 +60,7 @@ nav:
   - Smart Contract: contract.md
   - Shielded TRC20: shielded.md
   - ABI: abi.md
-  - Async API: async.md
+  - Sync and Async: async.md
   - Exceptions: exceptions.md
 
 plugins:

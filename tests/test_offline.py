@@ -1,13 +1,11 @@
-import asyncio
 import datetime
 import importlib
 import typing
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import freezegun
 import pytest
 
-from tronpy.async_tron import AsyncTron
 from tronpy.defaults import PROTOBUF_NOT_INSTALLED_ERROR_MESSAGE
 from tronpy.exceptions import ProtobufImportError
 from tronpy.tron import Tron
@@ -35,70 +33,36 @@ FEE_LIMIT = 50000000
 @pytest.fixture()
 def set_protobuf_unavailable() -> typing.Generator[None, None, None]:
     importlib.import_module("tronpy.tron").proto = None
-    importlib.import_module("tronpy.async_tron").proto = None
     yield
     importlib.import_module("tronpy.tron").proto = proto
-    importlib.import_module("tronpy.async_tron").proto = proto
 
 
 @pytest.mark.usefixtures("set_protobuf_unavailable")
-@pytest.mark.parametrize("client_class", [Tron, AsyncTron])
-def test_offline_transfer_raises_import_error(
-    client_class: Tron | AsyncTron,
-) -> None:
-    client = client_class(network="nile")
-    if client_class == AsyncTron:
-
-        async def run_test():
-            return await client.trx.transfer(FROM_ADDR, TO_ADDR, 1).build(offline=True, ref_block_id="ref_block_id")
-
-        with pytest.raises(ImportError) as exc_info:
-            asyncio.run(run_test())
-    else:
-        with pytest.raises(ImportError) as exc_info:
-            client.trx.transfer(FROM_ADDR, TO_ADDR, 1).build(offline=True, ref_block_id="ref_block_id")
+@pytest.mark.asyncio
+async def test_offline_transfer_raises_import_error() -> None:
+    client = Tron(network="nile")
+    with pytest.raises(ImportError) as exc_info:
+        await client.trx.transfer(FROM_ADDR, TO_ADDR, 1).build(offline=True, ref_block_id="ref_block_id")
     assert exc_info.value.args[0] == PROTOBUF_NOT_INSTALLED_ERROR_MESSAGE
 
 
 @pytest.mark.usefixtures("set_protobuf_unavailable")
-@pytest.mark.parametrize("client_class", [Tron, AsyncTron])
-def test_offline_contract_transfer_raises_import_error(
-    client_class: Tron | AsyncTron,
-) -> None:
-    client = client_class(network="nile")
-    if client_class == AsyncTron:
-
-        async def run_contract_test():
-            contract = await client.get_contract(TRC20_CONTRACT)
-            builder = await contract.functions.transfer(TO_ADDR, 1)
-            return await builder.with_owner(FROM_ADDR).fee_limit(FEE_LIMIT).build(offline=True, ref_block_id="ref_block_id")
-
+@pytest.mark.asyncio
+async def test_offline_contract_transfer_raises_import_error() -> None:
+    async with Tron(network="nile") as client:
+        contract = await client.get_contract(TRC20_CONTRACT)
+        builder = await contract.functions.transfer(TO_ADDR, 1)
         with pytest.raises(ImportError) as exc_info:
-            asyncio.run(run_contract_test())
-    else:
-        contract = client.get_contract(TRC20_CONTRACT)
-        with pytest.raises(ImportError) as exc_info:
-            contract.functions.transfer(TO_ADDR, 1).with_owner(FROM_ADDR).fee_limit(FEE_LIMIT).build(
-                offline=True, ref_block_id="ref_block_id"
-            )
+            await builder.with_owner(FROM_ADDR).fee_limit(FEE_LIMIT).build(offline=True, ref_block_id="ref_block_id")
     assert exc_info.value.args[0] == PROTOBUF_NOT_INSTALLED_ERROR_MESSAGE
 
 
 @pytest.mark.skipif(not protobuf_installed, reason="Protobuf not installed")
-@pytest.mark.parametrize("client_class", [Tron, AsyncTron])
+@pytest.mark.asyncio
 @freezegun.freeze_time(datetime.datetime(2025, 7, 2, 14, 27, 12, 131000, tzinfo=datetime.UTC))
-def test_create_transaction_offline(
-    client_class: Tron | AsyncTron,
-) -> None:
-    client = client_class(network="nile")
-    if client_class == AsyncTron:
-
-        async def run_test():
-            return await client.trx.transfer(FROM_ADDR, TO_ADDR, 1).build(offline=True, ref_block_id=REF_BLOCK_ID)
-
-        transaction = asyncio.run(run_test())
-    else:
-        transaction = client.trx.transfer(FROM_ADDR, TO_ADDR, 1).build(offline=True, ref_block_id=REF_BLOCK_ID)
+async def test_create_transaction_offline() -> None:
+    client = Tron(network="nile")
+    transaction = await client.trx.transfer(FROM_ADDR, TO_ADDR, 1).build(offline=True, ref_block_id=REF_BLOCK_ID)
     assert transaction.to_json() == {
         "txID": "c93cdd6b4d9f5b3c617060ea0a9c7b6080d9855f599cc987f69105a5e3e9c9b4",
         "raw_data": {
@@ -127,28 +91,13 @@ def test_create_transaction_offline(
 
 
 @pytest.mark.skipif(not protobuf_installed, reason="Protobuf not installed")
-@pytest.mark.parametrize("client_class", [Tron, AsyncTron])
+@pytest.mark.asyncio
 @freezegun.freeze_time(datetime.datetime(2025, 7, 3, 14, 50, 32, 807000, tzinfo=datetime.UTC))
-def test_create_smart_contract_transaction_offline(
-    client_class: Tron | AsyncTron,
-) -> None:
-    client = client_class(network="nile")
-    if client_class == AsyncTron:
-
-        async def run_test():
-            contract = await client.get_contract(TRC20_CONTRACT)
-            builder = await contract.functions.transfer(TO_ADDR, 1)
-            return await builder.with_owner(FROM_ADDR).fee_limit(FEE_LIMIT).build(offline=True, ref_block_id=REF_BLOCK_ID)
-
-        transaction = asyncio.run(run_test())
-    else:
-        contract = client.get_contract(TRC20_CONTRACT)
-        transaction = (
-            contract.functions.transfer(TO_ADDR, 1)
-            .with_owner(FROM_ADDR)
-            .fee_limit(FEE_LIMIT)
-            .build(offline=True, ref_block_id=REF_BLOCK_ID)
-        )
+async def test_create_smart_contract_transaction_offline() -> None:
+    async with Tron(network="nile") as client:
+        contract = await client.get_contract(TRC20_CONTRACT)
+        builder = await contract.functions.transfer(TO_ADDR, 1)
+        transaction = await builder.with_owner(FROM_ADDR).fee_limit(FEE_LIMIT).build(offline=True, ref_block_id=REF_BLOCK_ID)
     assert transaction.to_json() == {
         "txID": "cc0928c7734c9c9cc8e8e9636c3ad47308197f4b42fce6b93eb6fa4b3247b58f",
         "raw_data": {
@@ -181,17 +130,20 @@ def test_create_smart_contract_transaction_offline(
 
 
 @pytest.mark.skipif(not protobuf_installed, reason="Protobuf not installed")
+@pytest.mark.asyncio
 @freezegun.freeze_time(datetime.datetime(2025, 7, 13, 10, 30, 0, 0, tzinfo=datetime.UTC))
-def test_offline_transaction_fields_vs_online() -> None:
-    client = Tron(network="nile")
-    with patch.object(client, "get_latest_solid_block_id", return_value=REF_BLOCK_ID):
-        online_json = client.trx.transfer(FROM_ADDR, TO_ADDR, 1).build().to_json()
-    offline_json = client.trx.transfer(FROM_ADDR, TO_ADDR, 1).build(offline=True, ref_block_id=REF_BLOCK_ID).to_json()
-    assert offline_json.pop("permission") is None
-    online_json.pop("permission")
-    assert online_json == offline_json
-    with pytest.raises(ValueError, match="ref_block_id is required"):
-        client.trx.transfer(FROM_ADDR, TO_ADDR, 1).build(offline=True)
+async def test_offline_transaction_fields_vs_online() -> None:
+    async with Tron(network="nile") as client:
+        with patch.object(client, "get_latest_solid_block_id", AsyncMock(return_value=REF_BLOCK_ID)):
+            online = await client.trx.transfer(FROM_ADDR, TO_ADDR, 1).build()
+        online_json = online.to_json()
+        offline = await client.trx.transfer(FROM_ADDR, TO_ADDR, 1).build(offline=True, ref_block_id=REF_BLOCK_ID)
+        offline_json = offline.to_json()
+        assert offline_json.pop("permission") is None
+        online_json.pop("permission")
+        assert online_json == offline_json
+        with pytest.raises(ValueError, match="ref_block_id is required"):
+            await client.trx.transfer(FROM_ADDR, TO_ADDR, 1).build(offline=True)
 
 
 @pytest.mark.skipif(not protobuf_installed, reason="Protobuf not installed")
@@ -200,50 +152,39 @@ def test_offline_transaction_fields_vs_online() -> None:
     [lambda builder: builder.memo("test memo"), lambda builder: builder.permission_id(2)],
     ids=["memo", "permission_id"],
 )
+@pytest.mark.asyncio
 @freezegun.freeze_time(datetime.datetime(2025, 7, 13, 10, 30, 0, 0, tzinfo=datetime.UTC))
-def test_offline_transaction_optional_fields_vs_online(customize: typing.Callable) -> None:
-    client = Tron(network="nile")
-    with patch.object(client, "get_latest_solid_block_id", return_value=REF_BLOCK_ID):
-        online = customize(client.trx.transfer(FROM_ADDR, TO_ADDR, 1)).build()
-    offline = customize(client.trx.transfer(FROM_ADDR, TO_ADDR, 1)).build(offline=True, ref_block_id=REF_BLOCK_ID)
+async def test_offline_transaction_optional_fields_vs_online(customize: typing.Callable) -> None:
+    async with Tron(network="nile") as client:
+        with patch.object(client, "get_latest_solid_block_id", AsyncMock(return_value=REF_BLOCK_ID)):
+            online = await customize(client.trx.transfer(FROM_ADDR, TO_ADDR, 1)).build()
+        offline = await customize(client.trx.transfer(FROM_ADDR, TO_ADDR, 1)).build(offline=True, ref_block_id=REF_BLOCK_ID)
     assert online.txid == offline.txid
     assert online.raw_data_hex == offline.raw_data_hex
 
 
 @pytest.mark.skipif(not protobuf_installed, reason="Protobuf not installed")
+@pytest.mark.asyncio
 @freezegun.freeze_time(datetime.datetime(2025, 7, 13, 10, 30, 0, 0, tzinfo=datetime.UTC))
-def test_offline_smart_contract_transaction_fields_vs_online() -> None:
-    client = Tron(network="nile")
-    contract = client.get_contract(TRC20_CONTRACT)
-    with patch.object(client, "get_latest_solid_block_id", return_value=REF_BLOCK_ID):
-        online_json = (
-            contract.functions.transfer(TO_ADDR, 1_000).with_owner(FROM_ADDR).fee_limit(5_000_000).build()
-        ).to_json()
-    offline_json = (
-        contract.functions.transfer(TO_ADDR, 1_000)
-        .with_owner(FROM_ADDR)
-        .fee_limit(5_000_000)
-        .build(offline=True, ref_block_id=REF_BLOCK_ID)
-        .to_json()
-    )
+async def test_offline_smart_contract_transaction_fields_vs_online() -> None:
+    async with Tron(network="nile") as client:
+        contract = await client.get_contract(TRC20_CONTRACT)
+
+        async def builder() -> typing.Any:
+            return (await contract.functions.transfer(TO_ADDR, 1_000)).with_owner(FROM_ADDR).fee_limit(5_000_000)
+
+        with patch.object(client, "get_latest_solid_block_id", AsyncMock(return_value=REF_BLOCK_ID)):
+            online_json = (await (await builder()).build()).to_json()
+        offline_json = (await (await builder()).build(offline=True, ref_block_id=REF_BLOCK_ID)).to_json()
     assert offline_json.pop("permission") is None
     online_json.pop("permission")
     assert online_json == offline_json
 
 
 @pytest.mark.skipif(not protobuf_installed, reason="Protobuf not installed")
-def test_offline_transaction_needs_client_to_reach_the_node() -> None:
-    transaction = Tron(network="nile").trx.transfer(FROM_ADDR, TO_ADDR, 1).build(offline=True, ref_block_id=REF_BLOCK_ID)
-    with pytest.raises(TypeError, match="transaction has no client"):
-        transaction.broadcast()
-    with pytest.raises(TypeError, match="transaction has no client"):
-        transaction.update()
-
-
-@pytest.mark.skipif(not protobuf_installed, reason="Protobuf not installed")
 @pytest.mark.asyncio
-async def test_async_offline_transaction_needs_client_to_reach_the_node() -> None:
-    async with AsyncTron(network="nile") as client:
+async def test_offline_transaction_needs_client_to_reach_the_node() -> None:
+    async with Tron(network="nile") as client:
         transaction = await client.trx.transfer(FROM_ADDR, TO_ADDR, 1).build(offline=True, ref_block_id=REF_BLOCK_ID)
     with pytest.raises(TypeError, match="transaction has no client"):
         await transaction.broadcast()

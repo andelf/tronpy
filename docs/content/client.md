@@ -50,10 +50,30 @@ client = Tron(HTTPProvider(api_key=["key1", "key2", "key3"]))  # Use mainnet(tro
 from tronpy import Tron
 from tronpy.providers import HTTPProvider
 
-provider = HTTPProvider(api_key="API KEY HERE")
-provider.sess.proxies = {"https": "....", "http": "..."}
-client = Tron(provider)
+client = Tron(HTTPProvider(api_key="API KEY HERE"))  # with HTTPS_PROXY and HTTP_PROXY set in the environment
 ```
+
+## Custom HTTP client settings
+
+Pass `client_factory` to set a proxy, limits, TLS verification or anything else `httpx2.AsyncClient` accepts. It is called
+once per event loop, so your settings apply on all threads and across repeated `asyncio.run` calls. The `timeout`
+of `HTTPProvider` doesn't apply to these clients, so set it in the factory.
+
+```python
+import httpx2
+
+from tronpy import Tron
+from tronpy.providers import HTTPProvider
+
+
+def create_client():
+    return httpx2.AsyncClient(proxy="http://....", timeout=httpx2.Timeout(10.0))
+
+
+client = Tron(HTTPProvider(api_key="API KEY HERE", client_factory=create_client))
+```
+
+Passing a single client with `client=` instead only applies to [the event loop it was created for](async.md#pitfalls).
 
 ## API reference
 

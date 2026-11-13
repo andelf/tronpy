@@ -34,12 +34,14 @@ print(txn.wait())
 # > {'id': '5182b96bc0d74f416d6ba8e22380e5920d8627f8fb5ef5a6a11d4df030459132', 'blockNumber': 6415370, 'blockTimeStamp': 1591951155000, 'contractResult': [''], 'receipt': {'net_usage': 283}}
 ```
 
-### Async Client
+### Async usage
+
+The client is async-native. The same `Tron` class works from sync code, as above, and from async code, where every network call is awaited:
 
 ```python
 import asyncio
 
-from tronpy import AsyncTron
+from tronpy import Tron
 from tronpy.keys import PrivateKey
 
 # private key of TMisHYBVvFHwKXHPYTqo8DhrRPTbWeAM6z
@@ -47,7 +49,7 @@ priv_key = PrivateKey(bytes.fromhex("8888888888888888888888888888888888888888888
 
 
 async def transfer():
-    async with AsyncTron(network="nile") as client:
+    async with Tron(network="nile") as client:
         print(client)
 
         txb = (
@@ -68,20 +70,24 @@ if __name__ == "__main__":
     asyncio.run(transfer())
 ```
 
-Or close async client manually:
+Or close the client manually, here with a custom HTTP client:
 
 ```python
+import asyncio
+
 from httpx2 import AsyncClient, Limits, Timeout
-from tronpy.providers.async_http import AsyncHTTPProvider
+from tronpy import Tron
 from tronpy.defaults import CONF_NILE
+from tronpy.keys import PrivateKey
+from tronpy.providers import HTTPProvider
 
 
 async def transfer():
     _http_client = AsyncClient(
         limits=Limits(max_connections=100, max_keepalive_connections=20), timeout=Timeout(timeout=10, connect=5, read=5)
     )
-    provider = AsyncHTTPProvider(CONF_NILE, client=_http_client)
-    client = AsyncTron(provider=provider)
+    provider = HTTPProvider(CONF_NILE, client=_http_client)
+    client = Tron(provider=provider)
     print(client)
 
     priv_key = PrivateKey(bytes.fromhex("8888888888888888888888888888888888888888888888888888888888888888"))
@@ -102,3 +108,5 @@ async def transfer():
 if __name__ == "__main__":
     asyncio.run(transfer())
 ```
+
+Upgrading from `AsyncTron` or from the `requests`-based client? See the [migration notes](https://tronpy.bitcart.ai/async/#migrating-to-the-single-client).

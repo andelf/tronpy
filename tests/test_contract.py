@@ -1,7 +1,7 @@
 import pytest
 
 from tests.utils import check_transaction_structure
-from tronpy import AsyncContract, AsyncTron, Contract, Tron
+from tronpy import Contract, Tron
 from tronpy.keys import PrivateKey
 
 # test_net address
@@ -67,19 +67,9 @@ CREATE_CONTRACT_EXPECTED_RESP = {
 }
 
 
-def test_const_functions():
-    client = Tron(network="nile")
-    contract = client.get_contract(CNR_ADDR)
-    assert contract
-    assert "name" in dir(contract.functions)
-    assert contract.functions.name() == "Example Fixed Supply Token"
-    assert contract.functions.decimals() == 2
-    assert contract.functions.totalSupply() > 0
-
-
 @pytest.mark.asyncio
-async def test_async_const_functions():
-    async with AsyncTron(network="nile") as client:
+async def test_const_functions():
+    async with Tron(network="nile") as client:
         contract = await client.get_contract(CNR_ADDR)
         assert contract
         assert "name" in dir(contract.functions)
@@ -88,16 +78,9 @@ async def test_async_const_functions():
         assert await contract.functions.totalSupply() > 0
 
 
-def test_trc20_transfer():
-    client = Tron(network="nile")
-    contract = client.get_contract(CNR_ADDR)
-    tx = contract.functions.transfer(TO_ADDR, 1_000).with_owner(FROM_ADDR).fee_limit(5_000_000).build().sign(FROM_PRIV_KEY)
-    check_transaction_structure(tx.to_json(), TRC20_EXPECTED_RESP, 5_000_000, expect_memo=False)
-
-
 @pytest.mark.asyncio
-async def test_async_trc20_transfer():
-    async with AsyncTron(network="nile") as client:
+async def test_trc20_transfer():
+    async with Tron(network="nile") as client:
         contract = await client.get_contract(CNR_ADDR)
         tx = (
             await (await contract.functions.transfer(TO_ADDR, 1_000)).with_owner(FROM_ADDR).fee_limit(5_000_000).build()
@@ -105,26 +88,9 @@ async def test_async_trc20_transfer():
         check_transaction_structure(tx.to_json(), TRC20_EXPECTED_RESP, 5_000_000, expect_memo=False)
 
 
-def test_contract_create():
-    # TGQgfK497YXmjdgvun9Bg5Zu3xE15v17cu
-    client = Tron(network="nile")
-    abi = [
-        {
-            "inputs": [],
-            "name": "get",
-            "outputs": [{"internalType": "uint256", "name": "retVal", "type": "uint256"}],
-            "stateMutability": "view",
-            "type": "function",
-        }
-    ]
-    cntr = Contract(name="SimpleStore", bytecode=BYTECODE, abi=abi)
-    tx = client.trx.deploy_contract(FROM_ADDR, cntr).fee_limit(5_000_000).build().sign(FROM_PRIV_KEY)
-    check_transaction_structure(tx.to_json(), CREATE_CONTRACT_EXPECTED_RESP, 5_000_000, expect_memo=False)
-
-
 @pytest.mark.asyncio
-async def test_async_contract_create():
-    async with AsyncTron(network="nile") as client:
+async def test_contract_create():
+    async with Tron(network="nile") as client:
         abi = [
             {
                 "inputs": [],
@@ -134,29 +100,23 @@ async def test_async_contract_create():
                 "type": "function",
             }
         ]
-        cntr = AsyncContract(name="SimpleStore", bytecode=BYTECODE, abi=abi)
+        cntr = Contract(name="SimpleStore", bytecode=BYTECODE, abi=abi)
         tx = (await client.trx.deploy_contract(FROM_ADDR, cntr).fee_limit(5_000_000).build()).sign(FROM_PRIV_KEY)
         check_transaction_structure(tx.to_json(), CREATE_CONTRACT_EXPECTED_RESP, 5_000_000, expect_memo=False)
 
 
-def test_contract_method_without_state_mutability():
-    abi = [{"inputs": [], "name": "legacy", "outputs": [], "type": "function"}]
-    client = Tron(network="nile")
-    method = Contract(addr=TO_ADDR, abi=abi, client=client).functions.legacy
-    assert str(method) == "function legacy()"
-    assert method().with_owner(FROM_ADDR)._raw_data["contract"][0]["type"] == "TriggerSmartContract"
-
-
 @pytest.mark.asyncio
-async def test_async_contract_method_without_state_mutability():
+async def test_contract_method_without_state_mutability():
     abi = [{"inputs": [], "name": "legacy", "outputs": [], "type": "function"}]
-    async with AsyncTron(network="nile") as client:
-        method = AsyncContract(addr=TO_ADDR, abi=abi, client=client).functions.legacy
+    async with Tron(network="nile") as client:
+        method = Contract(addr=TO_ADDR, abi=abi, client=client).functions.legacy
+        assert str(method) == "function legacy()"
         builder = await method()
     assert builder.with_owner(FROM_ADDR)._raw_data["contract"][0]["type"] == "TriggerSmartContract"
 
 
-def test_wrong_keyword_argument_count_is_reported():
+@pytest.mark.asyncio
+async def test_wrong_keyword_argument_count_is_reported():
     inputs = [{"name": "value", "type": "uint256"}]
     abi = [
         {"type": "constructor", "inputs": inputs},
@@ -166,4 +126,4 @@ def test_wrong_keyword_argument_count_is_reported():
     with pytest.raises(TypeError, match="require 1 got 2"):
         contract.constructor.encode_parameter(value=1, other=2)
     with pytest.raises(TypeError, match="require 1 got 2"):
-        contract.functions.set(value=1, other=2)
+        await contract.functions.set(value=1, other=2)
