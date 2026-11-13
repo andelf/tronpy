@@ -2,6 +2,8 @@
 
 ## Latest changes
 
+## 0.8.0
+
 One async-native client, usable from sync code through `universalasync`. `AsyncTron` and the other `Async*` names remain as aliases for compatibility, but aren't recommended: drop the prefix. See the [migration notes](https://tronpy.bitcart.ai/async/#migrating-to-the-single-client)
 
 **Breaking**: `requests` is removed. Sync users catch `httpx2` exceptions, `HTTPProvider.sess` is gone, TLS uses the OS trust store and redirects are no longer followed
